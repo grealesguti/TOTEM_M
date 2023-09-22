@@ -1,0 +1,167 @@
+classdef Mesh < handle
+    properties 
+        % Define class properties here
+        % For example:
+        inputReader
+        data
+    end
+    
+    methods
+        % Constructor
+        function obj = Mesh(inputReader)
+            % Constructor code here
+            % Initialize class properties based on input
+            obj.inputReader = inputReader;
+            obj.ReadMesh();
+        end
+        
+        % Add other methods here
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function ReadMesh(obj)
+            % Open the .msh file for reading
+                % Open the file for reading
+                fid = fopen(obj.inputReader.meshFileName, 'r');
+                
+                if fid == -1
+                    error('Could not open the file.');
+                end
+                
+                obj.data = struct();
+                currentSection = '';
+                elementtypes = {};    % Loop through the lines in the file
+                elementselectionnames = {};
+                nodalselectionnames = {};
+                numberofelements=1;
+                nsetID=0;
+                elsetID=0;
+               while ~feof(fid)
+                    line = fgetl(fid);
+                    
+                    disp(line)        
+                    % Check if the line is a section heading and if there are commas
+                    if startsWith(line, '*')
+                        if contains(line, ',')
+                            % If there are commas, split it at the comma
+                            tokens = strsplit(line, ',');
+                            %disp(tokens)
+                            currentSection = tokens{1};
+                        else
+                            currentSection=line;
+                        end
+                        disp("Current Section:")
+                        disp(currentSection)
+                        % Extract and store the section name
+                        if (currentSection=="*ELEMENT")
+                           disp("Element Type:")
+                           elementtype=tokens{2};
+                           elementtype = strrep(elementtype, ' ', ''); % Remove spaces using strrep
+                           elementtype=elementtype(6:end); % Remove "type="
+                           disp(elementtype)
+                        elseif (currentSection=="*ELSET")
+                           disp("Selection Name:")
+                           selectionname=tokens{2};
+                           selectionname=selectionname(7:end); % Remove "ELSET="
+                           disp(selectionname)  
+                           elsetID=elsetID+1;
+                           elsetArray = []; % Example existing array
+                           elementselectionnames{elsetID}=selectionname;
+                        elseif (currentSection=="*NSET")
+                           disp("Selection Name:")
+                           selectionname=tokens{2};
+                           selectionname=selectionname(6:end); % Remove "NSET="
+                           disp(selectionname)      
+                           nsetID = nsetID+1;
+                           nsetArray = []; % Example existing array
+                           nodalselectionnames{nsetID}=selectionname;
+                        end
+                        continue
+                    end
+                    % Parse data based on the current section
+                    switch currentSection
+                    case '*NODE'
+                            disp("node")
+                        % Split the line and parse node data
+                        nodeInfo = str2double(strsplit(line, ', '));
+                        nodeID = nodeInfo(1);
+                        nodeCoords = nodeInfo(2:end);
+                        
+                        % Store node data in the struct
+                        if ~isfield(obj.data, 'NODE')
+                            obj.data.NODE = cell(1, 1);
+                        end
+                        
+                        obj.data.NODE{nodeID} = nodeCoords;
+                        
+                        case '*ELEMENT'
+                                % Read the element data
+                                elementInfo = sscanf(line, '%d, %d, %d');
+                                elementData = elementInfo(1:3);
+                                elementtypes{numberofelements}=elementtype;
+                                numberofelements=numberofelements+1;
+            
+                                % Store element data in the struct
+                                if ~isfield(obj.data, 'ELEMENTS')
+                                    obj.data.ELEMENTS = {};
+                                end
+                                
+                                obj.data.ELEMENTS{end+1} = elementData;
+                        case '*ELSET'
+                            % Parse and store ELSET data
+                            elsetInfo = str2double(strsplit(line, ', '));
+                            elsetInfoWithoutNaN = elsetInfo(~isnan(elsetInfo));
+                            elsetArray = [elsetArray,elsetInfoWithoutNaN];
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'ELSET')
+                                obj.data.ELSET = cell(1, 1);
+                            end
+                            
+                            obj.data.ELSET{elsetID} = elsetArray;
+                            
+                        case '*NSET'  
+                            % Parse and store NSET data
+                            nsetInfo = str2double(strsplit(line, ', '));
+                            nsetInfoWithoutNaN = nsetInfo(~isnan(nsetInfo));
+                            nsetArray = [nsetArray,nsetInfoWithoutNaN];
+                            disp(nsetID);
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'NSET')
+                                obj.data.NSET = cell(1, 1);
+                            end
+                            obj.data.NSET{nsetID} = nsetArray;        
+                    end
+                end
+            
+                obj.data.ElementSelectionNames=elementselectionnames;
+                obj.data.NodalSelectionNames=nodalselectionnames;
+                obj.data.ElementTypes=elementtypes;
+                % Close the file
+                fclose(fid);
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Add getter and setter methods here
+        
+        % Example getter:
+        function numElements = DefineMaterials(obj)
+            numElements = obj.numelem;
+        end
+        
+        % Example setter:
+        function getNodesFromNaming(obj, dof)
+            % Method code here to set a fixed degree of freedom
+        end
+
+        function getElementsFromNaming(obj, dof)
+            % Method code here to set a fixed degree of freedom
+        end    
+
+        function getTotalNumberOfNodes(obj, dof)
+            % Method code here to set a fixed degree of freedom
+        end   
+
+        function getMaterialPropertyForElement(obj, dof)
+            % Method code here to set a fixed degree of freedom
+        end       
+
+
+    end
+end
