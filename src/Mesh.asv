@@ -170,38 +170,27 @@ classdef Mesh < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Example getter:
         function DefineMaterials(obj)
-            % Initialize the output
-            obj.elements_material = zeros(1, length(obj.data.ELEMENTS));
-        
-            % Loop through each material property
-            for i = 1:length(obj.inputReader.MaterialProperties)
-                % Get the ElementSelectionName for this material
-                elementSelectionName = obj.inputReader.MaterialVolumes{i};
-        
-                % Find the corresponding ELSET component
-                flag=0;
-                if isfield(obj.data, 'ELSET') && isfield(obj.data, 'ElementSelectionNames')
-                    elsetNames = obj.data.ElementSelectionNames;
-                    for j = 1:length(elsetNames)
-                        if strcmp(elementSelectionName, elsetNames{j})
-                            obj.elements_material(obj.data.ELSET{j}) = i;
-                            flag=1;
-                            break;
+                % Initialize the output
+                obj.elements_material = zeros(1,lenght(obj.data.ELEMENTS));
+                % Loop through each material property
+                for i = 1:length(obj.inputReader.MaterialProperties)                    
+                    % Get the ElementSelectionName for this material
+                    elementSelectionName = obj.inputReader.MaterialVolumes{i};
+                    
+                    % Find the corresponding ELSET component
+                    if isfield(obj.data, 'ELSET') && isfield(obj.data, 'ElementSelectionNames')
+                        elsetNames = obj.data.ElementSelectionNames;
+                        for j = 1:length(elsetNames)
+                            if strcmp(elementSelectionName, elsetNames{j})
+                                obj.elements_material(obj.data.ELSET{j})=i;
+                                break;
+                            end
                         end
                     end
-                else
-                    % Display a warning if ELSET or ElementSelectionNames are missing
-                    warning('ELSET or ElementSelectionNames data not found.');
-                end
-        
-                % Display a warning if no matching ELSET component is found
-                if flag == 0
-                    warning(['No matching ELSET component found for material ' ...
-                        'name %d (%s).'], i, elementSelectionName);
-                end
-            end
-        end
 
+
+                end
+        end
         
         % Example setter:
         function getNodesFromNaming(obj, dof)

@@ -12,6 +12,7 @@ classdef InputReader < handle
         bctype
         bcloc
         bcval
+        MaterialVolumes
     end
     
     methods
@@ -86,6 +87,7 @@ classdef InputReader < handle
                             
                             % Store material properties in MaterialProperties cell array
                             obj.MaterialProperties{end+1} = materialProperties;
+                            obj.MaterialVolumes{end+1} = volumeName;
                         end
                     case 'bc'
                         if numel(tokens) < 4
@@ -106,6 +108,14 @@ classdef InputReader < handle
             fclose(inputFile);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
+        function value = getmaterialproperty(index,propertyName)
+            material = obj.MaterialProperties{index};
+            if isKey(material, propertyName)
+                value = material(propertyName);
+            else
+                disp(['Key "', propertyName, '" not found in the map.']);
+            end
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end

@@ -6,10 +6,12 @@ inputfilename = "Benchmarks/Elements/input_Benchmark1_LINEARHEX_PARAM.txt";
     % Define the path to the source folder (change this as needed)
     srcFolder = 'src';
     addpath(srcFolder);
-
+    utilsFolder = 'utils';
+    addpath(utilsFolder);
+    
     % Create an instance of the InputReader class
         reader = InputReader("Benchmarks/Elements/input_Benchmark1_LINEARHEX_PARAM.txt");
         fprintf('Initialized InputReader with filename: %s\n', inputfilename);
         mesh = Mesh(reader);
-        fprintf('Initialized Mesh');
+        fprintf('Initialized Mesh\n');
         bcinit = BCInit(reader, mesh);
