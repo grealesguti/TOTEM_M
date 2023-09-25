@@ -4,14 +4,16 @@ classdef Solver < handle
         mesh_
         bcinit_
         TO
+        tolerance
+        max_iterations
+        soldofs
+        loadVector
     end
     
     properties (Hidden)
         elements
         utils
         meshFileName
-        soldofs
-        loadVector
         freedofidxs
     end
     
@@ -34,41 +36,58 @@ classdef Solver < handle
                 % Initialize the thermoelectricityintegrationFunction_ using a function handle
                 obj.thermoelectricityintegrationFunction = @(natcoords, coords, dofs, elementTag) obj.thermoelectricityintegration(natcoords, coords, dofs, elementTag);
         
+                obj.max_iterations=10;
+                obj.tolerance=1e-6;
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [KJs,Ra]=Assembly(obj)
+
+            mesh_elements_name = obj.reader.MeshEntityName;
+            mesh_elements = obj.mesh.getElementsFromName (mesh_elements_name);
+            total_number_of_elements = length(mesh_elements);
+            total_number_of_nodes = length(obj.mesh.NODE);
+            total_number_of_dofs = total_number_of_nodes*2;
+            dofs_per_element = 20*2;
             % FIXME:
                 % define nnv and nele and improve their naming
-            Ra=zeros(ndof,1);%KJa=sparse(ndof,ndof);
-            KJvnz=zeros(nnv,nele);KJvc=zeros(nnv,nele);KJvr=zeros(nnv,nele);
-            for  ii=1:nele
+            Ra=zeros(total_number_of_dofs,1);%KJa=sparse(ndof,ndof);
+            KJvnz=zeros(dofs_per_element,total_number_of_elements);
+            KJvc=zeros(dofs_per_element,total_number_of_elements);
+            KJvr=zeros(dofs_per_element,total_number_of_elements);
+            for  i=1:total_number_of_elements
+
+                % recover each element tag
+                element_Tag=elements[i];
+
                 % initialization to zeros for each element
                 Rs=zeros(ndof,1);%KJs=sparse(ndof,ndof);
 
                 % FIXME
                 % modify the function to run with the gauss
                 % previoously defined
-                [KJ,R]=GaussKAS14A_TO(coord,order(ii,:),Te,Ve,matp,matv,ii,sysv,localval,xx(ii),p,seebp,rhop);
-
+                Ke,Re = gaussIntegrationK(3, 5, elementTag, mesh, func);
                 % assembly in global residual and jacobian matrix in sparse format
-                Rs(doforder,1)=R(:,1);      
+                Rs(doforder,1)=Re(:,1);      
                 Ra=Ra+Rs;
                 
-                KJvnz(:,ii)=reshape(KJ,nnv,1);
-                KJvc(:,ii)=reshape(repmat(doforder,20*2,1),nnv,1);
-                KJvr(:,ii)=reshape(repmat(doforder,20*2,1)',nnv,1);
+                KJvnz(:,i)=reshape(Ke,nnv,1);
+                KJvc(:,i)=reshape(repmat(doforder,20*2,1),nnv,1);
+                KJvr(:,i)=reshape(repmat(doforder,20*2,1)',nnv,1);
 
             end
-            KJvnzr=reshape(KJvnz,nele*nnv,1);KJvcr=reshape(KJvc,nele*nnv,1);KJvrr=reshape(KJvr,nele*nnv,1); % is this needed??
-            KJs=sparse(KJvrr,KJvcr,KJvnzr,ndof,ndof);
+            KJvnzr=reshape(KJvnz,total_number_of_elements*dofs_per_element,1);
+            KJvcr=reshape(KJvc,total_number_of_elements*dofs_per_element,1);
+            KJvrr=reshape(KJvr,total_number_of_elements*dofs_per_element,1); % is this needed??
+            KJs=sparse(KJvrr,KJvcr,KJvnzr,total_number_of_dofs,total_number_of_dofs);
             Ra=Ra-obj.load_vector;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function result = gaussIntegrationK(dimension, order, elementTag, mesh, bcvalue, func)
+        function [K,R] = gaussIntegrationK(dimension, order, elementTag, mesh, dofs, func)
             if dimension < 1 || order < 1
                 fprintf('Invalid dimension or order for Gauss integration.\n');
-                result = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                R = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
                 return;
             end
            
@@ -76,15 +95,22 @@ classdef Solver < handle
             
             if isempty(weights) || isempty(gaussPoints)
                 fprintf('Invalid order for Gauss integration.\n');
-                result = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                R = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
                 return;
             end
             
             if size(weights, 1) ~= size(gaussPoints, 1)
                 fprintf('Weights and Gauss points have mismatched dimensions.\n');
-                result = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                R = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
                 return;
             end
+
+            number_of_nodes = length(mesh.data.ELEMENTS{elementTag});
+            dof_per_node = 2;
+            K=zeros(number_of_nodes*dof_per_node,number_of_nodes*dof_per_node);
+            R=zeros(number_of_nodes*dof_per_node,1);
             
             if dimension == 1
                 % 1D integration using a single loop.
@@ -92,8 +118,9 @@ classdef Solver < handle
                 for i = 1:size(weights, 1)
                     natcoords(1) = gaussPoints(i);
                     % Explicitly use the element-wise multiplication .* for arrays
-                    f = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* weights(i);
-                    result = result + f;
+                    Ke,Re = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* weights(i);
+                    K = K + Ke;
+                    R = R + Re;
                 end
             elseif dimension == 2
                 % 2D integration using a double loop.
@@ -103,14 +130,17 @@ classdef Solver < handle
                         natcoords(1) = gaussPoints(i);
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
-                        f = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j));
-                        result = result + f;
+                        Ke,Re = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j));
+                        K = K + Ke;
+                        R = R + Re;
                     end
                 end
             elseif dimension == 3
                 if order == 14
                     % Special case for 3D integration with order 14.
-                    result = weights * weights' .* weights * weights' .* weights * weights' .* func(gaussPoints, coordinates_tr_XY, bcvalue, elementTag, mesh);
+                    Ke,Re = weights * weights' .* weights * weights' .* weights * weights' .* func(gaussPoints, coordinates_tr_XY, bcvalue, elementTag, mesh);
+                    K = K + Ke;
+                    R = R + Re;
                 else
                     % Generic 3D integration using a triple loop.
                     natcoords = zeros(3, 1);
@@ -121,19 +151,21 @@ classdef Solver < handle
                                 natcoords(2) = gaussPoints(j);
                                 natcoords(3) = gaussPoints(k);
                                 % Explicitly use the element-wise multiplication .* for arrays
-                                f = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j) * weights(k));
-                                result = result + f;
+                                Ke,Re = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j) * weights(k));
+                                K = K + Ke;
+                                R = R + Re;
                             end
                         end
                     end
                 end
             else
                 fprintf('Invalid dimension for Gauss integration.\n');
-                result = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
+                R = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJ, R] = thermoelectricityintegrationFunction(elementTag,mesh,xi,eta,zeta,etype,reader,TO)
+        function [KJ, R] = thermoelectricityintegrationFunction(elementTag,mesh,xi,eta,zeta,etype,reader)
             %% Thermoelectricity Simulation
             % This function calculates thermoelectric properties using finite element analysis.
             % Inputs:
@@ -169,11 +201,11 @@ classdef Solver < handle
                 De = reader.getmaterialproperty(element_material_index,'electricalconductivity');
                 Dk = reader.getmaterialproperty(element_material_index,'thermalconductivity');
                 Da = reader.getmaterialproperty(element_material_index,'Seebeck');
-                if TO.isTO
-                    De=De;
-                    Dk=Dk;
-                    Da=Da;
-                end
+                %if TO.isTO
+                %    De=De;
+                %    Dk=Dk;
+                %    Da=Da;
+                %end
 
                 Dde=0;Dda=0;Ddk=0;
             
@@ -209,26 +241,68 @@ classdef Solver < handle
             solution=K(obj.mesh_.freedofs,obj.mesh_.freedofs)\R(obj.mesh_.freedofs);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function result = runNewtonRaphson(obj)
-            % Implement your code here
+        function residual = runNewtonRaphson(obj)
+            % Initialize some parameters and initial guess
+            
+            for iter = 1:obj.max_iterations
+                % Assembly the system matrix
+                [Ksparse,Rsparse] = Assembly();
+                
+                if (residual < obj.tolerance && iter>1)
+                    % Converged, return both the solution and the final residual
+                    fprintf('### NR. CONVERGED\n');
+                    return;
+                end
+                
+                % Solve the system using the tangential matrix and residual: KT*dU=R->dU
+                delta_degreesoffreedom = solveSparseSystem(Ksparse(obj.freedofidxs,obj.freedofidxs),Rsparse(obj.freedofidxs));
+                
+                % Update solution
+                for i = 1:length(obj.freedofidxs)
+                    obj.soldofs(obj.freedofidxs(i)) = obj.soldofs(obj.freedofidxs(i)) + delta_degreesoffreedom(i);
+                end
+                
+                % Calculate the residual (error)
+                residual = norm(Rsparse); % Calculate the norm
+                fprintf('### NR. Iteration %d residual %f\n', iter, residual);
+              
+            end
+        
+            % If we reach here, the Newton-Raphson method did not converge
+            error('Newton-Raphson did not converge: iteration limit');
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function solDofs = getAllSolDofs(obj)
-            solDofs = obj.soldofs;
-        end
+        function residual = runModifiedNewtonRaphsonSolver(obj)
+            % Initialize some parameters and initial guess
+                % Assembly the system matrix
+            [Ksparse,Rsparse] = Assembly();
+            for iter = 1:obj.max_iterations
+                % Assembly the system matrix
+                
+                if (residual < obj.tolerance && iter>1)
+                    % Converged, return both the solution and the final residual
+                    fprintf('### NR. CONVERGED\n');
+                    return;
+                end
+                
+                % Solve the system using the tangential matrix and residual: KT*dU=R->dU
+                delta_degreesoffreedom = solveSparseSystem(Ksparse(obj.freedofidxs,obj.freedofidxs),Rsparse(obj.freedofidxs));
+                
+                % Update solution
+                for i = 1:length(obj.freedofidxs)
+                    obj.soldofs(obj.freedofidxs(i)) = obj.soldofs(obj.freedofidxs(i)) + delta_degreesoffreedom(i);
+                end
+                
+                % Calculate the residual (error)
+                residual = norm(Rsparse); % Calculate the norm
+                fprintf('### NR. Iteration %d residual %f\n', iter, residual);
+              
+            end
         
-        function solDof = getAllSolDof(obj, i)
-            solDof = obj.soldofs(i);
+            % If we reach here, the Newton-Raphson method did not converge
+            error('Newton-Raphson did not converge: iteration limit');
         end
-        
-        function result = runArcLengthSolver(obj)
-            % Implement your code here
-        end
-        
-        function result = runModifiedNewtonRaphsonSolver(obj, applyLoadIncrements)
-            % Implement your code here
-        end
-        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function result = runNewtonRaphsonWithUniformIncrements(obj, totalLoadVector, numUniformIncrements)
             % Implement your code here
         end

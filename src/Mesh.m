@@ -6,6 +6,7 @@ classdef Mesh < handle
         data
         elements
         elements_material
+        dofs_fixed
     end
     
     methods
@@ -13,18 +14,17 @@ classdef Mesh < handle
         function obj = Mesh(inputReader)
             % Constructor code here
             % Initialize class properties based on input
-            elements=Elements();
-            obj.inputReader = inputReader;
-            obj.ReadMesh();
-           
+            obj.elements=Elements();
+            obj.ReadMesh(inputReader);    
+            obj.DefineMaterials(inputReader)
         end
         
         % Add other methods here
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function ReadMesh(obj)
+        function ReadMesh(obj,inputReader)
             % Open the .msh file for reading
                 % Open the file for reading
-                fid = fopen(obj.inputReader.meshFileName, 'r');
+                fid = fopen(inputReader.meshFileName, 'r');
                 
                 if fid == -1
                     error('Could not open the file.');
@@ -98,17 +98,33 @@ classdef Mesh < handle
                         
                         case '*ELEMENT'
                                 % Read the element data
-                                elementInfo = sscanf(line, '%d, %d, %d');
-                                elementData = elementInfo(1:3);
-                                elementtypes{numberofelements}=elementtype;
-                                numberofelements=numberofelements+1;
+                                if(elementtype=="T3D2") 
+                                    elementInfo = sscanf(line, '%d, %d, %d');
+                                    elementData = elementInfo(2:3);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                elseif(elementtype=="CPS4")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:5);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                elseif(elementtype=="C3D8")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:9);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                else
+                                end
             
                                 % Store element data in the struct
                                 if ~isfield(obj.data, 'ELEMENTS')
                                     obj.data.ELEMENTS = {};
                                 end
                                 
-                                obj.data.ELEMENTS{end+1} = elementData;
+                                obj.data.ELEMENTS{elementIdx} = elementData;
                         case '*ELSET'
                             % Parse and store ELSET data
                             elsetInfo = str2double(strsplit(line, ', '));
@@ -143,23 +159,24 @@ classdef Mesh < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Add getter and setter methods here
-        function [shapeFunctions, shapeFunctionDerivatives] = selectShapeFunctionsAndDerivatives(etype, xi, eta, zeta)
+        function [shapeFunctions, shapeFunctionDerivatives] = selectShapeFunctionsAndDerivatives(~,etype, xi, eta, zeta)
             % Initialize output variables
+            elements=Elements();
             shapeFunctions = [];
             shapeFunctionDerivatives = [];
         
             if etype == "CPS4" % 4-node quadrangle
-                shapeFunctions = obj.elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
-                shapeFunctionDerivatives = obj.elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
+                shapeFunctions = elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
+                shapeFunctionDerivatives = elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == 16 % 8-node second order quadrangle
-                shapeFunctions = obj.elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
-                shapeFunctionDerivatives = obj.elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
+                shapeFunctions = elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
+                shapeFunctionDerivatives = elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == "C3D8" % Hexahedral 8 node element
-                shapeFunctions = obj.elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
+                shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
                 shapeFunctionDerivatives = obj.elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
             elseif etype == 17 % Hexahedral 20 node element
-                shapeFunctions = obj.elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
-                shapeFunctionDerivatives = obj.elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
+                shapeFunctions = elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
+                shapeFunctionDerivatives = elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
             else
                 % Handle unsupported element types or return an error code
                 % You can choose an appropriate error handling strategy here
@@ -169,14 +186,14 @@ classdef Mesh < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Example getter:
-        function DefineMaterials(obj)
+        function DefineMaterials(obj,inputReader)
             % Initialize the output
             obj.elements_material = zeros(1, length(obj.data.ELEMENTS));
         
             % Loop through each material property
-            for i = 1:length(obj.inputReader.MaterialProperties)
+            for i = 1:length(inputReader.MaterialProperties)
                 % Get the ElementSelectionName for this material
-                elementSelectionName = obj.inputReader.MaterialVolumes{i};
+                elementSelectionName = inputReader.MaterialVolumes{i};
         
                 % Find the corresponding ELSET component
                 flag=0;
@@ -201,25 +218,7 @@ classdef Mesh < handle
                 end
             end
         end
-
-        
-        % Example setter:
-        function getNodesFromNaming(obj, dof)
-            % Method code here to set a fixed degree of freedom
-        end
-
-        function getElementsFromNaming(obj, dof)
-            % Method code here to set a fixed degree of freedom
-        end    
-
-        function getTotalNumberOfNodes(obj, dof)
-            % Method code here to set a fixed degree of freedom
-        end   
-
-        function getMaterialPropertyForElement(obj, dof)
-            % Method code here to set a fixed degree of freedom
-        end       
-
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     end
 end

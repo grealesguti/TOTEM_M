@@ -15,3 +15,5 @@ inputfilename = "Benchmarks/Elements/input_Benchmark1_LINEARHEX_PARAM.txt";
         mesh = Mesh(reader);
         fprintf('Initialized Mesh\n');
         bcinit = BCInit(reader, mesh);
+        fprintf('Initialized Loads\n');
+        solver = Solver(reader, mesh, bcinit);

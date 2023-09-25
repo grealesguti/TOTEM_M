@@ -5,34 +5,35 @@ classdef BCInit < handle
         elements_
         loadVector_
         initialdofs_
+        dofs_fixed_
+        numDofs
+        numNodes
+        dofspernode
+        dofs_free_
     end
     
     properties (Access = private)
         integrationFunction
-        numNodes
-        numDofs
-        dofspernode
     end
     
     methods
     function obj = BCInit(inputReader, mesh)
-        obj.inputReader_ = inputReader;
-        obj.mesh_ = mesh;
         obj.elements_ = Elements(); % Assuming Elements is a class in your project
-        numNodes=size(mesh.data.NODE);
-        numNodes=numNodes(2);
-        dofspernode=2;
-        numDofs=numNodes*dofspernode;
-        obj.loadVector_ = zeros(numDofs, 1);
-        
+
+        obj.numNodes=length(mesh.data.NODE);
+        obj.dofspernode=2;
+        obj.numDofs=obj.numNodes*obj.dofspernode;
+        obj.loadVector_ = zeros(obj.numDofs, 1);
+        obj.dofs_fixed_=zeros(length(mesh.data.NODE)*2,1);
+
         % Initialize initialdofs_ based on the number of nodes
-        obj.initialdofs_ = zeros(numDofs, 1);
+        obj.initialdofs_ = zeros(obj.numDofs, 1);
         
         % Call boundaryConditions to perform any necessary setup
-        obj.boundaryConditions();
+        obj.boundaryConditions(mesh,inputReader);
     end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function T3 = calculate_T3(nodes)
+        function T3 = calculate_T3(~,nodes)
             % Check if the input matrix is 3x(nodes per element)
             if size(nodes, 1) ~= 3
                 error('Input matrix must be 3x(nodes per element)');
@@ -68,22 +69,23 @@ classdef BCInit < handle
                   lz, mz, nz];
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function result = gaussIntegrationBC(dimension, order, elementTag, mesh, bcvalue, func)
-            if dimension < 1 || order < 1
+        function result = gaussIntegrationBC(obj,geometric_dimension, order, elementTag, bcvalue, mesh)
+            if geometric_dimension < 1 || order < 1
                 fprintf('Invalid dimension or order for Gauss integration.\n');
                 result = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
                 return;
             end
             
-            mesh.getElementInfo(elementTag, nodeTags_el);
             element_nodes = mesh.data.ELEMENTS{elementTag};
             coordinates = zeros(3,length(element_nodes));
-            for element = element_nodes
-                coordinates(:,element)=mesh.data.NODE{element};
+            for i=1: length(element_nodes)
+                element= element_nodes(i);
+                node_coordinates=mesh.data.NODE{element};
+                coordinates(:,i)=node_coordinates';
             end
-            iT3 = Utils.calculate_inverse_T3(coordinates);
-            coordinates_tr = iT3 * coordinates;
-            
+            T3=obj.calculate_T3(coordinates);
+            coordinates_tr = T3 \ coordinates;
+            result= zeros(length(element_nodes),1);
             % Create a new matrix to store the result without the last row
             coordinates_tr_XY = [];
             tolerance = 1e-6; % Define your tolerance here
@@ -131,16 +133,16 @@ classdef BCInit < handle
                 return;
             end
             
-            if dimension == 1
+            if geometric_dimension == 1
                 % 1D integration using a single loop.
                 natcoords = zeros(1, 1);
                 for i = 1:size(weights, 1)
                     natcoords(1) = gaussPoints(i);
                     % Explicitly use the element-wise multiplication .* for arrays
-                    f = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* weights(i);
+                    f = obj.CteSurfBC(natcoords, coordinates_tr_XY, bcvalue, elementTag,mesh) .* weights(i);
                     result = result + f;
                 end
-            elseif dimension == 2
+            elseif geometric_dimension == 2
                 % 2D integration using a double loop.
                 natcoords = zeros(2, 1);
                 for i = 1:size(weights, 1)
@@ -148,14 +150,14 @@ classdef BCInit < handle
                         natcoords(1) = gaussPoints(i);
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
-                        f = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j));
+                        f = obj.CteSurfBC(natcoords, coordinates_tr_XY, bcvalue, elementTag,mesh) .* (weights(i) * weights(j));
                         result = result + f;
                     end
                 end
-            elseif dimension == 3
+            elseif geometric_dimension == 3
                 if order == 14
                     % Special case for 3D integration with order 14.
-                    result = weights * weights' .* weights * weights' .* weights * weights' .* func(gaussPoints, coordinates_tr_XY, bcvalue, elementTag, mesh);
+                    result = weights * weights' .* weights * weights' .* weights * weights' .* obj.CteSurfBC(gaussPoints, coordinates_tr_XY, bcvalue, elementTag,mesh);
                 else
                     % Generic 3D integration using a triple loop.
                     natcoords = zeros(3, 1);
@@ -166,7 +168,7 @@ classdef BCInit < handle
                                 natcoords(2) = gaussPoints(j);
                                 natcoords(3) = gaussPoints(k);
                                 % Explicitly use the element-wise multiplication .* for arrays
-                                f = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j) * weights(k));
+                                f = obj.CteSurfBC(natcoords, coordinates_tr_XY, bcvalue, elementTag,mesh) .* (weights(i) * weights(j) * weights(k));
                                 result = result + f;
                             end
                         end
@@ -178,9 +180,9 @@ classdef BCInit < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function F_q = CteSurfBC(natcoords, coords, value, element, mesh)
+        function F_q = CteSurfBC(~,natcoords, coords, value, element,mesh)
             % Define variables
-            etype=mesh.ElementTypes{element};
+            etype=mesh.data.ElementTypes{element};
         
             % Extract natural coordinates
             xi = 0;
@@ -208,30 +210,30 @@ classdef BCInit < handle
             F_q = detJ * (shapeFunctions * value);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function boundaryConditions(obj)
+        function boundaryConditions(obj, mesh, inputReader)
             fprintf('#BCInit::boundaryConditions\n');
             
             % Get the boundary conditions from the InputReader
-            boundaryConditions = obj.inputReader_.bctype;
+            boundaryConditions = inputReader.bctype;
             
             % Iterate through each boundary condition
             for k = 1:length(boundaryConditions)
                 bc = boundaryConditions{k};
                 boundaryName = bc;
-                surfaceName = obj.inputReader_.bcloc{k};
-                value = obj.inputReader_.bcval(k);
+                surfaceName = inputReader.bcloc{k};
+                value = inputReader.bcval(k);
                 
                 fprintf('Boundary Name: %s, Surface Name: %s, Value: %f\n', boundaryName, surfaceName, value);
                 
                 if strcmp(boundaryName, 'Temperature')
                     % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
-                    nodes=obj.mesh_.data.NSET{strcmp(obj.mesh_.data.NodalSelectionNames, surfaceName)};
+                    nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
                     
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
                     for node = nodes
                         if (node*2) < length(obj.initialdofs_)
                             obj.initialdofs_(node*2) = value;
-                            obj.setFixedof(node*2);
+                            obj.dofs_fixed_(node*2)=1;
                         else
                             % Handle the case where the node index is out of bounds.
                             % This could be an error condition depending on your application.
@@ -240,13 +242,13 @@ classdef BCInit < handle
                     end
                 elseif strcmp(boundaryName, 'Voltage')
                     % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
-                    nodes=obj.mesh_.data.NSET{strcmp(obj.mesh_.data.NodalSelectionNames, surfaceName)};
+                    nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
                     
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
                     for node = nodes
                         if (node*2+1) < length(obj.initialdofs_)
                             obj.initialdofs_(node*2+1) = value;
-                            obj.mesh_.setFixedof(node*2+1);
+                            obj.dofs_fixed_(node*2+1)=1;
                         else
                             % Handle the case where the node index is out of bounds.
                             % This could be an error condition depending on your application.
@@ -255,22 +257,23 @@ classdef BCInit < handle
                     end
                 elseif strcmp(boundaryName, 'heat_n')
                     % Assuming 'getElementsAndNodeTagsForPhysicalGroup' returns a cell array of vectors
-                    elementindexVector=obj.mesh_.data.ELSET{strcmp(obj.mesh_.data.ElementSelectionNames, surfaceName)};
+                    elementindexVector=mesh.data.ELSET{strcmp(mesh.data.ElementSelectionNames, surfaceName)};
                     
                     % Debugging: Print the sizes of elements and element_nodes vectors
                     fprintf('Size of ''elements'' vector: %d\n', length(elementindexVector));
                     
                     fprintf('HEAT INTEGRATION.\n');
                     % Initialize temporary load vectors for each worker
-                    numWorkers = numel(gcp); % Get the number of workers
+                    %numWorkers = numel(gcp); % Get the number of workers
+                    numWorkers=1;
                     tempLoadVectors = cell(1, numWorkers);
                     
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    %gaussIntegrationBCFun = @(element) gaussIntegrationBC(2, 3, element, value, CteSurfBC);
-                    gaussIntegrationBCFun = @(element) gaussIntegrationBC(2, 3, element, value, CteSurfBC,obj.mesh_);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value, mesh);
+                    %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
                     
                     % Loop through elements in parallel
-                    parfor workerIdx = 1:numWorkers
+                    for workerIdx = 1:numWorkers
                         % Initialize temporary load vector for this worker
                         tempLoadVector = zeros(size(obj.loadVector_));
                         
@@ -281,35 +284,14 @@ classdef BCInit < handle
                         for elementIdx = workerElements
                             % Calculate element_load_vector for the current element
                             element_load_vector = gaussIntegrationBCFun(elementIdx);
-                            
-                            % Loop through element nodes and update temporary loadVector_
-                            for i = (elementIdx - 1) * nodes_per_element + 1 : elementIdx * nodes_per_element
-                                if i <= length(element_nodes)
-                                    node = element_nodes(i);
-                                    if (node * 2) <= length(tempLoadVector) % debugging
-                                        tempLoadVector(node * 2) = tempLoadVector(node * 2) + element_load_vector(i - (elementIdx - 1) * nodes_per_element);
-                                    else
-                                        fprintf('Error: Node index out of bounds!\n');
-                                    end
-                                else
-                                    fprintf('Error: Element node index out of bounds!\n');
-                                end
-                            end
+                            obj.loadVector_(mesh.data.ELEMENTS{elementIdx}*2-1) = obj.loadVector_(mesh.data.ELEMENTS{elementIdx}*2-1) + element_load_vector;
                         end
-                        
-                        % Store the temporary load vector in the cell array
-                        tempLoadVectors{workerIdx} = tempLoadVector;
                     end
                     
-                    % Accumulate the results from all workers into the final loadVector_
-                    for workerIdx = 1:numWorkers
-                        obj.loadVector_ = obj.loadVector_ + tempLoadVectors{workerIdx};
-                    end
                     fprintf('HEAT INTEGRATION FINISHED.\n');
                 end
             end
-            
-            obj.mesh_.SetFreedofsIdx(); % store the index of the dofs that are not fixed in order
+            obj.dofs_free_=find(obj.dofs_fixed_ == 0);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
