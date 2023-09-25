@@ -104,6 +104,12 @@ classdef Mesh < handle
                                     elementIdx=elementInfo(1);
                                     elementtypes{elementIdx}=elementtype;
                                     numberofelements=numberofelements+1;
+                                elseif(elementtype=="T3D3")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d');
+                                    elementData = elementInfo(2:4);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
                                 elseif(elementtype=="CPS4")
                                     elementInfo = sscanf(line, '%d, %d, %d, %d, %d');
                                     elementData = elementInfo(2:5);
@@ -116,7 +122,24 @@ classdef Mesh < handle
                                     elementIdx=elementInfo(1);
                                     elementtypes{elementIdx}=elementtype;
                                     numberofelements=numberofelements+1;
+                                elseif(elementtype=="CPS8")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:9);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;        
+                                elseif(elementtype=="C3D20")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,');
+                                    line = fgetl(fid);
+                                    elementInfo1 = sscanf(line, '%d, %d, %d, %d, %d');
+                                    elementData(1:15) = elementInfo(2:16);
+                                    elementData(16:20)= elementInfo1(1:5);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;     
                                 else
+                                    % Print a warning when an unknown element type is encountered
+                                    warning('Unknown element type: %s', elementtype);
                                 end
             
                                 % Store element data in the struct
@@ -168,13 +191,13 @@ classdef Mesh < handle
             if etype == "CPS4" % 4-node quadrangle
                 shapeFunctions = elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
                 shapeFunctionDerivatives = elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
-            elseif etype == 16 % 8-node second order quadrangle
+            elseif etype == "CPS8" % 8-node second order quadrangle
                 shapeFunctions = elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
                 shapeFunctionDerivatives = elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == "C3D8" % Hexahedral 8 node element
                 shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
                 shapeFunctionDerivatives = obj.elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
-            elseif etype == 17 % Hexahedral 20 node element
+            elseif etype == "C3D20" % Hexahedral 20 node element
                 shapeFunctions = elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
                 shapeFunctionDerivatives = elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
             else
@@ -219,6 +242,65 @@ classdef Mesh < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function elements = retrieveElementalSelection(obj,targetString)              
+                % Use cellfun to find indices where targetString is located
+                indices = find(cellfun(@(x) strcmp(x, targetString), obj.data.ElementSelectionNames));
+                % Check if the length of indices is higher than 1 and issue a warning
+                if length(indices) > 1
+                    warning('Multiple occurrences of the target string found.');
+                end
+                elements = obj.data.ELSET{indices};
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function nodes = retrieveNodalSelection(obj,targetString)              
 
+                % Use cellfun to find indices where targetString is located
+                indices = find(cellfun(@(x) strcmp(x, targetString), obj.data.NodalSelectionNames));
+                % Check if the length of indices is higher than 1 and issue a warning
+                if length(indices) > 1
+                    warning('Multiple occurrences of the target string found.');
+                end
+                nodes = obj.data.NSET{indices};
+        end    
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [node_el,etype_element] = retrievemeshtype(obj,reader)
+            elements_in_mesh = retrieveElementalSelection(obj, reader.MeshEntityName);
+            prev_flag = 0;  % Initialize a previous flag
+            cc=0;
+            for element = elements_in_mesh
+                etype_element = obj.data.ElementTypes{element};
+                if etype_element == "CPS4" % 4-node quadrangle
+                    node_el = 4;
+                    flag = 1;
+                elseif etype_element == "CPS8" % 8-node second-order quadrangle
+                    node_el = 8;
+                    flag = 2;
+                elseif etype_element == "C3D8" % Hexahedral 8 node element
+                    node_el = 8;
+                    flag = 3;
+                elseif etype_element == "C3D20" % Hexahedral 20 node element
+                    node_el = 20;
+                    flag = 4;
+                else
+                    flag = 0;
+                    % Handle unsupported element types or return an error code
+                    % You can choose an appropriate error handling strategy here
+                    % For example, you can throw an exception or set an error flag
+                    % and handle it in the calling code.
+                end
+                
+                % Check if the current flag is different from the previous flag
+                if (cc>1 && flag ~= prev_flag)
+                    warning('Different cases of etype_element found in the loop.');
+                end
+                
+                % Update the previous flag
+                prev_flag = flag;
+
+                cc=cc+1;
+            end
+            
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end

@@ -108,7 +108,7 @@ classdef InputReader < handle
             fclose(inputFile);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function value = getmaterialproperty(index,propertyName)
+        function value = getmaterialproperty(obj,index,propertyName)
             material = obj.MaterialProperties{index};
             if isKey(material, propertyName)
                 value = material(propertyName);

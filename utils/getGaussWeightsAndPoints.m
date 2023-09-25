@@ -23,19 +23,25 @@ function [weights, gaussPoints] = getGaussWeightsAndPoints(order)
         gaussPoints(1) = -0.774596669241483;
         gaussPoints(2) = 0.0;
         gaussPoints(3) = 0.774596669241483;
+    elseif order == 4
+        % 4-point Gauss integration rule.
+        weights = [0.6521451548625461; 0.6521451548625461; 0.3478548451374538; 0.3478548451374538];
+        gaussPoints = [-0.1834346424956498; 0.1834346424956498; -0.5255324099163290; 0.5255324099163290];
+    elseif order == 5
+        % 5-point Gauss integration rule.
+        weights = [0.5688888888888889; 0.4786286704993665; 0.4786286704993665; 0.2369268850561891; 0.2369268850561891];
+        gaussPoints = [0.0000000000000000; -0.5384693101056831; 0.5384693101056831; -0.9061798459386640; 0.9061798459386640];
     elseif order == 14
         % 14-point Gauss integration rule.
-        cor = 0.335180055401662;
-        cen = 0.886426592797784;
-        
-        G14 = [-cor, -cor, -cor, -cor, +cor, +cor, +cor, +cor, -cen, cen, 0.0, 0.0, 0.0, 0.0;
-               -cor, -cor, +cor, +cor, -cor, -cor, +cor, +cor, 0.0, 0.0, -cen, cen, 0.0, 0.0;
-               -cor, +cor, -cor, +cor, -cor, +cor, -cor, +cor, 0.0, 0.0, 0.0, 0.0, -cen, cen];
-        
-        W14 = zeros(order, 1);
-        W14(1:8) = cor;
-        W14(9:14) = cen;
-
+          cor=0.758786910639328;
+          cen=0.795822425754222;
+          G14=[ -cor,-cor,-cor,-cor,+cor,+cor,+cor,+cor,    -cen,cen,0,0,0,0
+                -cor,-cor,+cor,+cor,-cor,-cor,+cor,+cor,    0,0,-cen,cen,0,0    
+                -cor,+cor,-cor,+cor,-cor,+cor,-cor,+cor,    0,0,0,0,-cen,cen
+          ];
+          cor=0.335180055401662;
+          cen=0.886426592797784;
+          W14(1:8)=cor; W14(9:14)=cen;
         weights = W14;
         gaussPoints = G14;
     end

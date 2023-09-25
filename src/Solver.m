@@ -8,10 +8,13 @@ classdef Solver < handle
         max_iterations
         soldofs
         loadVector
+        numNodes
+        thermoelectricityintegrationFunctionFun
+        KT
+        Residual
     end
     
     properties (Hidden)
-        elements
         utils
         meshFileName
         freedofidxs
@@ -19,71 +22,82 @@ classdef Solver < handle
     
     methods
         function obj = Solver(inputReader, mesh, bcinit)
-                obj.inputReader_ = inputReader;
-                obj.mesh_ = mesh;
-                obj.bcinit_ = bcinit;
-                obj.elements = Elements(); % Initialize Elements here
         
                 % Get the number of nodes from the mesh
-                numNodes = obj.mesh.getNumAllNodes();
+                obj.numNodes = length(mesh.data.NODE);
         
                 % Initialize the loadVector_ member with a size double the number of nodes
-                obj.loadVector = obj.bcinit.getloadVector();
-                obj.soldofs = zeros(1, 2 * numNodes);
-                obj.soldofs(1:numel(obj.bcinit.getAllInitialDof())) = obj.bcinit.getAllInitialDof();
-                obj.freedofidxs = obj.mesh.GetFreedofsIdx();
-        
-                % Initialize the thermoelectricityintegrationFunction_ using a function handle
-                obj.thermoelectricityintegrationFunction = @(natcoords, coords, dofs, elementTag) obj.thermoelectricityintegration(natcoords, coords, dofs, elementTag);
-        
+                obj.loadVector = bcinit.loadVector_;
+                obj.soldofs = zeros(length(bcinit.initialdofs_),1);
+                
+                [obj.KT,obj.Residual]=obj.Assembly(inputReader,mesh,bcinit);
+
+                obj.SolveLinearSystemInParallel(bcinit);
+                
                 obj.max_iterations=10;
-                obj.tolerance=1e-6;
+                obj.tolerance=1e-20;
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJs,Ra]=Assembly(obj)
-
-            mesh_elements_name = obj.reader.MeshEntityName;
-            mesh_elements = obj.mesh.getElementsFromName (mesh_elements_name);
+        function [KJs, Ra] = Assembly(obj, reader, mesh, bcinit)
+            mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
             total_number_of_elements = length(mesh_elements);
-            total_number_of_nodes = length(obj.mesh.NODE);
-            total_number_of_dofs = total_number_of_nodes*2;
-            dofs_per_element = 20*2;
-            % FIXME:
-                % define nnv and nele and improve their naming
-            Ra=zeros(total_number_of_dofs,1);%KJa=sparse(ndof,ndof);
-            KJvnz=zeros(dofs_per_element,total_number_of_elements);
-            KJvc=zeros(dofs_per_element,total_number_of_elements);
-            KJvr=zeros(dofs_per_element,total_number_of_elements);
-            for  i=1:total_number_of_elements
+            total_number_of_nodes = length(mesh.data.NODE);
+            dofs_per_element = 2;
+            total_number_of_dofs = total_number_of_nodes * dofs_per_element;
+            
+            [node_el, etype_element] = mesh.retrievemeshtype(reader);
+            dofs_per_element = (node_el * dofs_per_element);
+            
+            Ra = zeros(total_number_of_dofs, 1);
+            KJvnz = zeros(dofs_per_element^2, total_number_of_elements);
+            KJvc = zeros(dofs_per_element^2, total_number_of_elements);
+            KJvr = zeros(dofs_per_element^2, total_number_of_elements);
+            
+            initialdofs = bcinit.initialdofs_;
+            loadvector = bcinit.loadVector_;
+            
+            % Initialize the parallel pool with the desired number of workers
+            %numWorkers = 4; % Adjust the number of workers as needed
+            %pool = parpool(numWorkers);
+            
+            for i = 1:total_number_of_elements
+                % Create a separate variable for each parallel iteration
+                Rs = zeros(dofs_per_element, 1);
 
-                % recover each element tag
-                element_Tag=elements[i];
-
-                % initialization to zeros for each element
-                Rs=zeros(ndof,1);%KJs=sparse(ndof,ndof);
-
-                % FIXME
-                % modify the function to run with the gauss
-                % previoously defined
-                Ke,Re = gaussIntegrationK(3, 5, elementTag, mesh, func);
-                % assembly in global residual and jacobian matrix in sparse format
-                Rs(doforder,1)=Re(:,1);      
-                Ra=Ra+Rs;
+                % Recover each element tag
+                elementTag = mesh_elements(i);
                 
-                KJvnz(:,i)=reshape(Ke,nnv,1);
-                KJvc(:,i)=reshape(repmat(doforder,20*2,1),nnv,1);
-                KJvr(:,i)=reshape(repmat(doforder,20*2,1)',nnv,1);
-
+                % Compute element stiffness matrix and residual
+                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs, reader, etype_element);
+                
+                % Assembly in global residual
+                Rs(element_dof_indexes, 1) = Re(:, 1);
+                
+                % Accumulate residuals and stiffness matrix contributions
+                Ra = Ra + Rs;
+                KJvnz(:, i) = reshape(Ke, dofs_per_element^2, 1);
+                repmat_idx=repmat(element_dof_indexes,1, dofs_per_element);
+                KJvr(:, i) = reshape(repmat_idx, dofs_per_element^2, 1);
+                KJvc(:, i) = reshape(repmat_idx', dofs_per_element^2, 1);               
             end
-            KJvnzr=reshape(KJvnz,total_number_of_elements*dofs_per_element,1);
-            KJvcr=reshape(KJvc,total_number_of_elements*dofs_per_element,1);
-            KJvrr=reshape(KJvr,total_number_of_elements*dofs_per_element,1); % is this needed??
-            KJs=sparse(KJvrr,KJvcr,KJvnzr,total_number_of_dofs,total_number_of_dofs);
-            Ra=Ra-obj.load_vector;
+            
+            % Clean up parallel pool
+            %delete(pool);
+            
+            % Reshape and construct stiffness matrix
+            KJvnzr = reshape(KJvnz, total_number_of_elements * dofs_per_element^2, 1);
+            KJvcr = reshape(KJvc, total_number_of_elements * dofs_per_element^2, 1);
+            KJvrr = reshape(KJvr, total_number_of_elements * dofs_per_element^2, 1);
+            
+            KJs = sparse(KJvrr, KJvcr, KJvnzr, total_number_of_dofs, total_number_of_dofs);
+            
+            % Subtract external load
+            Ra = Ra - obj.loadVector;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [K,R] = gaussIntegrationK(dimension, order, elementTag, mesh, dofs, func)
+        function [K,R,element_dof_indexes] = gaussIntegrationK(obj,dimension, order, elementTag, mesh, initialdofs,reader,etype)
+            
             if dimension < 1 || order < 1
                 fprintf('Invalid dimension or order for Gauss integration.\n');
                 K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
@@ -100,25 +114,40 @@ classdef Solver < handle
                 return;
             end
             
-            if size(weights, 1) ~= size(gaussPoints, 1)
-                fprintf('Weights and Gauss points have mismatched dimensions.\n');
-                K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
-                R = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
-                return;
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%% Ininitalization of elemental integration variables %%%%%
+            element_nodes = mesh.data.ELEMENTS{elementTag};
+            number_of_nodes = length(element_nodes);
+            element_coordinates=zeros(3,number_of_nodes);
+            Tee=zeros(1,number_of_nodes);
+            Vee=zeros(1,number_of_nodes);
+            element_dof_indexes=zeros(number_of_nodes*2,1);
+            for i=1:number_of_nodes
+                element_dof_indexes(i)=element_nodes(i)*2-1;
+                element_dof_indexes(number_of_nodes+i)=element_nodes(i)*2;
+                element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
+                Tee(i)=initialdofs(element_nodes(i)*2-1);
+                Vee(i)=initialdofs(element_nodes(i)*2);
             end
 
-            number_of_nodes = length(mesh.data.ELEMENTS{elementTag});
+            element_material_index=mesh.elements_material(elementTag);
+
             dof_per_node = 2;
             K=zeros(number_of_nodes*dof_per_node,number_of_nodes*dof_per_node);
             R=zeros(number_of_nodes*dof_per_node,1);
+
+            integrationFunction = @(natcoords) obj.thermoelectricityintegrationFunction(natcoords, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype);      
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
-            if dimension == 1
+             if dimension == 1
                 % 1D integration using a single loop.
                 natcoords = zeros(1, 1);
                 for i = 1:size(weights, 1)
                     natcoords(1) = gaussPoints(i);
                     % Explicitly use the element-wise multiplication .* for arrays
-                    Ke,Re = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* weights(i);
+                    [Ke,Re] = integrationFunction(natcoords) ;
+                    Ke=Ke.* weights(i);
+                    Re=Re.* weights(i);
                     K = K + Ke;
                     R = R + Re;
                 end
@@ -130,7 +159,8 @@ classdef Solver < handle
                         natcoords(1) = gaussPoints(i);
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
-                        Ke,Re = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j));
+                        Ke=Ke.* (weights(i) * weights(j));
+                        Re=Re.* (weights(i) * weights(j));
                         K = K + Ke;
                         R = R + Re;
                     end
@@ -138,9 +168,19 @@ classdef Solver < handle
             elseif dimension == 3
                 if order == 14
                     % Special case for 3D integration with order 14.
-                    Ke,Re = weights * weights' .* weights * weights' .* weights * weights' .* func(gaussPoints, coordinates_tr_XY, bcvalue, elementTag, mesh);
-                    K = K + Ke;
-                    R = R + Re;
+                    %[Ke,Re] = integrationFunction(natcoords) ;
+                    %[Ke,Re] = weights * weights' .* weights * weights' .* weights * weights' .* integrationFunction(gaussPoints);
+                    for i=1:14
+                        natcoords(1) = gaussPoints(1,i);
+                        natcoords(2) = gaussPoints(2,i);
+                        natcoords(3) = gaussPoints(3,i);
+                        [Ke,Re] = integrationFunction(natcoords) ;
+                        Ke=Ke .* (weights(i));
+                        Re=Re .* (weights(i));
+                        K = K + Ke;
+                        R = R + Re;
+                    end
+
                 else
                     % Generic 3D integration using a triple loop.
                     natcoords = zeros(3, 1);
@@ -151,7 +191,9 @@ classdef Solver < handle
                                 natcoords(2) = gaussPoints(j);
                                 natcoords(3) = gaussPoints(k);
                                 % Explicitly use the element-wise multiplication .* for arrays
-                                Ke,Re = func(natcoords, coordinates_tr_XY, bcvalue, elementTag, mesh) .* (weights(i) * weights(j) * weights(k));
+                                [Ke,Re] = integrationFunction(natcoords) ;
+                                Ke=Ke .* (weights(i) * weights(j) * weights(k));
+                                Re=Re .* (weights(i) * weights(j) * weights(k));
                                 K = K + Ke;
                                 R = R + Re;
                             end
@@ -165,7 +207,7 @@ classdef Solver < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJ, R] = thermoelectricityintegrationFunction(elementTag,mesh,xi,eta,zeta,etype,reader)
+        function [KJ, R] = thermoelectricityintegrationFunction(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype)
             %% Thermoelectricity Simulation
             % This function calculates thermoelectric properties using finite element analysis.
             % Inputs:
@@ -174,71 +216,67 @@ classdef Solver < handle
             %   - KJ: Jacobian matrix
             %   - R: Residues
             
-            % Extract coordinates for the current order
-            element_nodes = mesh.data.ELEMENTS{elementTag};
-            element_coordinates=zeros(3,length(element_nodes));
-            Tee=zeros(1,element_nodes);
-            Vee=zeros(1,element_nodes);
-            for i = 1: length(element_nodes)
-                element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
-                Tee(i)=dofs(element_nodes*2);
-                Vee(i)=dofs(element_nodes*2+1);
-            end
-            element_material_index=mesh.elements_material(elementTag);
-            
-           
-                % FIXME: Calculate shape functions
-                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, xi, eta, zeta);
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
 
-                JM = dShape * element_coordinates;
+                JM = dShape' * element_coordinates';
                 %Jacinv = inv(JM);
-                DN = Jacinv \ dShape; % FIXME and check it is the same!
-            
+                DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
+                %DN1 = JM \ dShape'; % FIXME and check it is the same!
+
                 % FIXME, calculate from all dofs input
-                Th = N' * Tee;
+                Th = N * Tee';
             
                 % FIXME: Calculate material properties
-                De = reader.getmaterialproperty(element_material_index,'electricalconductivity');
-                Dk = reader.getmaterialproperty(element_material_index,'thermalconductivity');
+                De = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
+                Dk = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 Da = reader.getmaterialproperty(element_material_index,'Seebeck');
                 %if TO.isTO
                 %    De=De;
                 %    Dk=Dk;
                 %    Da=Da;
                 %end
-
+               
                 Dde=0;Dda=0;Ddk=0;
-            
+                Vee=Vee';
+                Tee=Tee';
                 detJ = det(JM);
             
                 % Calculate current density and heat flux
                 je = -De * DN * Vee - Da * De * DN * Tee;
-                qe = Da * (N' * Tee) * je - Dk * DN * Tee;
+                qe = Da * (N * Tee) * je - Dk * DN * Tee;
             
                 % Calculate derivatives
-                djdt = -Da * De * DN - Dda * De * DN * Tee * N' - Dde * (DN * Ve + Da * DN * Tee) * N';
+                djdt = -Da * De * DN - Dda * De * DN * Tee * N - Dde * (DN * Vee + Da * DN * Tee) * N;
                 djdv = -De * DN;
-                dqdt = Da * Th * djdt + Da * je * N' - Dk * DN + Dda * Th * je * N' - Ddk * DN * Tee * N';
+                dqdt = Da * Th * djdt + Da * je * N - Dk * DN + Dda * Th * je * N - Ddk * DN * Tee * N;
                 dqdv = -Da * De * Th * DN;
             
                 % Update residues
-                RT = detJ*(-(DN' * qe) + (N * je') * (DN * Vee));
+                RT = detJ*(-(DN' * qe) + (N' * je') * (DN * Vee));
                 RV = detJ*(-DN' * je);
             
                 % Update stiffness matrices
-                K11 = detJ*(DN' * dqdt - N * (djdt' * DN * Vee)');
-                K12 = detJ*(DN' * dqdv - N * (djdv' * DN * Vee)' - N * (je' * DN));
+                K11 = detJ*(DN' * dqdt - N' * (djdt' * DN * Vee)');
+                K12 = detJ*(DN' * dqdv - N' * (djdv' * DN * Vee)' - N' * (je' * DN));
                 K21 = detJ*(DN' * djdt);
                 K22 = detJ*(DN' * djdv);
-            
+                %K12=detJ*(DN0*dqdv-N*(djdv'*DN0'*Vee)'-N*(je'*DN0'));
+
                 % Construct the elemental Jacobian matrix and Residues
                 KJ = [K11, K12; K21, K22];
                 R = [RT(:, 1); RV(:, 1)];
             
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function solution = solveSparseSystem(obj, K, R)
-            solution=K(obj.mesh_.freedofs,obj.mesh_.freedofs)\R(obj.mesh_.freedofs);
+        function SolveLinearSystemInParallel(obj, bcinit)
+            % Extract the necessary variables
+            dofs_free = bcinit.dofs_free_;
+        
+            KT_Distr = distributed(obj.KT(dofs_free, dofs_free)); 
+            R_Distr=distributed(obj.Residual(dofs_free));
+            dU =( KT_Distr ) \ ( R_Distr );  % Calculation of step
+            obj.soldofs(dofs_free)=obj.soldofs(dofs_free)+dU;
+
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function residual = runNewtonRaphson(obj)

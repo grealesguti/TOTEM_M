@@ -1,7 +1,7 @@
 %TOTEM_M Script
 %Inputs
 close all; clear all; clc;
-inputfilename = "Benchmarks/Elements/input_Benchmark1_LINEARHEX_PARAM.txt";
+inputfilename = "Benchmarks/Elements/Benchmark2_SERENDIPITYHEX_PARAM_M.txt";
     
     % Define the path to the source folder (change this as needed)
     srcFolder = 'src';
@@ -10,7 +10,7 @@ inputfilename = "Benchmarks/Elements/input_Benchmark1_LINEARHEX_PARAM.txt";
     addpath(utilsFolder);
     
     % Create an instance of the InputReader class
-        reader = InputReader("Benchmarks/Elements/input_Benchmark1_LINEARHEX_PARAM.txt");
+        reader = InputReader("Benchmarks/Elements/input_Benchmark2_QUADSERENDIPITYHEX_PARAM.txt");
         fprintf('Initialized InputReader with filename: %s\n', inputfilename);
         mesh = Mesh(reader);
         fprintf('Initialized Mesh\n');

@@ -232,8 +232,8 @@ classdef BCInit < handle
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
                     for node = nodes
                         if (node*2) < length(obj.initialdofs_)
-                            obj.initialdofs_(node*2) = value;
-                            obj.dofs_fixed_(node*2)=1;
+                            obj.initialdofs_(node*2-1) = value;
+                            obj.dofs_fixed_(node*2-1)=1;
                         else
                             % Handle the case where the node index is out of bounds.
                             % This could be an error condition depending on your application.
@@ -247,8 +247,8 @@ classdef BCInit < handle
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
                     for node = nodes
                         if (node*2+1) < length(obj.initialdofs_)
-                            obj.initialdofs_(node*2+1) = value;
-                            obj.dofs_fixed_(node*2+1)=1;
+                            obj.initialdofs_(node*2) = value;
+                            obj.dofs_fixed_(node*2)=1;
                         else
                             % Handle the case where the node index is out of bounds.
                             % This could be an error condition depending on your application.
@@ -257,7 +257,8 @@ classdef BCInit < handle
                     end
                 elseif strcmp(boundaryName, 'heat_n')
                     % Assuming 'getElementsAndNodeTagsForPhysicalGroup' returns a cell array of vectors
-                    elementindexVector=mesh.data.ELSET{strcmp(mesh.data.ElementSelectionNames, surfaceName)};
+                    elementindexVector=mesh.retrieveElementalSelection(surfaceName);
+                    %data.ELSET{strcmp(mesh.data.ElementSelectionNames, surfaceName)};
                     
                     % Debugging: Print the sizes of elements and element_nodes vectors
                     fprintf('Size of ''elements'' vector: %d\n', length(elementindexVector));
