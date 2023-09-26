@@ -1,7 +1,7 @@
 %TOTEM_M Script
 %Inputs
 close all; clear all; clc;
-inputfilename = "Benchmarks/Elements/Benchmark2_SERENDIPITYHEX_PARAM_M.txt";
+inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt";
     
     % Define the path to the source folder (change this as needed)
     srcFolder = 'src';

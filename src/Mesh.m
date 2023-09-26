@@ -196,7 +196,7 @@ classdef Mesh < handle
                 shapeFunctionDerivatives = elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == "C3D8" % Hexahedral 8 node element
                 shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
-                shapeFunctionDerivatives = obj.elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
+                shapeFunctionDerivatives = elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
             elseif etype == "C3D20" % Hexahedral 20 node element
                 shapeFunctions = elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
                 shapeFunctionDerivatives = elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);

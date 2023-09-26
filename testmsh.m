@@ -1,1 +1,0 @@
-data = readDataFromFile('test');

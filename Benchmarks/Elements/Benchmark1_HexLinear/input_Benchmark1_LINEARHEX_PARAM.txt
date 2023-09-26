@@ -1,7 +1,7 @@
 # Input File for FEM Simulation with Mesh Reference
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
-mesh_file Benchmarks/Elements/Benchmark1_LINEARHEX_PARAM_M.inp Volume
+mesh_file Benchmarks/Elements/Benchmark1_HexLinear/Benchmark1_LINEARHEX_PARAM.inp Volume
 output all
 physics thermoelectricity
 solver NR
@@ -23,10 +23,10 @@ YoungsModulus 1e8
 PoissonRatio 0.32
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
-bc Voltage minY 0.05
+bc Voltage minY -0.05
 bc Voltage maxY 0.0
 bc Temperature minY 275
-bc heat_n maxY 0.005 
+bc heat_n maxY 1000 
 
 ## Output Options
 ## output <data> <path/outputname>

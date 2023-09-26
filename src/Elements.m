@@ -112,7 +112,7 @@ classdef Elements < handle
 
         function shapeFunctions = EvaluateHexahedralLinearShapeFunctions(~,xi, eta, zeta)
             % Ensure the shapeFunctions vector is of the correct size (8 nodes)
-            shapeFunctions = zeros(8, 1);
+            shapeFunctions = zeros(1, 8);
         
             % Define the shape functions for a linear hexahedral element
             shapeFunctions(1) = 0.125 * (1 - xi) * (1 - eta) * (1 - zeta);
