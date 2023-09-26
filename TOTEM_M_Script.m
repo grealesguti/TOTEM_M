@@ -10,10 +10,12 @@ inputfilename = "Benchmarks/Elements/Benchmark2_SERENDIPITYHEX_PARAM_M.txt";
     addpath(utilsFolder);
     
     % Create an instance of the InputReader class
+        %reader = InputReader("Benchmarks/Elements/input_Benchmark2_QUADSERENDIPITYHEX_PARAM.txt");
         reader = InputReader("Benchmarks/Elements/input_Benchmark2_QUADSERENDIPITYHEX_PARAM.txt");
         fprintf('Initialized InputReader with filename: %s\n', inputfilename);
         mesh = Mesh(reader);
         fprintf('Initialized Mesh\n');
         bcinit = BCInit(reader, mesh);
         fprintf('Initialized Loads\n');
-        solver = Solver(reader, mesh, bcinit);
+        solver = Solver(mesh, bcinit);
+        solver.runNewtonRaphson(reader, mesh, bcinit);

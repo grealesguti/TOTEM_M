@@ -21,25 +21,25 @@ classdef Solver < handle
     end
     
     methods
-        function obj = Solver(inputReader, mesh, bcinit)
+        function obj = Solver( mesh, bcinit)
         
                 % Get the number of nodes from the mesh
                 obj.numNodes = length(mesh.data.NODE);
         
                 % Initialize the loadVector_ member with a size double the number of nodes
                 obj.loadVector = bcinit.loadVector_;
-                obj.soldofs = zeros(length(bcinit.initialdofs_),1);
+                obj.soldofs = bcinit.initialdofs_;
                 
-                [obj.KT,obj.Residual]=obj.Assembly(inputReader,mesh,bcinit);
+                %[obj.KT,obj.Residual]=obj.Assembly(inputReader,mesh,bcinit);
 
-                obj.SolveLinearSystemInParallel(bcinit);
+                %obj.SolveLinearSystemInParallel(bcinit);
                 
                 obj.max_iterations=10;
-                obj.tolerance=1e-20;
+                obj.tolerance=1e-6;
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJs, Ra] = Assembly(obj, reader, mesh, bcinit)
+        function [KJs, Ra] = Assembly(obj, reader, mesh)
             mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
             total_number_of_elements = length(mesh_elements);
             total_number_of_nodes = length(mesh.data.NODE);
@@ -54,8 +54,7 @@ classdef Solver < handle
             KJvc = zeros(dofs_per_element^2, total_number_of_elements);
             KJvr = zeros(dofs_per_element^2, total_number_of_elements);
             
-            initialdofs = bcinit.initialdofs_;
-            loadvector = bcinit.loadVector_;
+            initialdofs = obj.soldofs;
             
             % Initialize the parallel pool with the desired number of workers
             %numWorkers = 4; % Adjust the number of workers as needed
@@ -279,12 +278,12 @@ classdef Solver < handle
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function residual = runNewtonRaphson(obj)
+        function residual = runNewtonRaphson(obj,reader, mesh,bcinit)
             % Initialize some parameters and initial guess
-            
+            residual = obj.tolerance*1000;
             for iter = 1:obj.max_iterations
                 % Assembly the system matrix
-                [Ksparse,Rsparse] = Assembly();
+                [obj.KT,obj.Residual] = obj.Assembly(reader, mesh);
                 
                 if (residual < obj.tolerance && iter>1)
                     % Converged, return both the solution and the final residual
@@ -293,15 +292,11 @@ classdef Solver < handle
                 end
                 
                 % Solve the system using the tangential matrix and residual: KT*dU=R->dU
-                delta_degreesoffreedom = solveSparseSystem(Ksparse(obj.freedofidxs,obj.freedofidxs),Rsparse(obj.freedofidxs));
-                
-                % Update solution
-                for i = 1:length(obj.freedofidxs)
-                    obj.soldofs(obj.freedofidxs(i)) = obj.soldofs(obj.freedofidxs(i)) + delta_degreesoffreedom(i);
-                end
-                
+               obj.SolveLinearSystemInParallel(bcinit)
+             
                 % Calculate the residual (error)
-                residual = norm(Rsparse); % Calculate the norm
+                dofs_free = bcinit.dofs_free_;
+                residual = norm(obj.Residual(dofs_free)); % Calculate the norm
                 fprintf('### NR. Iteration %d residual %f\n', iter, residual);
               
             end
