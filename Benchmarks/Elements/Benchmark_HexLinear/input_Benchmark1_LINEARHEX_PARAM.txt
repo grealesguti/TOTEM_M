@@ -1,7 +1,7 @@
 # Input File for FEM Simulation with Mesh Reference
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
-mesh_file Benchmarks/Elements/Benchmark2_HexSerendipity/Benchmark2_SERENDIPITYHEX_PARAM_M.inp Volume
+mesh_file Benchmarks/Elements/Benchmark1_HexLinear/Benchmark1_LINEARHEX_PARAM.inp Volume
 output all
 physics thermoelectricity
 solver NR
@@ -15,28 +15,18 @@ ElectricalConductivity 70000
 YoungsModulus 1e6
 PoissonRatio 0.33
 
-MP,KXX,1,385,	! W m^-1 C^-1
-MP,RSVX,1,1.67e-08,	! kg m^3 A^-2 s^-3
-
-MP,KXX,2,1.054963,	! W m^-1 C^-1
-MP,SBKX,2,0.0002171645,	! V C^-1
-MP,RSVX,2,1.452857e-05,	! kg m^3 A^-2 s^-3
-
-MP,KXX,3,385,	! W m^-1 C^-1
-MP,RSVX,3,1.67e-08,	! kg m^3 A^-2 s^-3
-
-MP,KXX,4,1.305023,	! W m^-1 C^-1
-MP,SBKX,4,-0.0001985263,	! V C^-1
-MP,RSVX,4,1.300436e-05,	! kg m^3 A^-2 s^-3
-
-MP,KXX,5,385,	! W m^-1 C^-1
-MP,RSVX,5,1.67e-08,	! kg m^3 A^-2 s^-3
+material new
+Seebeck 0.00016
+ThermalConductivity 1.2
+ElectricalConductivity 1500
+YoungsModulus 1e8
+PoissonRatio 0.32
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
 bc Voltage minY -0.05
 bc Voltage maxY 0.0
 bc Temperature minY 275
-bc heat_n maxY 1000 
+bc heat_n maxY 0 
 
 ## Output Options
 ## output <data> <path/outputname>

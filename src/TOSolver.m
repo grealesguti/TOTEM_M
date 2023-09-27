@@ -1,4 +1,4 @@
-classdef Solver < handle
+classdef TOSolver < handle
     properties
         inputReader_
         mesh_
@@ -21,7 +21,7 @@ classdef Solver < handle
     end
     
     methods
-        function obj = Solver( mesh, bcinit)
+        function obj = TOSolver( mesh, bcinit)
         
                 % Get the number of nodes from the mesh
                 obj.numNodes = length(mesh.data.NODE);
@@ -39,7 +39,7 @@ classdef Solver < handle
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJs, Ra] = Assembly(obj, reader, mesh)
+        function [KJs, Ra] = Assembly(obj, reader, mesh, xx)
             mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
             total_number_of_elements = length(mesh_elements);
             total_number_of_nodes = length(mesh.data.NODE);
@@ -68,7 +68,7 @@ classdef Solver < handle
                 elementTag = mesh_elements(i);
                 
                 % Compute element stiffness matrix and residual
-                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs, reader, etype_element);
+                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs, reader, etype_element,xx);
                 
                 % Assembly in global residual
                 Rs(element_dof_indexes, 1) = Re(:, 1);
@@ -226,14 +226,16 @@ classdef Solver < handle
                 Th = N * Tee';
             
                 % FIXME: Calculate material properties
-                Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
-                Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
-                Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
-                
-                [De,Dde]=CalculateMaterialProperties(Dep,Th,1);
-                [Da,Dda]=CalculateMaterialProperties(Dap,Th,1);
-                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,1);
-
+                De = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
+                Dk = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
+                Da = reader.getmaterialproperty(element_material_index,'Seebeck');
+                %if TO.isTO
+                %    De=De;
+                %    Dk=Dk;
+                %    Da=Da;
+                %end
+               
+                Dde=0;Dda=0;Ddk=0;
                 Vee=Vee';
                 Tee=Tee';
                 detJ = det(JM);

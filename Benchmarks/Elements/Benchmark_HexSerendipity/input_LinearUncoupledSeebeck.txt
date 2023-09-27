@@ -1,0 +1,25 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+mesh_file Benchmarks/Elements/Benchmark_HexSerendipity/Benchmark2_SERENDIPITYHEX_PARAM_M.inp Volume
+output all
+physics thermoelectricity
+solver NR
+
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
+##
+material Volume
+Seebeck 2 0.0001802 +0.0000003861 -0.0000000009582
+ThermalConductivity 2 1.758 -0.005290 0.00004134 
+ElectricalConductivity 2 102800 -536.9 1.824
+
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage Ymin 0.0
+bc Voltage Ymax 0.0
+bc Temperature Ymin 273.15
+bc Temperature Ymax 298.15
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk

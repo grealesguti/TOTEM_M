@@ -1,7 +1,7 @@
 // Define parameters for element size along each dimension
-lc_x = 1;
-lc_y = 2;
-lc_z = 1;
+lc_x = 0.0014;
+lc_y = 0.001524;
+lc_z = 0.0014;
 
 // Define points with parameterized coordinates
 Point(1) = {0, 0, 0, lc_x};         // Point 1
@@ -99,4 +99,14 @@ Transfinite Curve {9, 5, 10, 1, 12, 7, 11, 3} = 2 Using Progression 1;
 // Run using: gmsh script.geo //+
 Physical Volume("0", 13) = {1};
 //+
-Physical Surface("surf", 14) = {1};
+Physical Surface("Ymax", 14) = {5};
+//+
+Physical Surface("Ymin", 15) = {1};
+//+
+Physical Surface("Zmax", 16) = {2};
+//+
+Physical Surface("Zmin", 17) = {4};
+//+
+Physical Surface("Xmin", 18) = {3};
+//+
+Physical Surface("Xmax", 19) = {6};

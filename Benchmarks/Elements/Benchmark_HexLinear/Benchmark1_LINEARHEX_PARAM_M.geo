@@ -61,13 +61,13 @@ Transfinite Surface {5};
 Transfinite Surface {1};
 
 // Define physical entities
-Physical Volume("1", 13) = {1};
-Physical Surface("2", 14) = {1};
-Physical Surface("3", 15) = {5};
-Physical Surface("4", 16) = {2};
-Physical Surface("5", 17) = {4};
-Physical Surface("6", 18) = {3};
-Physical Surface("7", 19) = {6};
+Physical Volume(0, 13) = {1};
+Physical Surface(1, 14) = {1};
+Physical Surface(2, 15) = {5};
+Physical Surface(3, 16) = {2};
+Physical Surface(4, 17) = {4};
+Physical Surface(5, 18) = {3};
+Physical Surface(6, 19) = {6};
 
 // Set:
 // 2D algorithm-> MeshAdapt
@@ -90,12 +90,23 @@ Mesh.CharacteristicLengthFromCurvature = 0;
 Mesh.ElementSizeFactor = 1; // Element Size Factor -> 1
 Mesh.MinSize = 2;
 Mesh.MaxSize = 1e22;
-Mesh.ElementOrder = 2;
-Mesh.SecondOrderIncomplete=0;
 
 Transfinite Curve {9, 5, 10, 1, 12, 7, 11, 3} = 2 Using Progression 1;
 
 // Export mesh to msh
-Mesh 3;
+//Mesh 3;
 
-// Run using: gmsh script.geo 
+// Run using: gmsh script.geo //+
+Physical Volume("0", 13) = {1};
+//+
+Physical Surface("Ymax", 14) = {5};
+//+
+Physical Surface("Ymin", 15) = {1};
+//+
+Physical Surface("Zmax", 16) = {2};
+//+
+Physical Surface("Zmin", 17) = {4};
+//+
+Physical Surface("Xmin", 18) = {3};
+//+
+Physical Surface("Xmax", 19) = {6};

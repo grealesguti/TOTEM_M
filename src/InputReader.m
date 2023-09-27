@@ -77,7 +77,11 @@ classdef InputReader < handle
                                 propertyTokens = strsplit(line);
                                 if numel(propertyTokens) >= 2
                                     propertyName = propertyTokens{1};
-                                    propertyValue = str2double(propertyTokens{2});
+                                    propertyPol = str2double(propertyTokens{2});
+                                    propertyValue=zeros(1+propertyPol,1);
+                                    for i = 3:(3+propertyPol)
+                                        propertyValue(i-2)=str2double(propertyTokens{i});
+                                    end
                                     materialProperties(propertyName) = propertyValue;
                                 else
                                     warning('Invalid property format.');

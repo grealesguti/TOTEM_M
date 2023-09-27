@@ -1,4 +1,4 @@
-classdef TO
+classdef TopOpt
     %TO Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -23,7 +23,7 @@ classdef TO
     end
     
     methods
-        function obj = TO(inputArg1,inputArg2)
+        function obj = TopOpt(reader,mesh)
             m=length(con_name);outeriter=0;Conbj=zeros(m,1);
             storagecte=zeros(3+m,1);    storagecte(1:3)=[kkttol Vinf Vsup];
             if dV~=0
