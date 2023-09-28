@@ -135,7 +135,7 @@ classdef Solver < handle
             K=zeros(number_of_nodes*dof_per_node,number_of_nodes*dof_per_node);
             R=zeros(number_of_nodes*dof_per_node,1);
 
-            integrationFunction = @(natcoords) obj.thermoelectricityintegrationFunction(natcoords, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype);      
+            integrationFunction = @(natcoords) obj.thermoelectricityintegrationFunction(natcoords, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype, mesh.elements_density(elementTag));      
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
              if dimension == 1
@@ -206,7 +206,7 @@ classdef Solver < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJ, R] = thermoelectricityintegrationFunction(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype)
+        function [KJ, R] = thermoelectricityintegrationFunction(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
             %% Thermoelectricity Simulation
             % This function calculates thermoelectric properties using finite element analysis.
             % Inputs:
@@ -230,9 +230,9 @@ classdef Solver < handle
                 Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
                 
-                [De,Dde]=CalculateMaterialProperties(Dep,Th,1);
-                [Da,Dda]=CalculateMaterialProperties(Dap,Th,1);
-                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,1);
+                [De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                [Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
                 Vee=Vee';
                 Tee=Tee';

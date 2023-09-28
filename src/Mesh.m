@@ -6,6 +6,7 @@ classdef Mesh < handle
         data
         elements
         elements_material
+        elements_density
         dofs_fixed
     end
     
@@ -212,7 +213,7 @@ classdef Mesh < handle
         function DefineMaterials(obj,inputReader)
             % Initialize the output
             obj.elements_material = zeros(1, length(obj.data.ELEMENTS));
-        
+            obj.elements_density = ones(1, length(obj.data.ELEMENTS));
             % Loop through each material property
             for i = 1:length(inputReader.MaterialProperties)
                 % Get the ElementSelectionName for this material

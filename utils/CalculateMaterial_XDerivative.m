@@ -1,4 +1,4 @@
-function [mat,Dmat] = CalculateMaterialProperties(material,Th,x,p)
+function [mat_x,Dmat_x] = CalculateMaterial_XDerivative(material,Th,x,p)
     TC=Th;
     minmat=1e-9;
 
@@ -11,7 +11,7 @@ function [mat,Dmat] = CalculateMaterialProperties(material,Th,x,p)
         end
     end       
 
-    mat=minmat+x^p*(mat-minmat);
-    Dmat=Dmat*x^p;
+    mat_x=x^(p-1)*(mat-minmat);
+    Dmat_x=Dmat*x^(p-1);
 
 end

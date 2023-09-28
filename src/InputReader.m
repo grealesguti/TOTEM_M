@@ -13,12 +13,17 @@ classdef InputReader < handle
         bcloc
         bcval
         MaterialVolumes
+        TopOpt_Objective
+        TopOpt_ConstraintName
+        TopOpt_CosntraintValue
     end
     
     methods
         function obj = InputReader(filename)
             obj.filename = filename;
+            obj.TopOpt_Objective ='';
             obj.readFile();
+            obj.addPenaltyKeys();
             %fprintf('Read Input: ' +filename+  '\n');
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,6 +52,9 @@ classdef InputReader < handle
                             obj.MeshEntityName = tokens{3};
                             fprintf('New Mesh File and Mesh entity: %s %s\n', obj.meshFileName, obj.MeshEntityName);
                         end
+                    case 'TopOpt_Objective'
+                            obj.TopOpt_Objective = tokens{2};
+                            fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
                     case 'output'
                         if numel(tokens) < 2
                             warning('Invalid output keyword.');
@@ -106,6 +114,16 @@ classdef InputReader < handle
                             obj.bcval =[obj.bcval, value];
 
                         end
+                    case 'TopOpt_constraint'
+                        if numel(tokens) < 4
+                            warning('Invalid boundary condition format.');
+                            %fprintf('Line Content: %s\n', line);
+                        else
+                            constraintName = tokens{2};
+                            value = str2double(tokens{3});
+                            obj.TopOpt_ConstraintName{end+1} =  constraintName;
+                            obj.TopOpt_CosntraintValue =[obj.TopOpt_CosntraintValue, value];
+                        end
                 end
             end
             
@@ -121,5 +139,33 @@ classdef InputReader < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Define a function to add Penalty keys
+        function addPenaltyKeys(obj)
+            % Loop through each materialProperties map
+            for i = 1:numel(obj.MaterialProperties)
+                material = obj.MaterialProperties{i};
+                newMaterial = containers.Map();  % Create a new map for modified properties
+
+                % Loop through each key-value pair in the current material
+                keys = material.keys;
+                for j = 1:numel(keys)
+                    key = keys{j};
+
+                    % Check if the key does not start with 'Penalty_'
+                    if ~startsWith(key, 'Penalty_')
+                        % Create a new key with 'Penalty_' prefix
+                        newKey = ['Penalty_', key];
+
+                        % Assign a value of 1 to the new key
+                        newMaterial(newKey) = 1;
+                    end
+                end
+
+                % Update the materialProperties map with the modified properties
+                obj.MaterialProperties{i} = [material; newMaterial];
+            end
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     end
 end
