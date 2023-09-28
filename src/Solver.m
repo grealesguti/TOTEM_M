@@ -60,7 +60,7 @@ classdef Solver < handle
             %numWorkers = 4; % Adjust the number of workers as needed
             %pool = parpool(numWorkers);
             
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
                 % Create a separate variable for each parallel iteration
                 Rs = zeros(dofs_per_element, 1);
 
