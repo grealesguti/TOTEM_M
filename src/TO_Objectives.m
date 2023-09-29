@@ -11,16 +11,19 @@ classdef TO_Objectives < handle
         objective_dofs
         freedofs
         Number_of_dofs
+        n
     end
     
     methods
-        function obj = TO_Objectives()
+        function obj = TO_Objectives(reader,mesh,bcinit)
             % Initialize mesh TO parameters
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            obj.n =length(TOEL)+length(reader.TObcval);
             objective_nodes=mesh.retrieveNodalSelection(reader.TopOpt_ObjectiveSelection);
             obj.objective_dofs=(objective_nodes-1)*2+1;
             obj.freedofs=bcinit.dofs_free_;
             obj.Number_of_dofs=length(mesh.data.NODE)*2;
+            obj.dfdx=zeros(n,1);
         end
         
         function CalculateObjective(obj,mesh,solver)
@@ -31,8 +34,8 @@ classdef TO_Objectives < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function GaussIntegration_dx(obj,dimension, order, elementTag, mesh, initialdofs,reader,etype)
-            
+        function [K,element_dof_indexes] = GaussIntegration_dx(obj,dimension, order, elementTag, mesh, initialdofs,reader,etype)
+                                        %3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}
             if dimension < 1 || order < 1
                 fprintf('Invalid dimension or order for Gauss integration.\n');
                 K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
@@ -71,20 +74,18 @@ classdef TO_Objectives < handle
             K=zeros(number_of_nodes*dof_per_node,number_of_nodes*dof_per_node);
             R=zeros(number_of_nodes*dof_per_node,1);
 
-            integrationFunction = @(natcoords) obj.integration_AvgTemp_dx(natcoords, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype, mesh.elements_density(elementTag));      
+            integrationFunction = @(natcoords) obj.integration_R_dx(natcoords, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype, mesh.elements_density(elementTag));      
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
+            flagGloop=0;
              if dimension == 1
                 % 1D integration using a single loop.
                 natcoords = zeros(1, 1);
                 for i = 1:size(weights, 1)
                     natcoords(1) = gaussPoints(i);
                     % Explicitly use the element-wise multiplication .* for arrays
-                    [Ke,Re] = integrationFunction(natcoords) ;
+                    Ke= integrationFunction(natcoords) ;
                     Ke=Ke.* weights(i);
-                    Re=Re.* weights(i);
                     K = K + Ke;
-                    R = R + Re;
                 end
             elseif dimension == 2
                 % 2D integration using a double loop.
@@ -95,9 +96,7 @@ classdef TO_Objectives < handle
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
                         Ke=Ke.* (weights(i) * weights(j));
-                        Re=Re.* (weights(i) * weights(j));
                         K = K + Ke;
-                        R = R + Re;
                     end
                 end
             elseif dimension == 3
@@ -109,11 +108,14 @@ classdef TO_Objectives < handle
                         natcoords(1) = gaussPoints(1,i);
                         natcoords(2) = gaussPoints(2,i);
                         natcoords(3) = gaussPoints(3,i);
-                        [Ke,Re] = integrationFunction(natcoords) ;
+                        Ke = integrationFunction(natcoords) ;
                         Ke=Ke .* (weights(i));
-                        Re=Re .* (weights(i));
-                        K = K + Ke;
-                        R = R + Re;
+                        if flagGloop==1
+                                    K = K + Ke;
+                        else
+                                    flagGloop=1;
+                                    K=Ke;
+                        end       
                     end
 
                 else
@@ -126,11 +128,14 @@ classdef TO_Objectives < handle
                                 natcoords(2) = gaussPoints(j);
                                 natcoords(3) = gaussPoints(k);
                                 % Explicitly use the element-wise multiplication .* for arrays
-                                [Ke,Re] = integrationFunction(natcoords) ;
+                                Ke= integrationFunction(natcoords) ;
                                 Ke=Ke .* (weights(i) * weights(j) * weights(k));
-                                Re=Re .* (weights(i) * weights(j) * weights(k));
-                                K = K + Ke;
-                                R = R + Re;
+                                if flagGloop==1
+                                            K = K + Ke;
+                                else
+                                            flagGloop=1;
+                                            K=Ke;
+                                end       
                             end
                         end
                     end
@@ -138,7 +143,6 @@ classdef TO_Objectives < handle
             else
                 fprintf('Invalid dimension for Gauss integration.\n');
                 K = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
-                R = zeros(1, 1); % Initialize result to a 1x1 matrix with zero value.
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -147,25 +151,23 @@ classdef TO_Objectives < handle
             obj.fval=sum(solver.soldofs((objective_nodes-1)*2+1))/length(solver.soldofs((objective_nodes-1)*2+1));
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function dfdx_AverageTemp(~,reader,mesh,solver,dfdx_index)
+        function dfdx_AverageTemp(obj,reader,mesh,solver)
 
             % Initialize solver matrixes
-            KJa=-solver.KT;
             AdjT=zeros(obj.Number_of_dofs,1);
             LAdj=zeros(obj.Number_of_dofs,1);
             LAdj(obj.objective_dofs)=1/length(obj.objective_dofs);
             element_sensitivities=zeros(length(obj.TOEL),1);
 
             % Solve adjoint equation
-            A = distributed((-KJa(obj.freedofs,obj.freedofs))'); 
+            A = distributed((-solver.KT(obj.freedofs,obj.freedofs))'); 
             B=distributed((LAdj(obj.freedofs)));
             AdjT(obj.freedofs)=A\B;
-
             % Calculate material derivatives
             for ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
 
-                [R_dx,element_dofs]=GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 
+                [R_dx,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 
             
                 ADJ_element=AdjT(element_dofs)';%
                 element_sensitivities(ii)=ADJ_element*R_dx;
@@ -173,19 +175,26 @@ classdef TO_Objectives < handle
             end
                 
             % Store elemental sensitivities
-            obj.dfdx(1:length(obj.TOEL),dfdx_index)=element_sensitivities;
+            obj.dfdx(1:length(obj.TOEL))=element_sensitivities;
 
             % Calculate remaining sensititivies
-            % if voltage constraint:
-            %doforderV=(Vfnod-1)*2+2;
-            %dU1=zeros(length(AdjT),1);
-            %dU1(doforderV)=dV;
-            %prodF=KJa*dU1;
-            %Overall_sensitivities(end,1)=LAdj'*dU1+AdjT'*(+prodF);
+            bcvariablenames=reader.TObctype;
+            for i=1:length(bcvariablenames)
+                if strcmp(bcvariablenames(i), 'Voltage')
+                    bcvariable_nodes = mesh.retrieveNodalSelection(reader.TObcloc(i));
+                    bcvariable_dofs=bcvariable_nodes*2;
+                    dx_bc=obj.Number_of_dofs;
+                    dx_bc(bcvariable_dofs)=reader.TObcmaxval(i)-reader.TObcminval(i);
+                    prodF=solver.KT*dx_bc;
+                    obj.dfdx(1:length(obj.TOEL))=LAdj'*dx_bc+AdjT'*(+prodF);
+                end
+            end
+
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function[Rx]=integration_AvgTemp_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)        
+        function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)        
+                flag=[];
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
 
                 JM = dShape' * element_coordinates';
@@ -220,10 +229,10 @@ classdef TO_Objectives < handle
                 %qe = Da * (N * Tee) * je - Dk * DN * Tee; % Not needed.
 
                 % all matrix
-                jx=-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*Ded*DN*Tee;
-                qx=Da_dx*(N'*Tee)*je+Da*(N'*Tee)*jx-Dk_dx*DN*Tee; 
+                jx=-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee;
+                qx=Da_dx*(Th)*je+Da*(Th)*jx-Dk_dx*DN*Tee; 
         
-                RAx=detJ*(-DN'*qx+N*(jx'*DN*Vee));
+                RAx=detJ*(-DN'*qx+(N*(jx'*DN*Vee))');
                 RBx=detJ*(-DN'*jx);
 
                 Rx=[RAx

@@ -1,3 +1,4 @@
 *.asv
+*.vtk
 *test.m
 testingdataandfunctions

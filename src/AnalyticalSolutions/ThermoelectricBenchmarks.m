@@ -98,7 +98,11 @@ classdef ThermoelectricBenchmarks
                     Tx(i)=3.794e7*xv(i)*(1.524e-3-xv(i))+298.15;
                     Vx(i)=5.788e-2-4.913*10*xv(i)+7.315e3*xv(i)^2;
                 end
-
+                j=3.199e6;
+                Power = 5.788e-2*(j*0.0014^2);
+                Power_FEM = CalculatePower(reader,mesh,solver);
+                Power_Bench = abs(Power-Power_FEM);
+                fprintf('Power benchmark, Analytical: %s FEM: %s\n', [Power,Power_FEM]);
                 plot(xv,Tx)
 
         end        

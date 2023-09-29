@@ -12,7 +12,7 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
     % Create an instance of the InputReader class
         %reader = InputReader("Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt");
         %reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt");
-        reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt");
+        reader = InputReader("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt");
         fprintf('Initialized InputReader with filename: %s\n', inputfilename);
         mesh = Mesh(reader);
         fprintf('Initialized Mesh\n');
@@ -21,10 +21,12 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
         solver = Solver(mesh, bcinit);
         solver.runNewtonRaphson(reader, mesh, bcinit);
         fprintf('Postprocessing\n');
-        postprocessing = Postprocessing();
-        postprocessing.initVTK(reader,mesh);
+        %TOO=TO_Objectives(reader, mesh, bcinit);
+        %TOO.
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        postprocessing.Benchmark_T_PLOT_axis(1,solver,2)
-        postprocessing.VTK_TV(solver,"Benchmarks/Elements/input_Benchmark2_QUADSERENDIPITYHEX_PARAM")
+        %postprocessing = Postprocessing();
+        %postprocessing.initVTK(reader,mesh);
+        %postprocessing.Benchmark_T_PLOT_axis(1,solver,2)
+        %postprocessing.VTK_TV(solver,"Benchmarks/Elements/input_Benchmark2_QUADSERENDIPITYHEX_PARAM")
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %TO = TopOpt(reader,mesh);

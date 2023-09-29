@@ -29,16 +29,13 @@ classdef TopOpt
     methods
         function obj = TopOpt(reader,mesh)
             m=length(reader.TopOpt_ConstraintName);
-            obj.dV=0;
-            obj.vx0=0;
             obj.outeriter=0;
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-            if obj.dV~=0
-                obj.xval=[mesh.elements_density(obj.TOEL)' obj.vx0]';
-                n=length(obj.TOEL)+1;
-            else
-                obj.xval=mesh.elements_density(obj.TOEL)';
-                obj.n=length(obj.TOEL);
+            obj.n =length(TOEL)+length(reader.TObcval);
+            xval=zeros(n,1);
+            xval(1:length(TOEL))=mesh.elements_density(obj.TOEL);
+            for i=1:length(reader.TObcval)
+                xval(length(TOEL)+i)=reader.TObcval(i);
             end
             obj.xmin=zeros(n,1);
             obj.xmax=ones(n,1);
@@ -63,7 +60,7 @@ classdef TopOpt
                     dofs_TO(j*2)=1;
                 end
             end
-            
+
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function  runMMA(obj,reader,mesh)

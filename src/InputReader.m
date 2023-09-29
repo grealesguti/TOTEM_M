@@ -19,6 +19,11 @@ classdef InputReader < handle
         MMA_MaxIter
         TopOpt_ObjectiveSelection
         TopOpt_DesignElements
+        TObctype
+        TObcloc
+        TObcminval
+        TObcval
+        TObcmaxval
     end
     
     methods
@@ -55,11 +60,21 @@ classdef InputReader < handle
                             obj.MeshEntityName = tokens{3};
                             fprintf('New Mesh File and Mesh entity: %s %s\n', obj.meshFileName, obj.MeshEntityName);
                         end
-                    case 'TopOpt_Objective'
-                            obj.TopOpt_Objective = tokens{2};
-                            obj.TopOpt_ObjectiveSelection = tokens{3};
-                            obj.TopOpt_DesignElements = tokens{4};
-                            fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
+                    case 'TopOpt_bc'
+                            boundaryName = tokens{2};
+                            surfaceName = tokens{3};
+                            value = str2double(tokens{5});
+                            minvalue = str2double(tokens{4});
+                            maxvalue = str2double(tokens{6});
+                            obj.bctype{end+1} =  boundaryName;
+                            obj.bcloc{end+1} = surfaceName;
+                            obj.bcval =[obj.bcval, value];
+                            obj.TObctype{end+1} =  boundaryName;
+                            obj.TObcloc{end+1} = surfaceName;
+                            obj.TObcminval =[obj.TObcminval, minvalue];
+                            obj.TObcval =[obj.TObcval, value];
+                            obj.TObcmaxval =[obj.TObcmaxval, maxvalue];
+                            fprintf('New TopOpt_bc entity: %s %s\n', boundaryName);
                     case 'MMA_MaxIter'
                             obj.MMA_MaxIter = tokens{2};
                             fprintf('New MMA_MaxIter: %s %s\n', obj.MMA_MaxIter);
