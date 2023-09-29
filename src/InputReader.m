@@ -16,6 +16,9 @@ classdef InputReader < handle
         TopOpt_Objective
         TopOpt_ConstraintName
         TopOpt_CosntraintValue
+        MMA_MaxIter
+        TopOpt_ObjectiveSelection
+        TopOpt_DesignElements
     end
     
     methods
@@ -54,7 +57,12 @@ classdef InputReader < handle
                         end
                     case 'TopOpt_Objective'
                             obj.TopOpt_Objective = tokens{2};
+                            obj.TopOpt_ObjectiveSelection = tokens{3};
+                            obj.TopOpt_DesignElements = tokens{4};
                             fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
+                    case 'MMA_MaxIter'
+                            obj.MMA_MaxIter = tokens{2};
+                            fprintf('New MMA_MaxIter: %s %s\n', obj.MMA_MaxIter);
                     case 'output'
                         if numel(tokens) < 2
                             warning('Invalid output keyword.');
