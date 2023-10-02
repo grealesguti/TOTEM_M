@@ -26,11 +26,11 @@ classdef TO_Objectives < handle
             obj.dfdx=zeros(obj.n,1);
         end
         
-        function CalculateObjective(obj,mesh,solver)
-            switch obj.ObjectiveName
+        function CalculateObjective(obj,reader,mesh,solver)
+            switch reader.TopOpt_Objective
                 case 'AverageTemperature'
-                    obj.fval_AverageTemp(mesh,solver)
-                    obj.dfdx_AverageTemp(mesh,solver)
+                    obj.fval_AverageTemp(reader,mesh,solver)
+                    obj.dfdx_AverageTemp(reader,mesh,solver)
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,9 +146,10 @@ classdef TO_Objectives < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fval_AverageTemp(obj,reader,mesh,solver)
+        function [fvalue]=fval_AverageTemp(obj,reader,mesh,solver)
             objective_nodes=mesh.retrieveNodalSelection(reader.TopOpt_ObjectiveSelection);
-            obj.fval=sum(solver.soldofs((objective_nodes-1)*2+1))/length(solver.soldofs((objective_nodes-1)*2+1));
+            fvalue=sum(solver.soldofs((objective_nodes-1)*2+1))/length(solver.soldofs((objective_nodes-1)*2+1));
+            obj.fval=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function dfdx_AverageTemp(obj,reader,mesh,solver)
@@ -160,7 +161,7 @@ classdef TO_Objectives < handle
             element_sensitivities=zeros(length(obj.TOEL),1);
 
             % Solve adjoint equation
-            A = distributed((-solver.KT(obj.freedofs,obj.freedofs))'); 
+            A = distributed((solver.KT(obj.freedofs,obj.freedofs))'); 
             B=distributed((LAdj(obj.freedofs)));
             AdjT(obj.freedofs)=A\B;
             % Calculate material derivatives

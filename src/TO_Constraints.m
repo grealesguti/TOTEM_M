@@ -180,8 +180,9 @@ classdef TO_Constraints < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fval_Power(obj,reader,mesh,solver,index_con)
-            obj.fval(index_con)=CalculatePower(reader,mesh,solver);
+        function fvalue=fval_Power(obj,reader,mesh,solver,index_con)
+            fvalue=CalculatePower(reader,mesh,solver);
+            obj.fval(index_con)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function dfdx_Power(obj,reader,mesh,solver,dfdx_index)
@@ -349,10 +350,11 @@ classdef TO_Constraints < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fval_Volume(obj,reader,mesh,dfdx_index)
+        function fvalue=fval_Volume(obj,reader,mesh,dfdx_index)
             Vpobj = reader.TopOpt_ConstraintValue(dfdx_index);
             Vx=obj.Elements_volume/(Vpobj*obj.V_TOT);
-            obj.fval(dfdx_index)=(Vx'*mesh.elements_density(obj.TOEL)')-1;
+            fvalue=(Vx'*mesh.elements_density(obj.TOEL)')-1;
+            obj.fval(dfdx_index)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function dfdx_Volume(obj,reader,dfdx_index)
