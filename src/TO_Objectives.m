@@ -18,12 +18,12 @@ classdef TO_Objectives < handle
         function obj = TO_Objectives(reader,mesh,bcinit)
             % Initialize mesh TO parameters
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-            obj.n =length(TOEL)+length(reader.TObcval);
+            obj.n =length(obj.TOEL)+length(reader.TObcval);
             objective_nodes=mesh.retrieveNodalSelection(reader.TopOpt_ObjectiveSelection);
             obj.objective_dofs=(objective_nodes-1)*2+1;
             obj.freedofs=bcinit.dofs_free_;
             obj.Number_of_dofs=length(mesh.data.NODE)*2;
-            obj.dfdx=zeros(n,1);
+            obj.dfdx=zeros(obj.n,1);
         end
         
         function CalculateObjective(obj,mesh,solver)
@@ -183,10 +183,10 @@ classdef TO_Objectives < handle
                 if strcmp(bcvariablenames(i), 'Voltage')
                     bcvariable_nodes = mesh.retrieveNodalSelection(reader.TObcloc(i));
                     bcvariable_dofs=bcvariable_nodes*2;
-                    dx_bc=obj.Number_of_dofs;
+                    dx_bc=zeros(obj.Number_of_dofs,1);
                     dx_bc(bcvariable_dofs)=reader.TObcmaxval(i)-reader.TObcminval(i);
                     prodF=solver.KT*dx_bc;
-                    obj.dfdx(1:length(obj.TOEL))=LAdj'*dx_bc+AdjT'*(+prodF);
+                    obj.dfdx(length(obj.TOEL)+i)=LAdj'*dx_bc+AdjT'*(+prodF);
                 end
             end
 

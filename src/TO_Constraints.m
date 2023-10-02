@@ -1,4 +1,4 @@
-classdef TO_Constraints
+classdef TO_Constraints < handle
     %TO_OBJECTIVES Summary of this class goes here
     %   Detailed explanation goes here
 
@@ -11,10 +11,11 @@ classdef TO_Constraints
         freedofs
         Number_of_dofs
         Elements_volume
+        V_TOT
     end
 
     methods
-        function obj = TO_Constraints(reader,mesh)
+        function obj = TO_Constraints(reader,mesh,bcinit)
             % Initialize size of obj. variables
             m=length(reader.TopOpt_ConstraintName);
             obj.fval=zeros(m,1);
@@ -30,28 +31,21 @@ classdef TO_Constraints
             obj.freedofs=bcinit.dofs_free_;
             obj.Number_of_dofs=length(mesh.data.NODE)*2;
             obj.Elements_volume = obj.CalculateAllElementVolume(mesh); 
+            obj.V_TOT=sum(obj.Elements_volume);
         end
 
-        function CalculateConstraint(obj,mesh,solver)
+        function CalculateConstraint(obj,reader,mesh,solver)
             index_constraint = 1;
-            for i=1:length(obj.ConstraintNames)
-                ConstraintName=obj.ConstraintNames{i};
+            for i=1:length(reader.TopOpt_ConstraintName)
+                ConstraintName=reader.TopOpt_ConstraintName{i};
                 switch ConstraintName
                     case 'Power'
-                        obj.fval_AverageTemp(mesh,solver,index_constraint)
-                        obj.dfdx_AverageTemp(mesh,solver,index_constraint)
-                        index_constraint=index_constraint+1;
-                    case 'Stress_KSU'
-                        obj.fval_AverageTemp(mesh,solver,index_constraint)
-                        obj.dfdx_AverageTemp(mesh,solver,index_constraint)
+                        obj.fval_Power(reader,mesh,solver,index_constraint)
+                        obj.dfdx_Power(reader,mesh,solver,index_constraint)
                         index_constraint=index_constraint+1;
                     case 'Volume'
-                        obj.fval_AverageTemp(mesh,solver,index_constraint)
-                        obj.dfdx_AverageTemp(mesh,solver,index_constraint)
-                        index_constraint=index_constraint+1;
-                    case 'Displacement'
-                        obj.fval_AverageTemp(mesh,solver,index_constraint)
-                        obj.dfdx_AverageTemp(mesh,solver,index_constraint)
+                        obj.fval_Volume(reader,mesh,index_constraint)
+                        obj.dfdx_Volume(reader,index_constraint)
                         index_constraint=index_constraint+1;
                 end
             end
@@ -186,11 +180,11 @@ classdef TO_Constraints
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fval_Power(obj,mesh,solver,index_con)
+        function fval_Power(obj,reader,mesh,solver,index_con)
             obj.fval(index_con)=CalculatePower(reader,mesh,solver);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function dfdx_Power(obj,mesh,solver,dfdx_index)
+        function dfdx_Power(obj,reader,mesh,solver,dfdx_index)
             % Initialize solver matrixes
             element_sensitivities=zeros(length(obj.TOEL),1);
             ADJP=zeros(obj.Number_of_dofs,1);
@@ -202,7 +196,7 @@ classdef TO_Constraints
             LPE_cpf=zeros(number_of_TO_elements,1);
             LPE=zeros(obj.Number_of_dofs,1);
             LPE_c=zeros(nodes_per_element,1);
-            Pobj = reader.TopOpt_CosntraintValue(dfdx_index);
+            Pobj = reader.TopOpt_ConstraintValue(dfdx_index);
             
             %% Derivatives to Vf
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
@@ -215,9 +209,9 @@ classdef TO_Constraints
                 LPE_cpf(ii)=dPdxi_c;
             end
 
-            for ii=1:length(powel)
+            for ii=1:length(obj.TOEL(ii))
                 LPE(LPEor(ii,:),1)=LPE(LPEor(ii,:),1)+LPEpf(ii,:)';
-                LPE_c(powel(ii))=LPE_cpf(ii);
+                LPE_c(obj.TOEL(ii))=LPE_cpf(ii);
             end
 
             LPE_c=LPE_c/Pobj;
@@ -230,7 +224,7 @@ classdef TO_Constraints
             for ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
                 [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
-                element_sensitivities(ii)=LPE_c(jj)+ADJP(element_dofs)'*Rx;
+                element_sensitivities(ii)=LPE_c(element_Tag)+ADJP(element_dofs)'*Rx;
             end
 
             obj.dfdx(dfdx_index,1:length(obj.TOEL))=element_sensitivities;
@@ -241,7 +235,7 @@ classdef TO_Constraints
                 if strcmp(bcvariablenames(i), 'Voltage')
                     bcvariable_nodes = mesh.retrieveNodalSelection(reader.TObcloc(i));
                     bcvariable_dofs=bcvariable_nodes*2;
-                    dx_bc=obj.Number_of_dofs;
+                    dx_bc=zeros(obj.Number_of_dofs,1);
                     dx_bc(bcvariable_dofs)=reader.TObcmaxval(i)-reader.TObcminval(i);
                     prodF=solver.KT*dx_bc;
                     obj.dfdx(dfdx_index,length(obj.TOEL)+i)=LPE(bcvariable_dofs)'*dx_bc(bcvariable_dofs)...
@@ -285,10 +279,10 @@ classdef TO_Constraints
             je = -De * DN * Vee - Da * De * DN * Tee;
             %qe = Da * (N * Tee) * je - Dk * DN * Tee; % Not needed.
 
-            dPdxi_t=Ve'*DN'*Da*De*DN;
-            dPdxi_v=Ve'*DN'*De*DN-je'*DN;
+            dPdxi_t=Vee'*DN'*Da*De*DN;
+            dPdxi_v=Vee'*DN'*De*DN-je'*DN;
 
-            P_dx=detJ*(-Ve'*DN0*(-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee));
+            P_dx=detJ*(-Vee'*DN'*(-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee));
 
             K11=detJ*(dPdxi_t);
             K12=detJ*(dPdxi_v);
@@ -342,27 +336,28 @@ classdef TO_Constraints
                    RBx];
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [Elements_volume]=CalculateAllElementVolume(mesh)
+        function [Elements_volume]=CalculateAllElementVolume(obj,mesh)
             Elements_volume=zeros(length(obj.TOEL),1);
             for i=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(i);
-                element_nodes=mesh.data.ELEMENTS(element_Tag);
+                element_nodes=mesh.data.ELEMENTS{element_Tag};
                 coordinates=zeros(3,8);
                 for j=1:8
-                    coordinates(:,j)=mesh.data.NODE(element_nodes(j));
+                    coordinates(:,j)=mesh.data.NODE{element_nodes(j)};
                 end
-                Elements_volume(i)=CalculateHexVolume(coordinates);
+                Elements_volume(i)=CalculateHexVolume(coordinates');
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fval_Volume(obj,mesh,dfdx_index)
-            Vpobj = reader.TopOpt_CosntraintValue(dfdx_index);
-            Vx=obj.Elements_volume/(Vpobj*sum(obj.Elements_volume));
-            obj.fval(dfdx_index)=(Vx'*mesh.elements_density(obj.TOEL))-1;
+        function fval_Volume(obj,reader,mesh,dfdx_index)
+            Vpobj = reader.TopOpt_ConstraintValue(dfdx_index);
+            Vx=obj.Elements_volume/(Vpobj*obj.V_TOT);
+            obj.fval(dfdx_index)=(Vx'*mesh.elements_density(obj.TOEL)')-1;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function dfdx_Volume(obj,dfdx_index)
-            Vx=obj.Elements_volume/(Vpobj*sum(obj.Elements_volume));
+        function dfdx_Volume(obj,reader,dfdx_index)
+            Vpobj = reader.TopOpt_ConstraintValue(dfdx_index);
+            Vx=obj.Elements_volume/(Vpobj*obj.V_TOT);
             obj.dfdx(dfdx_index,1:length(obj.TOEL))=Vx';
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -15,7 +15,7 @@ classdef InputReader < handle
         MaterialVolumes
         TopOpt_Objective
         TopOpt_ConstraintName
-        TopOpt_CosntraintValue
+        TopOpt_ConstraintValue
         MMA_MaxIter
         TopOpt_ObjectiveSelection
         TopOpt_DesignElements
@@ -60,6 +60,12 @@ classdef InputReader < handle
                             obj.MeshEntityName = tokens{3};
                             fprintf('New Mesh File and Mesh entity: %s %s\n', obj.meshFileName, obj.MeshEntityName);
                         end
+                    case 'TopOpt_Objective'
+                            obj.TopOpt_Objective = tokens{2};
+                            obj.TopOpt_ObjectiveSelection = tokens{3};
+                            obj.TopOpt_DesignElements = tokens{4};
+                            fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
+
                     case 'TopOpt_bc'
                             boundaryName = tokens{2};
                             surfaceName = tokens{3};
@@ -74,8 +80,7 @@ classdef InputReader < handle
                             obj.TObcminval =[obj.TObcminval, minvalue];
                             obj.TObcval =[obj.TObcval, value];
                             obj.TObcmaxval =[obj.TObcmaxval, maxvalue];
-                            fprintf('New TopOpt_bc entity: %s %s\n', boundaryName);
-                    case 'MMA_MaxIter'
+                            fprintf('New TopOpt_bc entity: %s %s\n', boundaryName);                    case 'MMA_MaxIter'
                             obj.MMA_MaxIter = tokens{2};
                             fprintf('New MMA_MaxIter: %s %s\n', obj.MMA_MaxIter);
                     case 'output'
@@ -137,15 +142,15 @@ classdef InputReader < handle
                             obj.bcval =[obj.bcval, value];
 
                         end
-                    case 'TopOpt_constraint'
-                        if numel(tokens) < 4
+                    case 'TopOpt_Constraint'
+                        if numel(tokens) < 3
                             warning('Invalid boundary condition format.');
                             %fprintf('Line Content: %s\n', line);
                         else
                             constraintName = tokens{2};
                             value = str2double(tokens{3});
                             obj.TopOpt_ConstraintName{end+1} =  constraintName;
-                            obj.TopOpt_CosntraintValue =[obj.TopOpt_CosntraintValue, value];
+                            obj.TopOpt_ConstraintValue =[obj.TopOpt_ConstraintValue, value];
                         end
                 end
             end
