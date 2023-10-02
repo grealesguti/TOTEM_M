@@ -181,7 +181,7 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function fvalue=fval_Power(obj,reader,mesh,solver,index_con)
-            fvalue=CalculatePower(reader,mesh,solver);
+            fvalue=CalculatePower(reader,mesh,solver)/reader.TopOpt_ConstraintValue(index_con)-1;
             obj.fval(index_con)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -192,11 +192,11 @@ classdef TO_Constraints < handle
             dofs_per_node = 2;
             number_of_TO_elements = length(obj.TOEL);
             nodes_per_element = length(mesh.data.ELEMENTS{obj.TOEL(1)});
-            LPEpf=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
-            LPEor=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
-            LPE_cpf=zeros(number_of_TO_elements,1);
-            LPE=zeros(obj.Number_of_dofs,1);
-            LPE_c=zeros(nodes_per_element,1);
+            LP_dU_element=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
+            LP_dU_element_dofs=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
+            LP_U_element=zeros(number_of_TO_elements,1);
+            LP_dU=zeros(obj.Number_of_dofs,1);
+            LP_U=zeros(nodes_per_element,1);
             Pobj = reader.TopOpt_ConstraintValue(dfdx_index);
             
             %% Derivatives to Vf
@@ -205,27 +205,28 @@ classdef TO_Constraints < handle
                 element_Tag = obj.TOEL(ii);
                 [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
-                LPEor(ii,:)=element_dofs;
-                LPEpf(ii,:)=LJ;
-                LPE_cpf(ii)=dPdxi_c;
+                LP_dU_element_dofs(ii,:)=element_dofs;
+                LP_dU_element(ii,:)=LJ;
+                LP_U_element(ii)=dPdxi_c;
+            end
+            
+            % Summation of all element integrations
+            for ii=1:length(obj.TOEL)
+                LP_dU(LP_dU_element_dofs(ii,:),1)=LP_dU(LP_dU_element_dofs(ii,:),1)+LP_dU_element(ii,:)';
+                LP_U(obj.TOEL(ii))=LP_U_element(ii);
             end
 
-            for ii=1:length(obj.TOEL(ii))
-                LPE(LPEor(ii,:),1)=LPE(LPEor(ii,:),1)+LPEpf(ii,:)';
-                LPE_c(obj.TOEL(ii))=LPE_cpf(ii);
-            end
-
-            LPE_c=LPE_c/Pobj;
-            LPE=LPE/Pobj;
+            LP_U=LP_U/Pobj;
+            LP_dU=LP_dU/Pobj;
 
             %% Power sensitivity
-            ADJP(obj.freedofs)=(solver.KT(obj.freedofs,obj.freedofs))'\LPE(obj.freedofs);
+            ADJP(obj.freedofs)=(solver.KT(obj.freedofs,obj.freedofs))'\LP_dU(obj.freedofs);
 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             for ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
                 [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
-                element_sensitivities(ii)=LPE_c(element_Tag)+ADJP(element_dofs)'*Rx;
+                element_sensitivities(ii)=LP_U(element_Tag)+ADJP(element_dofs)'*Rx;
             end
 
             obj.dfdx(dfdx_index,1:length(obj.TOEL))=element_sensitivities;
@@ -238,8 +239,8 @@ classdef TO_Constraints < handle
                     bcvariable_dofs=bcvariable_nodes*2;
                     dx_bc=zeros(obj.Number_of_dofs,1);
                     dx_bc(bcvariable_dofs)=reader.TObcmaxval(i)-reader.TObcminval(i);
-                    prodF=solver.KT*dx_bc;
-                    obj.dfdx(dfdx_index,length(obj.TOEL)+i)=LPE(bcvariable_dofs)'*dx_bc(bcvariable_dofs)...
+                    prodF=-solver.KT*dx_bc;
+                    obj.dfdx(dfdx_index,length(obj.TOEL)+i)=LP_dU(bcvariable_dofs)'*dx_bc(bcvariable_dofs)...
                         +ADJP(obj.freedofs)'*(+prodF(obj.freedofs));
                 end
             end           
@@ -291,7 +292,7 @@ classdef TO_Constraints < handle
             K_dx=[K11 K12];
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
+        function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)        
                 flag=[];
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
 
