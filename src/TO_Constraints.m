@@ -44,7 +44,7 @@ classdef TO_Constraints < handle
                         obj.dfdx_Power(reader,mesh,solver,index_constraint)
                         index_constraint=index_constraint+1;
                     case 'Volume'
-                        obj.fval_Volume(reader,mesh,index_constraint)
+                        obj.fval_Volume(reader,mesh,solver,index_constraint)
                         obj.dfdx_Volume(reader,index_constraint)
                         index_constraint=index_constraint+1;
                 end
@@ -350,7 +350,7 @@ classdef TO_Constraints < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fvalue=fval_Volume(obj,reader,mesh,dfdx_index)
+        function fvalue=fval_Volume(obj,reader,mesh,solver,dfdx_index)
             Vpobj = reader.TopOpt_ConstraintValue(dfdx_index);
             Vx=obj.Elements_volume/(Vpobj*obj.V_TOT);
             fvalue=(Vx'*mesh.elements_density(obj.TOEL)')-1;

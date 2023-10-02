@@ -183,10 +183,10 @@ classdef TO_Objectives < handle
             for i=1:length(bcvariablenames)
                 if strcmp(bcvariablenames(i), 'Voltage')
                     bcvariable_nodes = mesh.retrieveNodalSelection(reader.TObcloc(i));
-                    bcvariable_dofs=bcvariable_nodes*2;
+                    bcvariable_dofs=bcvariable_nodes*2; % Voltage fixed nodes (pairs)
                     dx_bc=zeros(obj.Number_of_dofs,1);
                     dx_bc(bcvariable_dofs)=reader.TObcmaxval(i)-reader.TObcminval(i);
-                    prodF=solver.KT*dx_bc;
+                    prodF=-solver.KT*dx_bc;
                     obj.dfdx(length(obj.TOEL)+i)=LAdj'*dx_bc+AdjT'*(+prodF);
                 end
             end

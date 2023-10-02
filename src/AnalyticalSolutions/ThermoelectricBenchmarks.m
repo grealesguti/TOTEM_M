@@ -237,48 +237,74 @@ classdef ThermoelectricBenchmarks < handle
                 title('Convergence Plot - Difference');
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [diff, err, cc] = Finite_Differences_bc(~, reader, mesh, bcinit, solver, eval_fun, index)
+        function [diff, err, cc] = Finite_Differences_bc(~, filename, reader, mesh, solver, eval_fun, index,index_TO)
             % Calculate the initial objective function value
             value_0 = eval_fun(reader, mesh, solver);
 
             % Get the test element for density evaluation
             bcval = reader.bcval(index);
-            bcval_iter=bcval_0*0.95;
+            bcval_iter=bcval*0.95;
+            reader_1 = InputReader(filename);
+            bcmax =  reader.TObcmaxval(index_TO);
+            bcmin = reader.TObcminval(index_TO);
+            dbc=bcmax-bcmin;
 
-            % Initialize density and iterate variables
-
-            
 
             % Set convergence tolerance and counters
-            Tol = 1e-6;
+            Tol = 1e-3;
             cc = 1;
             err = 1;
             diff_old = 0; % Initialize diff_old
-            
-            while err > Tol
-                % Calculate finite difference and update density
-                bcval_iter = (bcval - bcval_iter) / 2;
-                reader_1.bcval(index)=bcval_iter;
-                bcinit_1 = BCInit(reader, mesh);
 
+                % Store err and diff values in history arrays
+                err_history = [];
+                diff_history= [];
+
+            max_iterations = 15;
+            
+            while err > Tol && cc <= max_iterations
+                % Calculate finite difference and update density
+                bcval_iter = (bcval + bcval_iter) / 2;
+                reader_1.bcval(index)=bcval_iter;
+                mesh_1 = Mesh(reader_1);
+                bcinit_1 = BCInit(reader_1, mesh_1);
                 
                 % Create a new solver and run the Newton-Raphson method
-                solver_1 = Solver(mesh,bcinit_1);
-                solver_1.runNewtonRaphson(reader_1, mesh, bcinit_1);
+                solver_1 = Solver(mesh_1,bcinit_1);
+                solver_1.runNewtonRaphson(reader_1, mesh_1, bcinit_1);
                 
                 % Calculate the objective function value with the updated density
-                value = eval_fun(reader_1, mesh, solver_1);
+                value = eval_fun(reader_1, mesh_1, solver_1);
                 
                 % Calculate finite difference and check for convergence
-                diff = (value - value_0) / (bcval_iter - bcval);
+                diff = (value - value_0) / (bcval_iter - bcval)*dbc;
                 if cc > 2
                     err = abs((diff_old - diff) / diff_old);
                 end
                 diff_old = diff;
+                fprintf('FD Iteration: %d, Error: %e, value: %e, value_0: %e, diff: %e, bcval_iter: %e\n', cc, err, value, value_0, diff, bcval_iter);     
                 
+                % Store err and diff values in history arrays
+                err_history(cc) = err;
+                diff_history(cc) = diff;
+
                 % Increment the counter
                 cc = cc + 1;
             end
+
+                % Plot err and diff history at the end of iterations
+                figure;
+                subplot(2, 1, 1);
+                plot(1:length(err_history), err_history);
+                xlabel('Iteration');
+                ylabel('Error');
+                title('Convergence Plot - Error');
+                
+                subplot(2, 1, 2);
+                plot(1:length(diff_history), diff_history);
+                xlabel('Iteration');
+                ylabel('Difference');
+                title('Convergence Plot - Difference');
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [diffFEM, FD_vals] = run_FEM_diff(~, filename)
@@ -296,11 +322,12 @@ classdef ThermoelectricBenchmarks < handle
             diffFEM=zeros(1+length(n_con),length(TOO.TOEL));
             diffFEM(1,:)=TOO.dfdx;
             diffFEM(2,:,:)=TOC.dfdx;
+            idx=1;
 
             TOO_1 = TO_Objectives(reader,mesh,bcinit);
             if (reader.TopOpt_Objective=="AverageTemperature")
                         eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                        [FD_vals(cc), err, cc_FD] = Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun);
+                        [FD_vals(cc), err, cc_FD] = Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,idx);
             end
             cc=cc+1;
 
@@ -310,10 +337,10 @@ classdef ThermoelectricBenchmarks < handle
 
                 if (reader.TopOpt_ConstraintName=="Power")
                         eval_fun=@(reader,mesh,solver) CalculatePower(reader,mesh,solver);
-                        [FD_vals(cc), err, cc_FD] = Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun);
+                        [FD_vals(cc), err, cc_FD] = Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,idx);
                 elseif (reader.TopOpt_ConstraintName=="Volume")
                         eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,1);
-                        [FD_vals(cc), err, cc_FD] = Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun);
+                        [FD_vals(cc), err, cc_FD] = Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,idx);
                 end
 
                 cc=cc+1;
