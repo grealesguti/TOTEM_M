@@ -47,6 +47,10 @@ classdef TO_Constraints < handle
                         obj.fval_Volume(reader,mesh,solver,index_constraint)
                         obj.dfdx_Volume(reader,index_constraint)
                         index_constraint=index_constraint+1;
+                    case 'Stress'
+                        obj.fval_Stress(reader,mesh,solver,index_constraint)
+                        obj.dfdx_Stress(reader,index_constraint)
+                        index_constraint=index_constraint+1;
                 end
             end
         end
@@ -364,6 +368,12 @@ classdef TO_Constraints < handle
             obj.dfdx(dfdx_index,1:length(obj.TOEL))=Vx';
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function fvalue=fval_Stress(obj,reader,mesh,solver,index_con)
+            fvalue=CalculateStress(reader,mesh,solver)/reader.TopOpt_ConstraintValue(index_con)-1;
+            obj.fval(index_con)=fvalue;
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
     end
 end

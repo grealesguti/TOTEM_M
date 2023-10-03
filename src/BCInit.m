@@ -10,6 +10,11 @@ classdef BCInit < handle
         numNodes
         dofspernode
         dofs_free_
+        initialdofs_mech_
+        dofs_fixed_mech_
+        loadVector_mech
+        numDofs_mech
+        dofs_free_mech
     end
     
     properties (Access = private)
@@ -23,12 +28,18 @@ classdef BCInit < handle
         obj.numNodes=length(mesh.data.NODE);
         obj.dofspernode=2;
         obj.numDofs=obj.numNodes*obj.dofspernode;
+
+        % thermoelectricity
         obj.loadVector_ = zeros(obj.numDofs, 1);
         obj.dofs_fixed_=zeros(length(mesh.data.NODE)*2,1);
-
-        % Initialize initialdofs_ based on the number of nodes
         obj.initialdofs_ = zeros(obj.numDofs, 1);
-        
+
+        %thermomech
+        obj.numDofs_mech=obj.numNodes*3;
+        obj.loadVector_mech = zeros(obj.numDofs_mech, 1);
+        obj.dofs_fixed_mech_=zeros(length(mesh.data.NODE)*3,1);
+        obj.initialdofs_mech_ = zeros(obj.numDofs_mech, 1);
+
         % Call boundaryConditions to perform any necessary setup
         obj.boundaryConditions(mesh,inputReader);
     end
@@ -255,7 +266,31 @@ classdef BCInit < handle
                             fprintf('Node index out of bounds: %d\n', node);
                         end
                     end
+                elseif startsWith(boundaryName, 'Displacement')
+                    % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
+                    nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
+                    
+                    % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
+                    direction=0;
+                    if strcmp(boundaryName(end),'x')
+                        direction=1;
+                    elseif strcmp(boundaryName(end),'y')
+                        direction=2;
+                    elseif strcmp(boundaryName(end),'z')
+                        direction=3;
+                    end
+                    for node = nodes
+                        if (node*3+1) < length(obj.initialdofs_mech_)
+                            obj.initialdofs_mech_((node-1)*3+direction) = value;
+                            obj.dofs_fixed_mech_ ((node-1)*3+direction) = 1;
+                        else
+                            % Handle the case where the node index is out of bounds.
+                            % This could be an error condition depending on your application.
+                            fprintf('Node index out of bounds: %d\n', node);
+                        end
+                    end
                 elseif strcmp(boundaryName, 'heat_n')
+                    %% Heat integration
                     % Assuming 'getElementsAndNodeTagsForPhysicalGroup' returns a cell array of vectors
                     elementindexVector=mesh.retrieveElementalSelection(surfaceName);
                     %data.ELSET{strcmp(mesh.data.ElementSelectionNames, surfaceName)};
@@ -290,9 +325,55 @@ classdef BCInit < handle
                     end
                     
                     fprintf('HEAT INTEGRATION FINISHED.\n');
+               
+                elseif startsWith(boundaryName, 'Pressure')
+                    %% Force integration
+                    % Assuming 'getElementsAndNodeTagsForPhysicalGroup' returns a cell array of vectors
+                    elementindexVector=mesh.retrieveElementalSelection(surfaceName);
+                    %data.ELSET{strcmp(mesh.data.ElementSelectionNames, surfaceName)};
+                    
+                    % Debugging: Print the sizes of elements and element_nodes vectors
+                    fprintf('Size of ''elements'' vector: %d\n', length(elementindexVector));
+                    
+                    fprintf('Force X INTEGRATION.\n');
+                    % Initialize temporary load vectors for each worker
+                    %numWorkers = numel(gcp); % Get the number of workers
+                    numWorkers=1;
+                    tempLoadVectors = cell(1, numWorkers);
+                    
+                    % Create a function handle for gaussIntegrationBC and CteSurfBC
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value, mesh);
+                    %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
+                    % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
+                    direction=0;
+                    if strcmp(boundaryName(end),'x')
+                        direction=1;
+                    elseif strcmp(boundaryName(end),'y')
+                        direction=2;
+                    elseif strcmp(boundaryName(end),'z')
+                        direction=3;
+                    end
+                    % Loop through elements in parallel
+                    for workerIdx = 1:numWorkers
+                        % Initialize temporary load vector for this worker
+                        tempLoadVector = zeros(size(obj.loadVector_));
+                        
+                        % Calculate elements for this worker
+                        workerElements = elementindexVector(workerIdx:numWorkers:end);
+                        
+                        % Loop through elements for this worker
+                        for elementIdx = workerElements
+                            % Calculate element_load_vector for the current element
+                            element_load_vector = gaussIntegrationBCFun(elementIdx);
+                            obj.loadVector_mech((mesh.data.ELEMENTS{elementIdx}-1)*3+direction) = obj.loadVector_mech(mesh.data.ELEMENTS{elementIdx}*3+direction) + element_load_vector;
+                        end
+                    end
+                    
+                    fprintf('HEAT INTEGRATION FINISHED.\n');
                 end
             end
             obj.dofs_free_=find(obj.dofs_fixed_ == 0);
+            obj.dofs_free_mech=find(obj.dofs_fixed_mech_ == 0);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

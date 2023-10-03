@@ -25,6 +25,7 @@ classdef InputReader < handle
         TObcval
         TObcmaxval
         rst_folder
+        T0
     end
     
     methods
@@ -63,7 +64,10 @@ classdef InputReader < handle
                         end
                     case 'rst_folder'
                             obj.rst_folder = tokens{2};
-                            fprintf('Save folder: %s %s\n', obj.rst_folder);
+                            fprintf('Save folder: %s \n', obj.rst_folder);
+                    case 'InitialTemperature'
+                            obj.T0 = tokens{2};
+                            fprintf('InitialTemperature: %s \n', obj.T0);
                     case 'TopOpt_Objective'
                             obj.TopOpt_Objective = tokens{2};
                             obj.TopOpt_ObjectiveSelection = tokens{3};

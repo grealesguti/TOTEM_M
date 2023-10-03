@@ -1,0 +1,45 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+mesh_file Benchmarks/Elements/Benchmark_TO/Benchmark2_SERENDIPITYHEX_PARAM_M.inp Volume
+rst_folder Benchmarks/Elements/Benchmark_TO/Results/
+output all
+physics decoupledthermoelectromechanical
+solver NR
+InitialTemperature 298
+
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
+##
+material Volume
+Seebeck 0 0.0001941
+ThermalConductivity 0 1.612
+ElectricalConductivity 0 84220
+ThermalExpansionCoefficient 0 0.000003
+YoungModulus 0 100000000
+PoissonRatio 0 0.33
+
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage Ymax 0.0
+bc Temperature Ymin 298
+bc heat_n Ymax 0.005
+bc Displacement_x Ymin 0
+bc Displacement_y Ymin 0
+bc Displacement_z Ymin 0
+bc Pressure_z Ymax 1
+
+## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
+TopOpt_Objective AverageTemperature Ymax Volume
+## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
+TopOpt_bc Voltage Ymin -0.06 -0.058 -0.056
+## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_Initial_x 1
+## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_NR_init T previous  
+## Topopoly Optimization Constraints
+TopOpt_Constraint Power 0.3
+TopOpt_Constraint Volume 0.8
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk
