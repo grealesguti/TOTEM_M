@@ -21,36 +21,42 @@ classdef TopOpt
         xold2
         fval
         xval
-        dV
-        vx0
         TOEL
+        f0val
+        df0dx
+        fval_iter
+        f0val_iter
     end
     
     methods
         function obj = TopOpt(reader,mesh)
-            m=length(reader.TopOpt_ConstraintName);
-            obj.outeriter=0;
+            obj.m=length(reader.TopOpt_ConstraintName);
+            obj.outeriter = 0;
+            obj.maxiter = 50;
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-            obj.n =length(TOEL)+length(reader.TObcval);
-            xval=zeros(n,1);
-            xval(1:length(TOEL))=mesh.elements_density(obj.TOEL);
+            obj.n =length(obj.TOEL)+length(reader.TObcval);
+            obj.xval=zeros(obj.n,1);
+            obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
             for i=1:length(reader.TObcval)
-                xval(length(TOEL)+i)=reader.TObcval(i);
+                obj.xval(length(obj.TOEL)+i)=(reader.TObcval(i)-reader.TObcminval(i))/(reader.TObcmaxval(1)-reader.TObcminval(1));
             end
-            obj.xmin=zeros(n,1);
-            obj.xmax=ones(n,1);
-            obj.xold1=xval;
-            obj.xold2=xval;
-            obj.xmax(end)=scalev;
-            obj.dfdx=zeros(m,n);
-            obj.fval=zeros(m,1);
+            obj.xmin=zeros(obj.n,1);
+            obj.xmax=ones(obj.n,1);
+            obj.xold1=obj.xval;
+            obj.xold2=obj.xval;
+            %obj.xmax(end)=reader.TObcmaxval(1);
+            %obj.xmin(end)=reader.TObcminval(1);
+            obj.dfdx=zeros(obj.m,obj.n);
+            obj.fval=zeros(obj.m,1);
             obj.low     = 0.3;
             obj.upp     = 0.7;
-            obj.c       = ones(m,1)*1000;
-            obj.d       = ones(m,1);
+            obj.c       = ones(obj.m,1)*1000;
+            obj.d       = ones(obj.m,1);
             obj.a0      = 1;
-            obj.a       = zeros(m,1);
+            obj.a       = zeros(obj.m,1);
             obj.kkttol = 1e-6;
+            obj.f0val_iter=zeros(obj.maxiter+1,1);
+            obj.fval_iter=zeros(obj.maxiter+1,obj.n);
 
             dofs_TO=zeros(length(mesh.data.NODE)*2,1);
             for i=1:length(obj.TOEL)
@@ -64,57 +70,79 @@ classdef TopOpt
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function  runMMA(obj,reader,mesh)
-            fprintf('Initialized InputReader with filename: %s\n', inputfilename);
-            fprintf('Initialized Mesh\n');
             bcinit = BCInit(reader, mesh);
-            solver = Solver(reader,mesh,bcinit);
-            solver.runNewtonRaphson();
-            constraints=TO_Constraints();
-            objective = TO_Objectives();
+            solver = Solver(mesh, bcinit);
+            solver.runNewtonRaphson(reader, mesh, bcinit);
+            TOO = TO_Objectives(reader,mesh,bcinit);
+            TOO.CalculateObjective(reader,mesh,solver)
+            TOC = TO_Constraints(reader,mesh,bcinit);
+            TOC.CalculateConstraint(reader,mesh,solver);
+            post = Postprocessing();
+            post.initVTK(reader,mesh);
+            currentDate = datestr(now, 'yyyy_mm_dd_HH_MM');
+            post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_date_',currentDate,'_iter_',num2str(1000+obj.outeriter),'.vtk']))
+            
             %% New derivatives
-            obj.f0val = objective.CalculateObjective(reader,mesh,solver);
-            obj.df0dx = objective.Calculate_dfdx(reader,mesh,solver);
-            obj.fval = constraints.CalculateConstraint(reader,mesh,solver);
-            obj.dfdx = constraints.calculate_dfdx(reader,mesh,solver);
+            TOO.CalculateObjective(reader,mesh,solver)
+            TOC.CalculateConstraint(reader,mesh,solver);
+            obj.f0val = TOO.fval;
+            obj.df0dx = TOO.dfdx;
+            obj.fval = TOC.fval;
+            obj.dfdx = TOC.dfdx;
+            obj.f0val_iter(obj.outeriter+1)= TOO.fval;
+            obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
             %obj.initMMA() % including dfdx!!! running sensitivities should return dfdx, and filters
-    
-            while kktnorm > obj.kkttol && obj.outeriter < obj.maxouteriter 
+            kktnorm = 1000;
+            while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
-                postprocess.save()
+                %postprocess.save()
                 [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,obj.low,obj.upp] = ...
                     mmasub(obj.m,obj.n,obj.outeriter,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
-                    f0val,df0dx,obj.fval,obj.dfdx,obj.low,obj.upp,obj.a0,obj.a,obj.c,obj.d);
+                    obj.f0val,obj.df0dx,obj.fval,obj.dfdx,obj.low,obj.upp,obj.a0,obj.a,obj.c,obj.d);
                 %% Filter densities
-                xx=xmma;
-                mesh.elements_density(obj.TOEL)=xmma;
+                mesh.elements_density(obj.TOEL)=xmma(1:length(obj.TOEL));
                 %obj.FilteringDensitites()
     
                 %% New NR starting point
                 % New Voltage drop
                 %obj.modifyNRStartingpoint()
                 solver.soldofs=bcinit.initialdofs_;
+                for i=1:length(reader.TObcval)
+                    nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
+                    if(strcmp(reader.TObctype,'Voltage'))
+                        Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
+                        solver.soldofs(nodes*2)=Voltage_value;
+                    end
+                end
     
                 %% New Solve
-                solver.Assembly()
-                solver.runNewtonRaphson();
-    
+                solver.runNewtonRaphson(reader, mesh, bcinit);
+                post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_date_',currentDate,'_iter_',num2str(1000+obj.outeriter),'.vtk']))
+
                 %% New objective, constraints and derivatives
-                obj.f0val = objective.CalculateObjective(reader,mesh,solver);
-                obj.df0dx = objective.Calculate_dfdx(reader,mesh,solver);
-                obj.fval = constraints.CalculateConstraint(reader,mesh,solver);
-                obj.dfdx = constraints.calculate_dfdx(reader,mesh,solver);
+                TOO.CalculateObjective(reader,mesh,solver)
+                TOC.CalculateConstraint(reader,mesh,solver);
+                obj.f0val = TOO.fval;
+                obj.df0dx = TOO.dfdx;
+                obj.fval = TOC.fval;
+                obj.dfdx = TOC.dfdx;
+                obj.f0val_iter(obj.outeriter+1)= TOO.fval;
+                obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
                 %obj.FilteringSensitivities()
     
                 %% MMA parameters update
-                obj.xold2=obj.xold1;obj.xold1=obj.xval;
+                obj.xold2=obj.xold1;
+                obj.xold1=obj.xval;
                 obj.xval=xmma;
     
                 %% write results
-                postprocesing.save()
+                %postprocesing.save()
     
                 %% Convergence
-                kktnorm=changexval(obj.outeriter);
-                postprocesing.plot()
+                if obj.outeriter>5
+                    kktnorm=norm((obj.xval-obj.xold1)./obj.xval);
+                end
+                post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter)
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

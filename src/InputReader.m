@@ -24,6 +24,7 @@ classdef InputReader < handle
         TObcminval
         TObcval
         TObcmaxval
+        rst_folder
     end
     
     methods
@@ -60,12 +61,14 @@ classdef InputReader < handle
                             obj.MeshEntityName = tokens{3};
                             fprintf('New Mesh File and Mesh entity: %s %s\n', obj.meshFileName, obj.MeshEntityName);
                         end
+                    case 'rst_folder'
+                            obj.rst_folder = tokens{2};
+                            fprintf('Save folder: %s %s\n', obj.rst_folder);
                     case 'TopOpt_Objective'
                             obj.TopOpt_Objective = tokens{2};
                             obj.TopOpt_ObjectiveSelection = tokens{3};
                             obj.TopOpt_DesignElements = tokens{4};
                             fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
-
                     case 'TopOpt_bc'
                             boundaryName = tokens{2};
                             surfaceName = tokens{3};

@@ -2,6 +2,7 @@
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
 mesh_file Benchmarks/Elements/Benchmark_TO/Benchmark2_SERENDIPITYHEX_PARAM_M.inp Volume
+rst_folder Benchmarks/Elements/Benchmark_TO/Results/
 output all
 physics thermoelectricity
 solver NR

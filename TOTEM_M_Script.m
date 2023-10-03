@@ -27,27 +27,9 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
         TOC = TO_Constraints(reader,mesh,bcinit);
         TOC.CalculateConstraint(reader,mesh,solver);
 
-        bench = ThermoelectricBenchmarks();
+        TO = TopOpt(reader,mesh);
 
-        TOO_1 = TO_Objectives(reader,mesh,bcinit);
-        eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-        [FD_vals(1), err] = bench.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
-
-        TOO_1 = TO_Objectives(reader,mesh,bcinit);
-        eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-        [FD_vals(2), err] = bench.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 4,1); %  OK
-
-        TOC_1 = TO_Constraints(reader,mesh,bcinit);
-        eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
-        [FD_vals(3), err] = bench.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
-
-        TOC_1 = TO_Constraints(reader,mesh,bcinit);
-        eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-        [FD_vals(4), err] = bench.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % Not OK
-
-        TOC_1 = TO_Constraints(reader,mesh,bcinit);
-        eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-        [FD_vals(5), err] = bench.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 4,1); % Not OK
+        TO.runMMA(reader,mesh)
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %postprocessing = Postprocessing();

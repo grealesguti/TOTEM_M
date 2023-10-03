@@ -201,7 +201,7 @@ classdef TO_Constraints < handle
             
             %% Derivatives to Vf
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            for  ii=1:length(obj.TOEL)
+            parfor  ii=1:length(obj.TOEL)
                 element_Tag = obj.TOEL(ii);
                 [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
@@ -223,7 +223,7 @@ classdef TO_Constraints < handle
             ADJP(obj.freedofs)=(solver.KT(obj.freedofs,obj.freedofs))'\LP_dU(obj.freedofs);
 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            for ii=1:length(obj.TOEL)
+            parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
                 [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 element_sensitivities(ii)=LP_U(element_Tag)+ADJP(element_dofs)'*Rx;

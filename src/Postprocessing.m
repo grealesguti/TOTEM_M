@@ -7,6 +7,7 @@ classdef Postprocessing < handle
         total_number_of_nodes
         coordinates
         element_node_idxs
+        mesh_elements
     end
     
     methods
@@ -15,8 +16,8 @@ classdef Postprocessing < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function initVTK(obj,reader,mesh)
-            mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
-            obj.total_number_of_elements = length(mesh_elements);
+            obj.mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
+            obj.total_number_of_elements = length(obj.mesh_elements);
             obj.total_number_of_nodes = length(mesh.data.NODE);
                 
             obj.coordinates = zeros(3,obj.total_number_of_nodes);
@@ -26,7 +27,7 @@ classdef Postprocessing < handle
             end
             obj.element_node_idxs=zeros(obj.total_number_of_elements,8);
             for i=1:obj.total_number_of_elements
-                nodal_idxx=mesh.data.ELEMENTS{mesh_elements(i)};
+                nodal_idxx=mesh.data.ELEMENTS{obj.mesh_elements(i)};
                 obj.element_node_idxs(i,:) = nodal_idxx(1:8);
             end        
         end
@@ -48,6 +49,54 @@ classdef Postprocessing < handle
                 'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
                 'CELLS',obj.element_node_idxs, ...
                 'data','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_x_TV(obj,mesh,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');         
+            
+            xx = mesh.elements_density;
+
+            Tn=zeros(obj.total_number_of_nodes,1);
+            Vn=zeros(obj.total_number_of_nodes,1);
+            
+            for i=1:obj.total_number_of_nodes
+                Tn(i) = solver.soldofs(i*2-1);
+                Vn(i) = solver.soldofs(i*2);
+            end
+    
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'CELL_DATA',xx(obj.mesh_elements)',...
+                'data','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function PlotIter(~,fig,reader,iter,f0val,fval)
+            % Ensure the specified figure exists and is active or create a new one
+            if isempty(fig) || ~ishandle(fig) || ~strcmp(get(fig, 'Type'), 'figure')
+                fig = figure;
+                set(fig, 'Position', [100, 100, 1200, 400]);
+            else
+                figure(fig);
+            end
+        
+            subplot(1, 1 + length(fval(1, :)),1);
+            % Plot the objective function history
+            plot(1:iter, f0val(1:iter), 'o-');
+            title(reader.TopOpt_Objective);
+        
+            % Plot constraint histories in subplots
+            for i = 1:length(fval(1, :))
+                subplot(1, 1 + length(fval(1, :)),i+1);
+                plot(1:iter, fval(1:iter, i), 'o-');
+                title(reader.TopOpt_ConstraintName{i});
+            end
+        
+            % Update the figure
+            sgtitle('Optimization Progress');
+            hold off;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function Benchmark_T_PLOT_axis(obj,fig,solver,axis)
