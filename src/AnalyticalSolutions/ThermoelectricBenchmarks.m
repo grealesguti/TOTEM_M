@@ -40,7 +40,7 @@ classdef ThermoelectricBenchmarks < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % https://link.springer.com/article/10.1007/s00466-006-0080-7
-        function [xv,Tx,Vx] = Perez_Aparicio_LinearUncoupledSeebeck(~,filename,index)
+        function [xv,Tx,Vx,Ux] = Perez_Aparicio_LinearUncoupledSeebeck(~,filename,index)
 
                 reader = InputReader(filename);
                 fprintf('Initialized InputReader with filename: %s\n', filename);
@@ -54,26 +54,40 @@ classdef ThermoelectricBenchmarks < handle
                 postprocessing = Postprocessing();
                 postprocessing.initVTK(reader,mesh);
 
-                figure(index)
-                hold on
-                postprocessing.Benchmark_T_PLOT_axis(index,solver,2)
                 L=1.524e-3;
                 steps=100;
                 x_step=L/steps;
-                xv=zeros(steps,1);
-                Tx=zeros(steps,1);
-                Vx=zeros(steps,1);
-                for i=1:100
+                xv=zeros(steps+1,1);
+                Tx=zeros(steps+1,1);
+                Vx=zeros(steps+1,1);
+                Ux=zeros(steps+1,1);% int((T(x)-298.15)*alpha dx) (symbolic calculation)
+                alpha=1e-3;
+                for i=1:101
                     xv(i)=x_step*(i-1);
                     Tx(i)=412-sqrt(169587-1.31e7*xv(i))+273.15;
                     Vx(i)=sqrt(0.018-1.31*xv(i))+2.36*xv(i)-0.13;
+                    Ux(i)=alpha*(412*xv(i) - (56529*169587^(1/2))/6550000 + (169587 - 13100000*xv(i))^(3/2)/19650000);
                 end
+
+                figure(index)
+                hold on
+                subplot(1, 3,1);
+                hold on
+                TFEM = postprocessing.Benchmark_T_PLOT_axis(index,solver,2);
                 plot(xv,Tx)
+                subplot(1, 3,2);
+                hold on
+                VFEM = postprocessing.Benchmark_V_PLOT_axis(index,solver,2);
+                plot(xv,Vx)
+                subplot(1, 3,3);
+                hold on
+                UFEM = postprocessing.Benchmark_U_PLOT_axis(index,solver,2);
+                plot(xv,Ux)
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % https://link.springer.com/article/10.1007/s00466-006-0080-7
-        function [xv,Tx,Vx] = Perez_Aparicio_CoupledSeebeck(~,filename,index)
+        function [xv,Tx,Vx,Ux,Power_Bench] = Perez_Aparicio_CoupledSeebeck(~,filename,index)
 
                 reader = InputReader(filename);
                 fprintf('Initialized InputReader with filename: %s\n', filename);
@@ -87,26 +101,41 @@ classdef ThermoelectricBenchmarks < handle
                 postprocessing = Postprocessing();
                 postprocessing.initVTK(reader,mesh);
 
-                figure(index)
-                hold on
-                postprocessing.Benchmark_T_PLOT_axis(index,solver,2)
+
                 L=1.524e-3;
                 steps=100;
                 x_step=L/steps;
                 xv=zeros(steps,1);
                 Tx=zeros(steps,1);
                 Vx=zeros(steps,1);
+                Ux=zeros(steps,1); % int((T(x)-298.15)*alpha dx)
+                alpha=1e-3;
                 for i=1:100
                     xv(i)=x_step*(i-1);
                     Tx(i)=3.794e7*xv(i)*(1.524e-3-xv(i))+298.15;
                     Vx(i)=5.788e-2-4.913*10*xv(i)+7.315e3*xv(i)^2;
+                    Ux(i)=(-xv(i)^2*((37940000*xv(i))/3 - 8332820879051308801875/288230376151711744))*alpha;
                 end
                 j=3.199e6;
                 Power = 5.788e-2*(j*0.0014^2);
                 Power_FEM = CalculatePower(reader,mesh,solver);
                 Power_Bench = abs(Power-Power_FEM);
                 fprintf('Power benchmark, Analytical: %s FEM: %s\n', [Power,Power_FEM]);
+
+                figure(index)
+                hold on
+                subplot(1, 3,1);
+                hold on
+                postprocessing.Benchmark_T_PLOT_axis(index,solver,2)
                 plot(xv,Tx)
+                subplot(1, 3,2);
+                hold on
+                postprocessing.Benchmark_V_PLOT_axis(index,solver,2)
+                plot(xv,Vx)
+                subplot(1, 3,3);
+                hold on
+                postprocessing.Benchmark_U_PLOT_axis(index,solver,2)
+                plot(xv,Ux)
 
         end        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

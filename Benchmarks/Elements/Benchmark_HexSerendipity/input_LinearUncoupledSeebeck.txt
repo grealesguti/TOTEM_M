@@ -3,8 +3,10 @@
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
 mesh_file Benchmarks/Elements/Benchmark_HexSerendipity/Benchmark2_SERENDIPITYHEX_PARAM_M.inp Volume
 output all
-physics thermoelectricity
+physics decoupledthermoelectromechanical
+rst_folder Benchmarks/Elements/Benchmark_TO/Results/
 solver NR
+InitialTemperature 273.15
 
 ## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
 ##
@@ -12,13 +14,20 @@ material Volume
 Seebeck 2 0.0001802 +0.0000003861 -0.0000000009582
 ThermalConductivity 2 1.758 -0.005290 0.00004134 
 ElectricalConductivity 2 102800 -536.9 1.824
+ThermalExpansionCoefficient_x 0 0.0
+ThermalExpansionCoefficient_y 0 0.001
+ThermalExpansionCoefficient_z 0 0.0
+YoungModulus 0 100000000
+PoissonRatio 0 0.33
 
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
-bc Voltage Ymin 0.0
 bc Voltage Ymax 0.0
 bc Temperature Ymin 273.15
 bc Temperature Ymax 298.15
+bc Displacement_y Ymin 0
+bc Displacement_x Volume 0
+bc Displacement_z Volume 0
 
 ## Output Options
 ## output <data> <path/outputname>

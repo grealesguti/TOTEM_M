@@ -32,6 +32,53 @@ classdef Postprocessing < handle
             end        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_U(obj,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
+
+            Ux=zeros(obj.total_number_of_nodes,1);
+            Uy=zeros(obj.total_number_of_nodes,1);
+            Uz=zeros(obj.total_number_of_nodes,1);
+            for i=1:obj.total_number_of_nodes
+                Ux(i) = solver.soldofs_mech((i-1)*3+1);
+                Uy(i) = solver.soldofs_mech((i-1)*3+2);
+                Uz(i) = solver.soldofs_mech((i-1)*3+3);
+            end
+    
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'data','POINT_DATA',[Ux';Uy';Uz']','U','Test',[],'precision',5)        
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_U_axis(obj,solver,axis,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
+
+            Ux=zeros(obj.total_number_of_nodes,1);
+            Uy=zeros(obj.total_number_of_nodes,1);
+            Uz=zeros(obj.total_number_of_nodes,1);
+            for i=1:obj.total_number_of_nodes
+                Ux(i) = solver.soldofs_mech((i-1)*3+1);
+                Uy(i) = solver.soldofs_mech((i-1)*3+2);
+                Uz(i) = solver.soldofs_mech((i-1)*3+3);
+            end
+            if axis==1
+                U=Ux;
+            elseif axis==2
+                U=Uy;
+            elseif axis==3
+                U=Uz;
+            end
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'data','POINT_DATA',U,append(['U',num2str(axis)]),'Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_TV(obj,solver,filepath)
             % Append the date and '.vtk' extension to the filepath
             dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
@@ -99,7 +146,7 @@ classdef Postprocessing < handle
             hold off;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function Benchmark_T_PLOT_axis(obj,fig,solver,axis)
+        function [sorted_Tn]=Benchmark_T_PLOT_axis(obj,fig,solver,axis)
             Tn=zeros(obj.total_number_of_nodes,1);
             Tn_loc=zeros(obj.total_number_of_nodes,1);
             for i=1:obj.total_number_of_nodes
@@ -113,7 +160,7 @@ classdef Postprocessing < handle
             sorted_Tn = Tn(sorting_indices);
             sorted_Tn_loc = Tn_loc(sorting_indices);
             
-            figure(fig)
+            %figure(fig)
             % Set the background color of the figure to white
             set(gcf, 'Color', 'white')
             plot(sorted_Tn_loc, sorted_Tn, '-o')  % Use 'o' for markers
@@ -122,19 +169,57 @@ classdef Postprocessing < handle
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function Benchmark_V_PLOT_axis(obj,fig,solver,axis)
+        function [sorted_Vn]=Benchmark_V_PLOT_axis(obj,fig,solver,axis)
+
             Vn=zeros(obj.total_number_of_nodes,1);
             Vn_loc=zeros(obj.total_number_of_nodes,1);
             for i=1:obj.total_number_of_nodes
-                Vn(i) = solver.soldofs(i*2-1);
+                Vn(i) = solver.soldofs(i*2);
                 Vn_loc(i) = obj.coordinates(axis,i);
             end
+            % Sort Tn_loc and get the sorting indices
+            [sorted_locs, sorting_indices] = sort(Vn_loc);
             
-            figure(fig)
-            plot(Vn_loc,Vn)
+            % Rearrange Tn and Tn_loc based on the sorting indices
+            sorted_Vn = Vn(sorting_indices);
+            sorted_Vn_loc = Vn_loc(sorting_indices);
+            %figure(fig)
+            plot(sorted_Vn_loc,sorted_Vn, '-o')
             ylabel('Voltage [V]')
             xlabel('Location [m]')
         end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [sorted_Un]=Benchmark_U_PLOT_axis(obj,fig,solver,axis)
+            Un=zeros(obj.total_number_of_nodes,1);
+            Ux=zeros(obj.total_number_of_nodes,1);
+            Uy=zeros(obj.total_number_of_nodes,1);
+            Uz=zeros(obj.total_number_of_nodes,1);
+
+            Un_loc=zeros(obj.total_number_of_nodes,1);
+            for i=1:obj.total_number_of_nodes
+                Ux(i)= solver.soldofs_mech((i-1)*3+1);
+                Uy(i)= solver.soldofs_mech((i-1)*3+2);
+                Uz(i)= solver.soldofs_mech((i-1)*3+3);
+                Un(i) = solver.soldofs_mech((i-1)*3+axis);
+                Un_loc(i) = obj.coordinates(axis,i);
+            end
+            % Sort Tn_loc and get the sorting indices
+            [sorted_locs, sorting_indices] = sort(Un_loc);
+            
+            % Rearrange Tn and Tn_loc based on the sorting indices
+            sorted_Un = Un(sorting_indices);
+            sorted_Un_loc = Un_loc(sorting_indices);
+            
+            %figure(fig)
+            % Set the background color of the figure to white
+            set(gcf, 'Color', 'white')
+            plot(sorted_Un_loc, sorted_Un, '-o')  % Use 'o' for markers
+            ylabel('Temperature [K]')
+            xlabel('Location [m]')
+
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     end
 end
 

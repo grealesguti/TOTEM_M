@@ -115,7 +115,7 @@ classdef Solver < handle
             
             initialdofs_TV = obj.soldofs;
 
-            parfor i = 1:total_number_of_elements
+            for i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -124,17 +124,23 @@ classdef Solver < handle
                 [Ke, element_dof_indexes_T, element_dof_indexes_M] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs_TV, reader, etype_element,'DecoupledThermoMechanical_Load');
                 
                 % Accumulate residuals and stiffness matrix contributions
-                KJvnz(:, i) = reshape(Ke, dofs_per_element*node_el, 1);
-                repmat_idx_M=repmat(element_dof_indexes_M,1, node_el);
-                repmat_idx_T=repmat(element_dof_indexes_T',dofs_per_element, 1);
-                KJvr(:, i) = reshape(repmat_idx_M, dofs_per_element*node_el, 1);
-                KJvc(:, i) = reshape(repmat_idx_T', dofs_per_element*node_el, 1);               
+                %KJvnz(:, i) = reshape(Ke, dofs_per_element*node_el, 1);
+                %repmat_idx_M=repmat(element_dof_indexes_M,1, node_el);
+                %repmat_idx_T=repmat(element_dof_indexes_T',dofs_per_element, 1);
+                %KJvr(:, i) = reshape(repmat_idx_M, dofs_per_element*node_el, 1);
+                %KJvc(:, i) = reshape(repmat_idx_T', dofs_per_element*node_el, 1);   
+
+                nnv=3*node_el*node_el;
+                KJvnz(:,i)=reshape(Ke,nnv,1);
+                KJvc(:,i)=reshape(repmat(element_dof_indexes_T,node_el*3,1),nnv,1);
+                KJvr(:,i)=reshape(repmat(element_dof_indexes_M,node_el,1)',nnv,1);
             end
             KJvnzr=reshape(KJvnz,total_number_of_elements*dofs_per_element*node_el,1);
             KJvcr=reshape(KJvc,total_number_of_elements*dofs_per_element*node_el,1);
             KJvrr=reshape(KJvr,total_number_of_elements*dofs_per_element*node_el,1);
             KTemp_Load=sparse(KJvrr,KJvcr,KJvnzr,total_number_of_dofs,total_number_of_nodes);
 
+           % [F,KTemp_Load]=linkMT_TOIso_Test(reader,mesh,obj)
             
             % Initialize the parallel pool with the desired number of workers
             %numWorkers = 4; % Adjust the number of workers as needed
@@ -142,12 +148,12 @@ classdef Solver < handle
             KJvnz = zeros(dofs_per_element^2, total_number_of_elements);
             KJvc = zeros(dofs_per_element^2, total_number_of_elements);
             KJvr = zeros(dofs_per_element^2, total_number_of_elements);
-            parfor i = 1:total_number_of_elements
+            for i = 1:total_number_of_elements
                 % Recover each element tag
                 elementTag = mesh_elements(i);
                 
                 % Compute element stiffness matrix and residual
-                [Ke, empt, element_dof_indexes] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs_TV, reader, etype_element,'Mechanical');
+                [Ke, empt, element_dof_indexes] = obj.gaussIntegrationK(3, 5, elementTag, mesh, initialdofs_TV, reader, etype_element,'Mechanical');
                 
                 % Accumulate residuals and stiffness matrix contributions
                 KJvnz(:, i) = reshape(Ke, dofs_per_element^2, 1);
@@ -228,6 +234,14 @@ classdef Solver < handle
                     element_dof_indexes_T(i)=element_nodes(i);
                 end
     
+                element_dof_indexes_T=zeros(1,number_of_nodes);element_dof_indexes=zeros(1,3*number_of_nodes);
+                for i=1:number_of_nodes
+                    for j=1:3
+                        element_dof_indexes((i-1)*3+j)=(element_nodes(i)-1)*3+j;
+                    end
+                    element_dof_indexes_T(i)=element_nodes(i);
+                end
+
                 element_material_index=mesh.elements_material(elementTag);
     
                 K=zeros(number_of_nodes*dof_per_node,number_of_nodes);
@@ -410,21 +424,17 @@ classdef Solver < handle
                 Th = N * Tee';
             
                 % FIXME: Calculate material properties
-                Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
-                Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
-                Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
-                Dalphap = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient');
-                DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
+                Dalpha_x = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+                Dalpha_y = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+                Dalpha_z = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+                DE = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
 
-                [De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                [Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
-                [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
-                [Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
                 alphav=zeros(6,1);
-                alphav(1:3,1)=Dalpha;
+                alphav(1:3,1)=[Dalpha_x,Dalpha_y,Dalpha_z];
 
                 C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
@@ -466,7 +476,7 @@ classdef Solver < handle
                 %DN1 = JM \ dShape'; % FIXME and check it is the same!
 
                 % FIXME, calculate from all dofs input
-                Th = N * Tee';
+                %Th = N * Tee';
             
                 % FIXME: Calculate material properties
                 %Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
@@ -479,13 +489,13 @@ classdef Solver < handle
                 %[De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 %[Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
-                [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
                 %alphav=zeros(6,1);
                 %alphav(1:3,1)=Dalpha;
 
-                C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                C = DEp./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
                     0 0 0 0 0 (1-2*nu)/2];
                 
@@ -551,7 +561,7 @@ classdef Solver < handle
             if strcmp(reader.physics,'decoupledthermoelectromechanical')
                 [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                 Temperature_solution = obj.soldofs(1:2:end);
-                obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-reader.T0);
+                obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2num(reader.T0));
                 obj.SolveLinearSystemInParallel(reader.physics,bcinit)
             end
             if iter==obj.max_iterations

@@ -16,7 +16,6 @@ ElectricalConductivity 2 1.028e5  −5.369e2 1.824
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
 bc Voltage Ymin 0.0
-bc Voltage Ymax 0.0
 bc Temperature Ymin 298.15
 bc Temperature Ymax 273.15
 

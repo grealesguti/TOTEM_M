@@ -280,7 +280,7 @@ classdef BCInit < handle
                         direction=3;
                     end
                     for node = nodes
-                        if (node*3+1) < length(obj.initialdofs_mech_)
+                        if (node*3) < length(obj.initialdofs_mech_)
                             obj.initialdofs_mech_((node-1)*3+direction) = value;
                             obj.dofs_fixed_mech_ ((node-1)*3+direction) = 1;
                         else
