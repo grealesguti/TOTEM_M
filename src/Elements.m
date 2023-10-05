@@ -110,6 +110,49 @@ classdef Elements < handle
             % Implement this method
         end
 
+        function nodes =  GetHexahedralNodeLocations(~)
+            % Define the coordinates of the 8 nodes
+            nodes = [
+                -1, -1, -1;
+                 1, -1, -1;
+                 1,  1, -1;
+                -1,  1, -1;
+                -1, -1,  1;
+                 1, -1,  1;
+                 1,  1,  1;
+                -1,  1,  1;
+            ];
+
+        end
+
+        function nodes = GetSerendipityQuadHexahedralNodeLocations(~)
+            % Define the coordinates of the 20 nodes
+            nodes = [
+                -1, -1, -1;
+                 1, -1, -1;
+                 1,  1, -1;
+                -1,  1, -1;
+                -1, -1,  1;
+                 1, -1,  1;
+                 1,  1,  1;
+                -1,  1,  1;
+                 0, -1, -1;
+                 1,  0, -1;
+                 0,  1, -1;
+                -1,  0, -1;
+                -1, -1,  0;
+                 1, -1,  0;
+                 1,  1,  0;
+                -1,  1,  0;
+                 0, -1,  1;
+                 1,  0,  1;
+                 0,  1,  1;
+                -1,  0,  1;
+            ];
+        
+        
+        end        
+
         function shapeFunctions = EvaluateHexahedralLinearShapeFunctions(~,xi, eta, zeta)
             % Ensure the shapeFunctions vector is of the correct size (8 nodes)
             shapeFunctions = zeros(1, 8);

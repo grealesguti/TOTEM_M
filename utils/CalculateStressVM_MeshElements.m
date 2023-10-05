@@ -1,4 +1,4 @@
-function [sigmaVM0_ordered] = CalculateStressVM_MeshNodes(reader,mesh,solver)
+function [sigmaVM0_ordered] = CalculateStressVM_MeshElements(reader,mesh,solver)
 
 mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
 total_number_of_elements = length(mesh_elements);
@@ -11,22 +11,11 @@ dofs_per_element = (node_el * dofs_per_element);
 sigmaVM0=zeros(total_number_of_nodes,1);
 
 initialdofs = solver.soldofs;
-node_elementcorrelation_list = zeros(total_number_of_nodes,2);
-for i = 1:total_number_of_elements
-    elementTag = mesh_elements(i);
-    element_nodes = mesh.data.ELEMENTS{elementTag};
-    [nodes,flag,natural_coordinates_all_nodes] = mesh.retrievemeshtype(reader);
-    for j = 1:length(element_nodes)
-        node_elementcorrelation_list(element_nodes(j),1)=i;
-        node_elementcorrelation_list(element_nodes(j),2)=j;
-    end
-end
 
-parfor i = 1:length(node_elementcorrelation_list(:,1))
+parfor i = 1:total_number_of_elements
 
     % Recover each element tag
-    elementTag = mesh_elements(node_elementcorrelation_list(i,1));
-    node_number = node_elementcorrelation_list(i,2);
+    elementTag = mesh_elements(i);
     element_nodes = mesh.data.ELEMENTS{elementTag};
     number_of_nodes = length(element_nodes);
     element_coordinates=zeros(3,number_of_nodes);
@@ -47,10 +36,8 @@ parfor i = 1:length(node_elementcorrelation_list(:,1))
         Uee((ei-1)*3+2)=solver.soldofs_mech((element_nodes(ei)-1)*3+2);
         Uee((ei-1)*3+3)=solver.soldofs_mech((element_nodes(ei)-1)*3+3);
     end
-    [nodes,flag,natural_coordinates_all_nodes] = mesh.retrievemeshtype(reader);
-            
-    j=node_number;
-            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, natural_coordinates_all_nodes(j,1), natural_coordinates_all_nodes(j,2), natural_coordinates_all_nodes(j,3));
+
+            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, 0, 0, 0);
 
             JM = dShape' * element_coordinates';
             %Jacinv = inv(JM);
@@ -92,8 +79,10 @@ parfor i = 1:length(node_elementcorrelation_list(:,1))
             sigmaVM0(i) = sVM0;
 end
 sigmaVM0_ordered=zeros(total_number_of_nodes,1);
-for i = 1:length(node_elementcorrelation_list(:,1))
-     sigmaVM0_ordered(node_elementcorrelation_list(i,2))=sigmaVM0(i);
+for i = 1:total_number_of_elements
+    % Recover each element tag
+    elementTag = mesh_elements(i);
+     sigmaVM0_ordered(elementTag)=sigmaVM0(i);
 end
 end
 

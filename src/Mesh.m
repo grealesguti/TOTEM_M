@@ -264,10 +264,12 @@ classdef Mesh < handle
                 nodes = obj.data.NSET{indices};
         end    
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [node_el,etype_element] = retrievemeshtype(obj,reader)
+        function [node_el,etype_element,naturalcoordinates] = retrievemeshtype(obj,reader)
             elements_in_mesh = retrieveElementalSelection(obj, reader.MeshEntityName);
             prev_flag = 0;  % Initialize a previous flag
             cc=0;
+            naturalcoordinates=[];
+            %elements=Elements();
             for element = elements_in_mesh
                 etype_element = obj.data.ElementTypes{element};
                 if etype_element == "CPS4" % 4-node quadrangle
@@ -276,12 +278,14 @@ classdef Mesh < handle
                 elseif etype_element == "CPS8" % 8-node second-order quadrangle
                     node_el = 8;
                     flag = 2;
+                    naturalcoordinates=obj.elements.GetHexahedralNodeLocations();
                 elseif etype_element == "C3D8" % Hexahedral 8 node element
                     node_el = 8;
                     flag = 3;
                 elseif etype_element == "C3D20" % Hexahedral 20 node element
                     node_el = 20;
                     flag = 4;
+                    naturalcoordinates=obj.elements.GetSerendipityQuadHexahedralNodeLocations();
                 else
                     flag = 0;
                     % Handle unsupported element types or return an error code

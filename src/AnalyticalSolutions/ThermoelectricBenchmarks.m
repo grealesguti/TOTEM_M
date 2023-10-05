@@ -13,6 +13,7 @@ classdef ThermoelectricBenchmarks < handle
             %THERMOELECTRICBENCHMARKS Construct an instance of this class
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_LinearUncoupledSeebeck.txt";
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_NonLinCouplSEffect.txt";
+            Benchmark_Perez_Aparicio_NonLinCouplPEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_NonLinCouplPEffect.txt";
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt";
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
 
@@ -62,10 +63,21 @@ classdef ThermoelectricBenchmarks < handle
                 Vx=zeros(steps+1,1);
                 Ux=zeros(steps+1,1);% int((T(x)-298.15)*alpha dx) (symbolic calculation)
                 alpha=1e-3;
+                Th=273.15;
+                Tc=298.15;
+                a=-4.26E-3;
+                b=1.754;
+                c=3.598E-7;
+                d=1.804;
+            
+                kh=-0.0043*Th+2.9176;
+                kc=-0.0043*Tc+2.9176;
+                c1=(kh^2-kc^2)/L;
+                               
                 for i=1:101
                     xv(i)=x_step*(i-1);
                     Tx(i)=412-sqrt(169587-1.31e7*xv(i))+273.15;
-                    Vx(i)=sqrt(0.018-1.31*xv(i))+2.36*xv(i)-0.13;
+                    Vx(i)= sqrt(0.018 - 1.41*xv(i)) + 2.36*xv(i) - 0.13;
                     Ux(i)=alpha*(412*xv(i) - (56529*169587^(1/2))/6550000 + (169587 - 13100000*xv(i))^(3/2)/19650000);
                 end
 
@@ -110,10 +122,11 @@ classdef ThermoelectricBenchmarks < handle
                 Vx=zeros(steps,1);
                 Ux=zeros(steps,1); % int((T(x)-298.15)*alpha dx)
                 alpha=1e-3;
+
                 for i=1:100
                     xv(i)=x_step*(i-1);
                     Tx(i)=3.794e7*xv(i)*(1.524e-3-xv(i))+298.15;
-                    Vx(i)=5.788e-2-4.913*10*xv(i)+7.315e3*xv(i)^2;
+                    Vx(i)= 5.788E-2 - 4.913E1*xv(i) + 7.315E3*xv(i)^2;
                     Ux(i)=(-xv(i)^2*((37940000*xv(i))/3 - 8332820879051308801875/288230376151711744))*alpha;
                 end
                 j=3.199e6;
@@ -394,12 +407,12 @@ classdef ThermoelectricBenchmarks < handle
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [diffFEM, FD_vals] = run_SingleFEM_diff(~, filepath)
+        function [diffFEM, FD_vals] = run_SingleFEM_diff(obj, filepath)
                 % filepath="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
                 %reader = InputReader("Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt");
                 %reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt");
                 reader = InputReader(filepath);
-                fprintf('Initialized InputReader with filename: %s\n', inputfilename);
+                fprintf('Initialized InputReader with filename: %s\n', filepath);
                 mesh = Mesh(reader);
                 fprintf('Initialized Mesh\n');
                 bcinit = BCInit(reader, mesh);
@@ -411,32 +424,32 @@ classdef ThermoelectricBenchmarks < handle
                 TOO.CalculateObjective(reader,mesh,solver)
                 TOC = TO_Constraints(reader,mesh,bcinit);
                 TOC.CalculateConstraint(reader,mesh,solver);
-        
-                bench = ThermoelectricBenchmarks();
-        
-                TOO_1 = TO_Objectives(reader,mesh,bcinit);
-                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                [FD_vals(1), err] = bench.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                ncon = length(reader.TopOpt_ConstraintValue);
+                %bench = ThermoelectricBenchmarks();
         
                 TOO_1 = TO_Objectives(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                [FD_vals(2), err] = bench.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 4,1); %  OK
+                [FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+        
+                TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 4,1); %  OK
         
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
-                [FD_vals(3), err] = bench.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                [FD_vals(3), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
         
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                [FD_vals(4), err] = bench.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % Not OK
+                [FD_vals(4), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % Not OK
         
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                [FD_vals(5), err] = bench.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 4,1); % Not OK
+                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 4,1); % Not OK
                 
-                diffFEM=zeros(1+length(n_con),length(TOO.TOEL));
+                diffFEM=zeros(1+n_con,length(TOO.TOEL)+1);
                 diffFEM(1,:)=TOO.dfdx;
-                diffFEM(2,:,:)=TOC.dfdx;
+                diffFEM(2:end,:)=TOC.dfdx;
         end
     
     end

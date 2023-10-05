@@ -38,7 +38,7 @@ classdef Solver < handle
 
                 %obj.SolveLinearSystemInParallel(bcinit);
                 
-                obj.max_iterations=10;
+                obj.max_iterations=20;
                 obj.tolerance=1e-6;
                 fprintf('### SOLVER Initialized.\n');
             end
@@ -72,7 +72,7 @@ classdef Solver < handle
                 elementTag = mesh_elements(i);
                 
                 % Compute element stiffness matrix and residual
-                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs, reader, etype_element,'Thermoelectricity');
+                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(3, 5, elementTag, mesh, initialdofs, reader, etype_element,'Thermoelectricity');
                 
                 % Assembly in global residual
                 Rs(element_dof_indexes, 1) = Re(:, 1);
@@ -115,7 +115,7 @@ classdef Solver < handle
             
             initialdofs_TV = obj.soldofs;
 
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);

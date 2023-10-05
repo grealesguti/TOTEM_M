@@ -7,7 +7,7 @@ function [mat,Dmat] = CalculateMaterialProperties(material,Th,x,p)
         mat=mat+material(i)*TC^(i-1);
         if i>1
             pp=pp*(i-1);
-            Dmat=Dmat+material(i)*TC^(i-2)/pp;
+            Dmat=Dmat+material(i)*TC^(i-2)*(i-1);
         end
     end       
 

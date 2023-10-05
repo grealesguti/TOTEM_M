@@ -369,11 +369,17 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function fvalue=fval_Stress(obj,reader,mesh,solver,index_con)
-            fvalue=CalculateStress(reader,mesh,solver)/reader.TopOpt_ConstraintValue(index_con)-1;
+            SVM=CalculateStressVM_MeshElements(reader,mesh,solver);
+            fvalue= KSU(SVM/reader.TopOpt_ConstraintValue(index_con)-1);
             obj.fval(index_con)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+        function fvalue=dfdx_Stress(obj,reader,mesh,solver,index_con)
+            SVM=CalculateStressVM_MeshElements(reader,mesh,solver);
+            fvalue= KSU(SVM/reader.TopOpt_ConstraintValue(index_con)-1);
+            obj.fval(index_con)=fvalue;
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     end
 end
