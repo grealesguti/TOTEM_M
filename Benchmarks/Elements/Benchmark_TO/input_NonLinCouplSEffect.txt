@@ -42,7 +42,7 @@ TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
 TopOpt_Constraint Power 0.3
 TopOpt_Constraint Volume 0.8
-TopOpt_Constraint Stress 1000
+TopOpt_Constraint Stress 10000000
 
 ## Output Options
 ## output <data> <path/outputname>

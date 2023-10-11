@@ -9,9 +9,12 @@ classdef TO_Constraints < handle
         dfdx
         TOEL
         freedofs
+        freedofs_mech
         Number_of_dofs
+        Number_of_nodes
         Elements_volume
         V_TOT
+        SVM
     end
 
     methods
@@ -29,8 +32,10 @@ classdef TO_Constraints < handle
             obj.dfdx=zeros(m,n);
             % Initialize mesh TO parameters
             obj.freedofs=bcinit.dofs_free_;
+            obj.freedofs_mech=bcinit.dofs_free_mech;
             obj.Number_of_dofs=length(mesh.data.NODE)*2;
-            obj.Elements_volume = obj.CalculateAllElementVolume(mesh); 
+            obj.Number_of_nodes=length(mesh.data.NODE);
+            obj.Elements_volume = obj.CalculateAllElementVolume(mesh);
             obj.V_TOT=sum(obj.Elements_volume);
         end
 
@@ -40,16 +45,16 @@ classdef TO_Constraints < handle
                 ConstraintName=reader.TopOpt_ConstraintName{i};
                 switch ConstraintName
                     case 'Power'
-                        obj.fval_Power(reader,mesh,solver,index_constraint)
-                        obj.dfdx_Power(reader,mesh,solver,index_constraint)
+                        obj.fval_Power(reader,mesh,solver,index_constraint);
+                        obj.dfdx_Power(reader,mesh,solver,index_constraint);
                         index_constraint=index_constraint+1;
                     case 'Volume'
-                        obj.fval_Volume(reader,mesh,solver,index_constraint)
-                        obj.dfdx_Volume(reader,index_constraint)
+                        obj.fval_Volume(reader,mesh,solver,index_constraint);
+                        obj.dfdx_Volume(reader,index_constraint);
                         index_constraint=index_constraint+1;
                     case 'Stress'
-                        obj.fval_Stress(reader,mesh,solver,index_constraint)
-                        obj.dfdx_Stress(reader,index_constraint)
+                        obj.fval_Stress(reader,mesh,solver,index_constraint);
+                        obj.dfdx_Stress(reader,mesh,solver,index_constraint);
                         index_constraint=index_constraint+1;
                 end
             end
@@ -202,7 +207,7 @@ classdef TO_Constraints < handle
             LP_dU=zeros(obj.Number_of_dofs,1);
             LP_U=zeros(nodes_per_element,1);
             Pobj = reader.TopOpt_ConstraintValue(dfdx_index);
-            
+
             %% Derivatives to Vf
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor  ii=1:length(obj.TOEL)
@@ -213,7 +218,7 @@ classdef TO_Constraints < handle
                 LP_dU_element(ii,:)=LJ;
                 LP_U_element(ii)=dPdxi_c;
             end
-            
+
             % Summation of all element integrations
             for ii=1:length(obj.TOEL)
                 LP_dU(LP_dU_element_dofs(ii,:),1)=LP_dU(LP_dU_element_dofs(ii,:),1)+LP_dU_element(ii,:)';
@@ -247,7 +252,7 @@ classdef TO_Constraints < handle
                     obj.dfdx(dfdx_index,length(obj.TOEL)+i)=LP_dU(bcvariable_dofs)'*dx_bc(bcvariable_dofs)...
                         +ADJP(obj.freedofs)'*(+prodF(obj.freedofs));
                 end
-            end           
+            end
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -296,50 +301,50 @@ classdef TO_Constraints < handle
             K_dx=[K11 K12];
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)        
-                flag=[];
-                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+        function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
+            flag=[];
+            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
 
-                JM = dShape' * element_coordinates';
+            JM = dShape' * element_coordinates';
 
-                %Jacinv = inv(JM);
-                DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
-                % FIXME, calculate from all dofs input
-                Th = N * Tee';
+            %Jacinv = inv(JM);
+            DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
+            % FIXME, calculate from all dofs input
+            Th = N * Tee';
 
-                Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
-                Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
-                Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
-                
-                [De]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                [Da]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
-                
-                % notice that mat(T) and T=f(U) and we only need the
-                % partial to respect to x. Furthermore, as we do the
-                % derivative delta_R/delat_x, the temperature derivatives
-                % do not influence the result.
-                [De_dx]=CalculateMaterial_XDerivative(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                [Da_dx]=CalculateMaterial_XDerivative(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                [Dk_dx]=CalculateMaterial_XDerivative(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
-                
-                Vee=Vee';
-                Tee=Tee';
-                detJ = det(JM);
-                
-                % Calculate current density and heat flux
-                je = -De * DN * Vee - Da * De * DN * Tee; 
-                %qe = Da * (N * Tee) * je - Dk * DN * Tee; % Not needed.
+            Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
+            Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
+            Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
 
-                % all matrix
-                jx=-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee;
-                qx=Da_dx*(Th)*je+Da*(Th)*jx-Dk_dx*DN*Tee; 
-        
-                RAx=detJ*(-DN'*qx+(N*(jx'*DN*Vee))');
-                RBx=detJ*(-DN'*jx);
+            [De]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+            [Da]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+            %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
-                Rx=[RAx
-                   RBx];
+            % notice that mat(T) and T=f(U) and we only need the
+            % partial to respect to x. Furthermore, as we do the
+            % derivative delta_R/delat_x, the temperature derivatives
+            % do not influence the result.
+            [De_dx]=CalculateMaterial_XDerivative(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+            [Da_dx]=CalculateMaterial_XDerivative(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+            [Dk_dx]=CalculateMaterial_XDerivative(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+
+            Vee=Vee';
+            Tee=Tee';
+            detJ = det(JM);
+
+            % Calculate current density and heat flux
+            je = -De * DN * Vee - Da * De * DN * Tee;
+            %qe = Da * (N * Tee) * je - Dk * DN * Tee; % Not needed.
+
+            % all matrix
+            jx=-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee;
+            qx=Da_dx*(Th)*je+Da*(Th)*jx-Dk_dx*DN*Tee;
+
+            RAx=detJ*(-DN'*qx+(N*(jx'*DN*Vee))');
+            RBx=detJ*(-DN'*jx);
+
+            Rx=[RAx
+                RBx];
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [Elements_volume]=CalculateAllElementVolume(obj,mesh)
@@ -369,17 +374,348 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function fvalue=fval_Stress(obj,reader,mesh,solver,index_con)
-            SVM=CalculateStressVM_MeshElements(reader,mesh,solver);
-            fvalue= KSU(SVM/reader.TopOpt_ConstraintValue(index_con)-1);
+            obj.SVM=CalculateStressVM_MeshElements(reader,mesh,solver);
+            fvalue= KSU(obj.SVM/reader.TopOpt_ConstraintValue(index_con)-1,3);
             obj.fval(index_con)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function fvalue=dfdx_Stress(obj,reader,mesh,solver,index_con)
-            SVM=CalculateStressVM_MeshElements(reader,mesh,solver);
-            fvalue= KSU(SVM/reader.TopOpt_ConstraintValue(index_con)-1);
-            obj.fval(index_con)=fvalue;
-        end
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function dfdx_Stress(obj,reader,mesh,solver,index_con)
+            
+            SD=zeros(length(obj.TOEL)+1,1);
+            element_sensitivities=zeros(length(obj.TOEL),1);
+            %KJa=-solver.KT;
+            %% Derivative of KSU
+            Number_Of_M_Dofs = obj.Number_of_nodes*3;
+            Number_Of_TV_Dofs = obj.Number_of_nodes*2;
+            Number_Of_T_Dofs = obj.Number_of_nodes*2;
+            AdjU=zeros(Number_Of_M_Dofs,1);
+            AdjTV=zeros(Number_Of_TV_Dofs,1);
+            ntot=obj.Number_of_nodes;
+            [sVM0,LdU,LdT,Luel] = obj.CalculateStressVM_Derivatives_MeshElements(reader,mesh,solver,index_con);
 
+            %% ADJOINT
+            %%%% modificar systema a resolver para los adjuntos
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %% U Adjoint        % Kuu^T xu=-Ld
+            A11 = distributed(-solver.KStiff(obj.freedofs_mech,obj.freedofs_mech)');
+            B11=distributed(LdU(obj.freedofs_mech)');
+            AdjU(obj.freedofs_mech)=A11\B11';
+            %% TV Adjoint       % [KJ]^T xTV=-LdT-Koo*xu % check
+            AdjTR=zeros(2*obj.Number_of_nodes,1);
+            AdjTR(1:obj.Number_of_nodes)=-solver.KUT'*AdjU;
+            LdTV=zeros(ntot*2,1);
+            for i=1:ntot
+                LdTV((i-1)*2+1)=LdT(i)+AdjTR(i);
+            end
+            A22 = distributed((solver.KT(obj.freedofs,obj.freedofs))');
+            B22 = distributed(LdTV(obj.freedofs));%% LT is in U T dofs, change into TV and get free ones!!!
+            AdjTV(obj.freedofs)=A22\B22;
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Get dofs map, can be done
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% element wise!!!
+            element_nodes= mesh.data.ELEMENTS{obj.TOEL(1)};
+            orderdofU=zeros(length(element_nodes)*3,length(obj.TOEL));
+            orderdofT=zeros(length(element_nodes),length(obj.TOEL));
+            orderdofV=zeros(length(element_nodes),length(obj.TOEL));
+            orderdofTV=zeros(length(element_nodes)*2,length(obj.TOEL));
+            for ii=1:length(obj.TOEL) % change for how we define order!!!
+                ElementTag=obj.TOEL(ii);
+                element_nodes= mesh.data.ELEMENTS{ElementTag};
+                for jj=1:length(element_nodes) % equal to number of nodes per element
+                    for ll=1:3
+                        orderdofU((jj-1)*3+ll,ii)=(element_nodes(jj)-1)*3+ll;
+                    end
+                    orderdofT(jj,ii)=(element_nodes(jj)-1)*2+1;
+                    orderdofV(jj,ii)=(element_nodes(jj)-1)*2+2;
+                    orderdofTV(jj,ii)=(element_nodes(jj)-1)*2+1;
+                    orderdofTV(jj+length(element_nodes),ii)=(element_nodes(jj)-1)*2+2;
+                end
+            end
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            orderdof_U=zeros(Number_Of_M_Dofs,1);
+            %%%% Elemental wise
+            GaussfunctionTag_KUU=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KuDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
+            GaussfunctionTag_KUT=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KutDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
+            GaussfunctionTag_Rx=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
+
+            for ii=1:length(obj.TOEL)
+                ElementTag=obj.TOEL(ii);
+                
+                element_nodes = mesh.data.ELEMENTS{ElementTag};
+                number_of_nodes=length(element_nodes);
+                orderdof_U(element_nodes*3-2)=element_nodes*3-2;
+                orderdof_U(element_nodes*3-1)=element_nodes*3-1;
+                orderdof_U(element_nodes*3)=element_nodes*3;
+                %Uee = solver.soldofs_mech(orderdof_U);
+                Tee=zeros(1,number_of_nodes);
+                Vee=zeros(1,number_of_nodes);
+                Uee=zeros(1,number_of_nodes*3);
+                element_dof_indexes=zeros(number_of_nodes*2,1);
+                for nd=1:length(element_nodes)
+                    element_dof_indexes(nd)=element_nodes(nd)*2-1;
+                    element_dof_indexes(number_of_nodes+nd)=element_nodes(nd)*2;
+                    %element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
+                    Tee(nd)=solver.soldofs(element_nodes(nd)*2-1);
+                    Vee(nd)=solver.soldofs(element_nodes(nd)*2);
+                    Uee((nd-1)*3+1)=solver.soldofs_mech((element_nodes(nd)-1)*3+1);
+                    Uee((nd-1)*3+2)=solver.soldofs_mech((element_nodes(nd)-1)*3+2);
+                    Uee((nd-1)*3+3)=solver.soldofs_mech((element_nodes(nd)-1)*3+3);
+                end
+
+
+                %%%% Derivatives
+                [KUUd,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
+                [KUTd,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
+                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
+
+                Adji=AdjU(orderdofU(:,ii)');
+                element_sensitivities(ii)= sum(Luel(ii,:))...
+                    +Adji'*(KUUd*Uee')-Adji'*(KUTd*(Tee'-str2double(reader.T0)))...
+                    +AdjTV(orderdofTV(:,ii))'*Rx;%...
+
+            end
+
+            obj.dfdx(index_con,1:length(obj.TOEL))=element_sensitivities;
+
+            % Calculate remaining bc sensititivies
+            bcvariablenames=reader.TObctype;
+            for i=1:length(bcvariablenames)
+                if strcmp(bcvariablenames(i), 'Voltage')
+                    bcvariable_nodes = mesh.retrieveNodalSelection(reader.TObcloc(i));
+                    bcvariable_dofs=bcvariable_nodes*2;
+                    dx_bc=zeros(obj.Number_of_dofs,1);
+                    dx_bc(bcvariable_dofs)=reader.TObcmaxval(i)-reader.TObcminval(i);
+
+                    obj.dfdx(index_con,length(obj.TOEL)+i)=AdjTV'*(-(solver.KT)*dx_bc);
+                end
+            end
+
+
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [sigmaVM0_ordered,Ld,LdT,Luel] = CalculateStressVM_Derivatives_MeshElements(obj,reader,mesh,solver,index_con)
+            PKS=3;
+            Sobj=reader.TopOpt_ConstraintValue(index_con);
+            mesh_elements = obj.TOEL;
+            total_number_of_elements = length(mesh_elements);
+            total_number_of_nodes = length(mesh.data.NODE);
+
+            [node_el, etype_element] = mesh.retrievemeshtype(reader);
+            sigmaVM0=zeros(total_number_of_nodes,1);
+
+            initialdofs = solver.soldofs;
+            daVM=zeros(6,1);
+            evTi_summation=0;
+            Ld=zeros(total_number_of_nodes*3,1);
+            LdT=zeros(total_number_of_nodes*1,1);
+            Luel=zeros(total_number_of_elements,2);
+
+            for i = 1:total_number_of_elements
+
+                % Recover each element tag
+                elementTag = mesh_elements(i);
+                element_nodes = mesh.data.ELEMENTS{elementTag};
+                number_of_nodes = length(element_nodes);
+                element_coordinates=zeros(3,number_of_nodes);
+                dof_per_node=2;
+                Tee=zeros(1,number_of_nodes);
+                Uee=zeros(1,number_of_nodes*3);
+                element_dof_indexes_TV=zeros(number_of_nodes*2,1);
+                element_material_index=mesh.elements_material(elementTag);
+                xx= mesh.elements_density(elementTag);
+                Number_of_Nodes = length(element_coordinates(1,:));
+                element_dof_indexes_M=zeros(number_of_nodes*3,1);
+
+                for nd=1:number_of_nodes
+                    element_dof_indexes_TV(nd)=element_nodes(nd)*2-1;
+                    element_dof_indexes_TV(number_of_nodes+nd)=element_nodes(nd)*2;
+                    element_dof_indexes_M((nd-1)*3+1)=(element_nodes(nd)-1)*3+1;
+                    element_dof_indexes_M((nd-1)*3+2)=(element_nodes(nd)-1)*3+2;
+                    element_dof_indexes_M((nd-1)*3+3)=(element_nodes(nd)-1)*3+3;
+                    element_coordinates(:,nd)=mesh.data.NODE{element_nodes(nd)};
+                    Tee(nd)=initialdofs(element_nodes(nd)*2-1);
+                    Uee((nd-1)*3+1)=solver.soldofs_mech((element_nodes(nd)-1)*3+1);
+                    Uee((nd-1)*3+2)=solver.soldofs_mech((element_nodes(nd)-1)*3+2);
+                    Uee((nd-1)*3+3)=solver.soldofs_mech((element_nodes(nd)-1)*3+3);
+                end
+
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, 0, 0, 0);
+
+                JM = dShape' * element_coordinates';
+                %Jacinv = inv(JM);
+                DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
+                % FIXME, calculate from all dofs input
+                Th = N * Tee';
+
+                Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+                Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+                Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+                DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
+                nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+
+                [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                alphav=zeros(6,1);
+                alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];
+
+                C = DE/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];
+
+                dCx=DE_dx/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];
+                % Preallocate memory for B-Operators
+                Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
+                for bi=1:Number_of_Nodes
+                    Bi(1,1) = DN(1,bi);
+                    Bi(2,2) = DN(2,bi);
+                    Bi(3,3) = DN(3,bi);
+                    Bi(4,:) = [DN(2,bi),DN(1,bi),0];
+                    Bi(5,:) = [0,DN(3,bi),DN(2,bi)];
+                    Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
+                    B(:,(bi-1)*3+1:(bi)*3)=Bi;
+                end
+
+                eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
+                se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
+                sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+                %% Derivative of VM stress with each of the stress components
+                daVM=[ 1/(2*sVM0)*(2*se0(1)-se0(2)-se0(3));...
+                    1/(2*sVM0)*(2*se0(2)-se0(1)-se0(3));...
+                    1/(2*sVM0)*(2*se0(3)-se0(1)-se0(2));...
+                    3/(sVM0)*se0(4);...
+                    3/(sVM0)*se0(5);...
+                    3/(sVM0)*se0(6);];
+                sigmaVM0(i) = sVM0;
+
+                %%%%%%%%%%%%%%
+                evTi=exp(PKS*(sVM0/Sobj-1));
+                evTi_summation=evTi_summation+evTi;
+                %%%%%%%%%%%%%%
+                %% FIXME: for parfor the Li and Li2 is a solution, another way is storing all coefficients and adding after the parfor loop
+                Li=zeros(number_of_nodes*3,3*total_number_of_nodes);
+                for ll=1:number_of_nodes*3 % transformation matrix for parfor loop
+                    Li(ll,element_dof_indexes_M(ll))=1;
+                end
+                aa=evTi*daVM'*C*B;
+                Ld=Ld+(aa*Li)'; % L for mech dofs, which multiplies dU/dx
+
+                Li2=zeros(number_of_nodes,total_number_of_nodes);
+                for ll=1:number_of_nodes  % transformation matrix for parfor loop
+                    Li2(ll,element_nodes(ll))=1;
+                end
+                aa=evTi*daVM'*(-C*alphav*N);
+                LdT=LdT+(aa*Li2)'; % L for mech dofs, which multiplies d(\Delta \Theta)/dx = d(T-Tref)/dx
+
+                Luel(i,:)=[ evTi*daVM'*dCx*B*Uee';...
+                    (evTi*daVM'*(-(dCx*alphav)*N))*(Tee-str2double(reader.T0))'];  % L for mech and T dofs, which multiplies [U;(T-Tref)]
+            end
+
+            sigmaVM0_ordered=zeros(total_number_of_elements,1);
+            Luel_ordered = zeros(total_number_of_elements,2);
+            for i = 1:total_number_of_elements
+                % Recover each element tag
+                elementTag = mesh_elements(i);
+                sigmaVM0_ordered(elementTag)=sigmaVM0(i);
+                Luel_ordered(elementTag,:)=Luel(i,:);
+            end
+            Ld=Ld/evTi_summation;
+            LdT=LdT/evTi_summation;
+            Luel_ordered=Luel_ordered/evTi_summation;            
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function[F_T,flag]=Integration_KutDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
+                flag=[];
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                Number_of_Nodes = length(element_coordinates(1,:));
+                JM = dShape' * element_coordinates';
+                %Jacinv = inv(JM);
+                DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
+                %DN1 = JM \ dShape'; % FIXME and check it is the same!
+                
+                % FIXME, calculate from all dofs input
+                Th = N * Tee';
+            
+                % FIXME: Calculate material properties
+                Dalpha_x = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+                Dalpha_y = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+                Dalpha_z = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+                DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
+                nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+
+                %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                alphav=zeros(6,1);
+                alphav(1:3,1)=[Dalpha_x,Dalpha_y,Dalpha_z];
+
+                %C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                %    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                %    0 0 0 0 0 (1-2*nu)/2];
+                dCx = DE_dx./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];                
+                detJ = det(JM);
+            
+                Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
+                    for i=1:Number_of_Nodes
+                        Bi(1,1) = DN(1,i);
+                        Bi(2,2) = DN(2,i); 
+                        Bi(3,3) = DN(3,i);
+                        Bi(4,:) = [DN(2,i),DN(1,i),0];
+                        Bi(5,:) = [0,DN(3,i),DN(2,i)]; 
+                        Bi(6,:) = [DN(3,i),0,DN(1,i)];
+                        B(:,(i-1)*3+1:(i)*3)=Bi;
+        
+                    end
+                        
+                     F_T=detJ*(B'*dCx*alphav*N);
+        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function[KUU,flag]=Integration_KuDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
+                flag=[];
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                Number_of_Nodes = length(element_coordinates(1,:));
+                JM = dShape' * element_coordinates';
+                %Jacinv = inv(JM);
+                DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
+                %DN1 = JM \ dShape'; % FIXME and check it is the same!
+                
+                % FIXME, calculate from all dofs input
+                Th = N * Tee';
+            
+                % FIXME: Calculate material properties
+
+                DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
+                nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+
+                %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+
+                dCx = DE_dx./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];                
+                detJ = det(JM);
+            
+                Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
+                    for i=1:Number_of_Nodes
+                        Bi(1,1) = DN(1,i);
+                        Bi(2,2) = DN(2,i); 
+                        Bi(3,3) = DN(3,i);
+                        Bi(4,:) = [DN(2,i),DN(1,i),0];
+                        Bi(5,:) = [0,DN(3,i),DN(2,i)]; 
+                        Bi(6,:) = [DN(3,i),0,DN(1,i)];
+                        B(:,(i-1)*3+1:(i)*3)=Bi;
+        
+                    end
+                        
+
+                KUU=detJ*(B'*dCx*B);
+        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
+        
     end
 end

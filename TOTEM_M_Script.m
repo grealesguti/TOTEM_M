@@ -3,14 +3,21 @@
 close all; clear all; clc;
 inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt";
     
-    % Define the path to the source folder (change this as needed)
+    % Define the folder paths
     srcFolder = 'src';
-    addpath(srcFolder);
     utilsFolder = 'utils';
-    addpath(utilsFolder);
+    
+    % Generate paths including subfolders
+    srcPath = genpath(srcFolder);
+    utilsPath = genpath(utilsFolder);
+    
+    % Add the generated paths to the MATLAB path
+    addpath(srcPath);
+    addpath(utilsPath);
     
     % Create an instance of the InputReader class
         filepath="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
+        %filepath="Benchmarks/Elements/Benchmark_DecoupledThermoElectroMech/input_NonLinCouplSEffect.txt";
         %reader = InputReader("Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt");
         %reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt");
         reader = InputReader(filepath);
@@ -29,7 +36,7 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
 
         TO = TopOpt(reader,mesh);
 
-        TO.runMMA(reader,mesh)
+        %TO.runMMA(reader,mesh)
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %postprocessing = Postprocessing();

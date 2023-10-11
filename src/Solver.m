@@ -15,6 +15,7 @@ classdef Solver < handle
         Residual
         loadVector_mech
         KStiff
+        KUT
     end
     
     properties (Hidden)
@@ -561,6 +562,7 @@ classdef Solver < handle
             if strcmp(reader.physics,'decoupledthermoelectromechanical')
                 [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                 Temperature_solution = obj.soldofs(1:2:end);
+                obj.KUT=KThermalLoad;
                 obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2num(reader.T0));
                 obj.SolveLinearSystemInParallel(reader.physics,bcinit)
             end
