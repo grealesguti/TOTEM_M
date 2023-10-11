@@ -22,10 +22,8 @@ PoissonRatio 0 0.33
 
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
-bc Voltage Ymin 0.058
 bc Voltage Ymax 0.0
 bc Temperature Ymin 298
-bc Temperature Ymax 298
 bc Displacement_x Xmin 0
 bc Displacement_y Ymin 0
 bc Displacement_z Zmin 0

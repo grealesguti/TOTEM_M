@@ -1,6 +1,6 @@
-function [sigmaVM0_ordered] = CalculateStressVM_MeshElements(reader,mesh,solver)
+function [sigmaVM0] = CalculateStressVM_MeshElements(reader,mesh,solver,name)
 
-mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
+mesh_elements = mesh.retrieveElementalSelection(name);
 total_number_of_elements = length(mesh_elements);
 total_number_of_nodes = length(mesh.data.NODE);
 dofs_per_element = 3;
@@ -8,11 +8,11 @@ total_number_of_dofs = total_number_of_nodes * dofs_per_element;
 
 [node_el, etype_element] = mesh.retrievemeshtype(reader);
 dofs_per_element = (node_el * dofs_per_element);
-sigmaVM0=zeros(total_number_of_nodes,1);
+sigmaVM0=zeros(total_number_of_elements,1);
 
 initialdofs = solver.soldofs;
 
-parfor i = 1:total_number_of_elements
+for i = 1:total_number_of_elements
 
     % Recover each element tag
     elementTag = mesh_elements(i);
@@ -74,9 +74,12 @@ parfor i = 1:total_number_of_elements
             end
 
             eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
-            se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
-            sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
-            sigmaVM0(i) = sVM0;
+            %se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
+            %sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+                se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+                %se0=C*eps   -C*alphav*N*(Tee-str2double(reader.T0))';
+                sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+                sigmaVM0(i) = sVM0;
 end
 sigmaVM0_ordered=zeros(total_number_of_nodes,1);
 for i = 1:total_number_of_elements

@@ -374,23 +374,20 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function fvalue=fval_Stress(obj,reader,mesh,solver,index_con)
-            obj.SVM=CalculateStressVM_MeshElements(reader,mesh,solver);
+            obj.SVM=CalculateStressVM_MeshElements(reader,mesh,solver,reader.TopOpt_DesignElements);
             fvalue= KSU(obj.SVM/reader.TopOpt_ConstraintValue(index_con)-1,3);
             obj.fval(index_con)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function dfdx_Stress(obj,reader,mesh,solver,index_con)
             
-            SD=zeros(length(obj.TOEL)+1,1);
             element_sensitivities=zeros(length(obj.TOEL),1);
             %KJa=-solver.KT;
             %% Derivative of KSU
             Number_Of_M_Dofs = obj.Number_of_nodes*3;
             Number_Of_TV_Dofs = obj.Number_of_nodes*2;
-            Number_Of_T_Dofs = obj.Number_of_nodes*2;
             AdjU=zeros(Number_Of_M_Dofs,1);
             AdjTV=zeros(Number_Of_TV_Dofs,1);
-            ntot=obj.Number_of_nodes;
             [sVM0,LdU,LdT,Luel] = obj.CalculateStressVM_Derivatives_MeshElements(reader,mesh,solver,index_con);
 
             %% ADJOINT
@@ -403,8 +400,8 @@ classdef TO_Constraints < handle
             %% TV Adjoint       % [KJ]^T xTV=-LdT-Koo*xu % check
             AdjTR=zeros(2*obj.Number_of_nodes,1);
             AdjTR(1:obj.Number_of_nodes)=-solver.KUT'*AdjU;
-            LdTV=zeros(ntot*2,1);
-            for i=1:ntot
+            LdTV=zeros(obj.Number_of_nodes*2,1);
+            for i=1:obj.Number_of_nodes
                 LdTV((i-1)*2+1)=LdT(i)+AdjTR(i);
             end
             A22 = distributed((solver.KT(obj.freedofs,obj.freedofs))');
@@ -463,7 +460,7 @@ classdef TO_Constraints < handle
 
 
                 %%%% Derivatives
-                [KUUd,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
+                [KUUd,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
                 [KUTd,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
                 [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
 
@@ -578,7 +575,8 @@ classdef TO_Constraints < handle
                 end
 
                 eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
-                se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
+                se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+                %se0=C*eps   -C*alphav*N*(Tee-str2double(reader.T0))';
                 sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
                 %% Derivative of VM stress with each of the stress components
                 daVM=[ 1/(2*sVM0)*(2*se0(1)-se0(2)-se0(3));...
@@ -620,9 +618,10 @@ classdef TO_Constraints < handle
                 sigmaVM0_ordered(elementTag)=sigmaVM0(i);
                 Luel_ordered(elementTag,:)=Luel(i,:);
             end
-            Ld=Ld/evTi_summation;
-            LdT=LdT/evTi_summation;
-            Luel_ordered=Luel_ordered/evTi_summation;            
+            Ld=Ld/evTi_summation/Sobj;
+            LdT=LdT/evTi_summation/Sobj;
+            Luel=Luel/evTi_summation/Sobj;
+            Luel_ordered=Luel_ordered/evTi_summation/Sobj;            
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[F_T,flag]=Integration_KutDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
@@ -669,8 +668,8 @@ classdef TO_Constraints < handle
                         B(:,(i-1)*3+1:(i)*3)=Bi;
         
                     end
-                        
-                     F_T=detJ*(B'*dCx*alphav*N);
+                     %         B'*(dCx*alphav)*N'
+                     F_T=detJ*(B'*(dCx*alphav)*N);
         
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
