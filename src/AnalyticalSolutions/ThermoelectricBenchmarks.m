@@ -5,6 +5,10 @@ classdef ThermoelectricBenchmarks < handle
     properties
         Benchmarks
         BenchmarksFunctions
+        diffFEM_ctemat
+        FD_vals_ctemat
+        diffFEM_nonlinmat
+        FD_vals_nonlinmat
     end
     
     methods
@@ -36,8 +40,10 @@ classdef ThermoelectricBenchmarks < handle
             end
 
             Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
-            [diffFEM, FD_vals] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+            [obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
 
+            Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % https://link.springer.com/article/10.1007/s00466-006-0080-7

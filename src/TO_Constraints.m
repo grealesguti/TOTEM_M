@@ -210,7 +210,7 @@ classdef TO_Constraints < handle
 
             %% Derivatives to Vf
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            parfor  ii=1:length(obj.TOEL)
+            for  ii=1:length(obj.TOEL)
                 element_Tag = obj.TOEL(ii);
                 [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
@@ -270,8 +270,8 @@ classdef TO_Constraints < handle
             %Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
             Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
 
-            [De]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-            [Da]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+            [De,De_DT]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+            [Da,Da_DT]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
             %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
             % notice that mat(T) and T=f(U) and we only need the
@@ -290,7 +290,7 @@ classdef TO_Constraints < handle
             je = -De * DN * Vee - Da * De * DN * Tee;
             %qe = Da * (N * Tee) * je - Dk * DN * Tee; % Not needed.
 
-            dPdxi_t=Vee'*DN'*Da*De*DN;
+            dPdxi_t=Vee'*DN'*De*(Da*DN+(Da_DT*DN*Tee-je/De^2*De_DT)*N);
             dPdxi_v=Vee'*DN'*De*DN-je'*DN;
 
             P_dx=detJ*(-Vee'*DN'*(-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee));
@@ -506,7 +506,7 @@ classdef TO_Constraints < handle
             LdT=zeros(total_number_of_nodes*1,1);
             Luel=zeros(total_number_of_elements,2);
 
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
