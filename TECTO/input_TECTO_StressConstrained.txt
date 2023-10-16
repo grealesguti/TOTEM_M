@@ -1,7 +1,9 @@
 # Input File for FEM Simulation with Mesh Reference
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
-mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem.inp Volume mm
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity.inp Volume mm
+
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
 physics decoupledthermoelectromechanical
 solver NR
@@ -19,22 +21,30 @@ InitialTemperature 298.15
 ##
 material SemiconductorP+
 Seebeck 3 -7.04E-4 6.3E-6 -1.32E-8 8.33E-12
+Penalty_Seebeck 0 1
 ThermalConductivity 3 1.5775 -2.177E-3 -3.32E-6 1.59E-8
+Penalty_ThermalConductivity 0 3
 ElectricalConductivity  3 9.9615E5 -7.16E+3 18.489 -0.0164
+Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
 ThermalExpansionCoefficient_z 0 15E-6
 YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
 
 material SemiconductorN-
 Seebeck 3 3.95E-4 -3.82E-6 7.34E-9 -3.98E-12 
+Penalty_Seebeck 0 1
 ThermalConductivity 3 2.48 -4.51E-3 -4.6E-6 2.19E-8 
+Penalty_ThermalConductivity 0 3
 ElectricalConductivity 3 3.4581E5 -1.5947E3 2.8182 -0.0017
+Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
 ThermalExpansionCoefficient_z 0 15E-6
 YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
 
 material Copper
@@ -69,7 +79,7 @@ bc Displacement_z HeatSink 0
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Qin TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
-TopOpt_bc Voltage ElectrodeMinX 0.06 0.05 0.056
+TopOpt_bc Voltage ElectrodeMinX 0.045 0.005 0.06
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_Initial_x 1
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>

@@ -28,7 +28,7 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
 
         postprocessing = Postprocessing();
         postprocessing.initVTK(reader,mesh);
-        %postprocessing.VTK_Mesh("TECTO/Results/Mesh")
+        postprocessing.VTK_Mesh("TECTO/Results/Mesh")
 
         bcinit = BCInit(reader, mesh);
         fprintf('Initialized Loads\n');

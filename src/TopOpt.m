@@ -56,7 +56,7 @@ classdef TopOpt
             obj.a       = zeros(obj.m,1);
             obj.kkttol = 1e-6;
             obj.f0val_iter=zeros(obj.maxiter+1,1);
-            obj.fval_iter=zeros(obj.maxiter+1,obj.n);
+            obj.fval_iter=zeros(obj.maxiter+1,obj.m);
 
             dofs_TO=zeros(length(mesh.data.NODE)*2,1);
             for i=1:length(obj.TOEL)
