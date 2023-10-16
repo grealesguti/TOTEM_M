@@ -42,7 +42,7 @@ classdef Mesh < handle
                while ~feof(fid)
                     line = fgetl(fid);
                     
-                    disp(line)        
+                    %disp(line)        
                     % Check if the line is a section heading and if there are commas
                     if startsWith(line, '*')
                         if contains(line, ',')
@@ -57,11 +57,11 @@ classdef Mesh < handle
                         disp(currentSection)
                         % Extract and store the section name
                         if (currentSection=="*ELEMENT")
-                           disp("Element Type:")
+                           %disp("Element Type:")
                            elementtype=tokens{2};
                            elementtype = strrep(elementtype, ' ', ''); % Remove spaces using strrep
                            elementtype=elementtype(6:end); % Remove "type="
-                           disp(elementtype)
+                           %disp(elementtype)
                         elseif (currentSection=="*ELSET")
                            disp("Selection Name:")
                            selectionname=tokens{2};
@@ -84,7 +84,7 @@ classdef Mesh < handle
                     % Parse data based on the current section
                     switch currentSection
                     case '*NODE'
-                            disp("node")
+                            %disp("node")
                         % Split the line and parse node data
                         nodeInfo = str2double(strsplit(line, ', '));
                         nodeID = nodeInfo(1);
@@ -166,7 +166,7 @@ classdef Mesh < handle
                             nsetInfo = str2double(strsplit(line, ', '));
                             nsetInfoWithoutNaN = nsetInfo(~isnan(nsetInfo));
                             nsetArray = [nsetArray,nsetInfoWithoutNaN];
-                            disp(nsetID);
+                            %disp(nsetID);
                             % Store node data in the struct
                             if ~isfield(obj.data, 'NSET')
                                 obj.data.NSET = cell(1, 1);

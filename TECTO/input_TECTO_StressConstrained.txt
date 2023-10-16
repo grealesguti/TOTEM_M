@@ -1,0 +1,85 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TECnew2.inp Volume mm
+rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
+physics decoupledthermoelectromechanical
+solver NR
+InitialTemperature 298.15
+
+## Bi2Te3 Mechanical Properties: https://repository.bilkent.edu.tr/server/api/core/bitstreams/502cdf62-9b13-4faf-b245-8196af9e81ab/content
+## Bi2Te3 Thermal Expansion: https://www.researchgate.net/publication/227109210_Thermal_expansion_of_bismuth_telluride
+## Bi2Te3 Thermal Expansion: https://www.physics.purdue.edu/quantum/files/XChen_expansion_apl11.pdf
+## Bi2Te3 Thermoelectric Properties: https://link.springer.com/article/10.1007/s11664-015-3898-y
+## Copper Mechanical Properties: https://www.mit.edu/~6.777/matprops/copper.htm
+## Solder Mechanical Properties: https://www.metallurgy.nist.gov/solder/clech/Sn-Ag-Cu_Other.htm#Young , https://www.jstage.jst.go.jp/article/matertrans/46/6/46_6_1271/_pdf , https://www.electronics-cooling.com/2006/08/thermal-conductivity-of-solders/
+## Copper Electrical Properties: 
+## Solder Electrical Properties: https://us.rs-online.com/m/d/8d9ef1f686bf70839a288bf4fd8e669e.pdf
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
+##
+material SemiconductorP+
+Seebeck 3 -7.04E-4 6.3E-6 -1.32E-8 8.33E-12
+ThermalConductivity 3 1.5775 -2.177E-3 -3.32E-6 1.59E-8
+ElectricalConductivity  3 9.9615E5 -7.16E+3 18.489 -0.0164
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+PoissonRatio 0 0.241
+
+material SemiconductorN-
+Seebeck 3 3.95E-4 -3.82E-6 7.34E-9 -3.98E-12 
+ThermalConductivity 3 2.48 -4.51E-3 -4.6E-6 2.19E-8 
+ElectricalConductivity 3 3.4581E5 -1.5947E3 2.8182 -0.0017
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+PoissonRatio 0 0.241
+
+material Copper
+Seebeck 0 1e-9
+ThermalConductivity 0 398
+ElectricalConductivity 0 5.96E7
+ThermalExpansionCoefficient_x 0 17E-6
+ThermalExpansionCoefficient_y 0 17E-6
+ThermalExpansionCoefficient_z 0 17E-6
+YoungModulus 0 130E9
+PoissonRatio 0 0.34
+
+material Solder
+Seebeck 0 1e-9
+ThermalConductivity 0 58.7
+ElectricalConductivity 0 2.3E7
+ThermalExpansionCoefficient_x 0 20E-6
+ThermalExpansionCoefficient_y 0 20E-6
+ThermalExpansionCoefficient_z 0 20E-6
+YoungModulus 0 45E9
+PoissonRatio 0 0.35
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage ElectricalTerminals 0.0
+bc Temperature HeatSink 298
+bc Displacement_x FixtureX 0
+bc Displacement_y FixtureY 0
+bc Displacement_z FixtureZ 0
+bc Pressure_y Qin -0.83E6
+bc heat_n Qin 5300
+
+## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
+TopOpt_Objective AverageTemperature Qin Semiconductor
+## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
+TopOpt_bc Voltage Ymin -0.06 -0.058 -0.056
+## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_Initial_x 1
+## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_NR T previous  
+TopOpt_NR V proporcional
+## Topopoly Optimization Constraints
+TopOpt_Constraint Power 0.011
+#TopOpt_Constraint Volume 0.9
+TopOpt_Constraint Stress 20E6
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk

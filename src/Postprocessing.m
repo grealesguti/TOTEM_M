@@ -32,6 +32,16 @@ classdef Postprocessing < handle
             end        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_Mesh(obj,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_Mesh_', dateStr, '.vtk');         
+    
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs,[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_U(obj,solver,filepath)
             % Append the date and '.vtk' extension to the filepath
             dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
@@ -51,7 +61,6 @@ classdef Postprocessing < handle
                 'CELLS',obj.element_node_idxs, ...
                 'data','POINT_DATA',[Ux';Uy';Uz']','U','Test',[],'precision',5)        
         end
-
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_U_axis(obj,solver,axis,filepath)
             % Append the date and '.vtk' extension to the filepath

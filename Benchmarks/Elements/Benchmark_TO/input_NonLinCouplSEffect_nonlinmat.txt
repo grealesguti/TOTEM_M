@@ -27,6 +27,8 @@ bc Temperature Ymin 298
 bc Displacement_x Xmin 0
 bc Displacement_y Ymin 0
 bc Displacement_z Zmin 0
+bc Pressure_y Ymax -10
+
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ymax Volume
