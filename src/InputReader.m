@@ -26,6 +26,7 @@ classdef InputReader < handle
         TObcmaxval
         rst_folder
         T0
+        Units
     end
     
     methods
@@ -60,6 +61,7 @@ classdef InputReader < handle
                         else
                             obj.meshFileName = tokens{2};
                             obj.MeshEntityName = tokens{3};
+                            obj.Units = tokens{4};
                             fprintf('New Mesh File and Mesh entity: %s %s\n', obj.meshFileName, obj.MeshEntityName);
                         end
                     case 'rst_folder'

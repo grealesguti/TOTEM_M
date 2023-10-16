@@ -67,7 +67,7 @@ classdef Solver < handle
             
             parfor i = 1:total_number_of_elements
                 % Create a separate variable for each parallel iteration
-                Rs = zeros(dofs_per_element, 1);
+                Rs = zeros(total_number_of_dofs, 1);
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -538,25 +538,36 @@ classdef Solver < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function residual = runNewtonRaphson(obj,reader, mesh,bcinit)
             % Initialize some parameters and initial guess
-            residual = obj.tolerance*1000;
+            residual = obj.tolerance * 1000;
+            prev_residual = residual*2;
+            threshold=1e-6;
+            
             for iter = 1:obj.max_iterations
                 % Assembly the system matrix
-                [obj.KT,obj.Residual] = obj.Assembly_Thermoelectricity(reader, mesh);
-                
-                if (residual < obj.tolerance && iter>1)
+                [obj.KT, obj.Residual] = obj.Assembly_Thermoelectricity(reader, mesh);
+            
+                if (residual < obj.tolerance && iter > 1)
                     % Converged, return both the solution and the final residual
-                    fprintf('### NR. CONVERGED\n');
+                    fprintf(append('### NR. CONVERGED with tolerance:',num2str(obj.tolerance),'\n'));
                     break;
                 end
-                
+            
                 % Solve the system using the tangential matrix and residual: KT*dU=R->dU
-               obj.SolveLinearSystemInParallel('',bcinit)
-             
+                obj.SolveLinearSystemInParallel('', bcinit)
+            
                 % Calculate the residual (error)
                 dofs_free = bcinit.dofs_free_;
-                residual = norm(obj.Residual(dofs_free)); % Calculate the norm
+                residual = normest(obj.Residual(dofs_free)); % Calculate the norm
+            
                 fprintf('### NR. Iteration %d residual %f\n', iter, residual);
-              
+            
+                % Check if the change in residual is small
+                if abs(residual - prev_residual) < threshold
+                    fprintf('### NR. Convergence with residual change under: 1e-6.\n');
+                    break;
+                end
+            
+                prev_residual = residual;
             end
 
             if strcmp(reader.physics,'decoupledthermoelectromechanical')

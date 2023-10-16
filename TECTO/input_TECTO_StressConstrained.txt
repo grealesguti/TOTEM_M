@@ -1,7 +1,7 @@
 # Input File for FEM Simulation with Mesh Reference
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
-mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TECnew2.inp Volume mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem.inp Volume mm
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
 physics decoupledthermoelectromechanical
 solver NR
@@ -58,18 +58,18 @@ YoungModulus 0 45E9
 PoissonRatio 0 0.35
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
-bc Voltage ElectricalTerminals 0.0
+bc Voltage ElectrodeMaxX 0.0
 bc Temperature HeatSink 298
-bc Displacement_x FixtureX 0
-bc Displacement_y FixtureY 0
-bc Displacement_z FixtureZ 0
-bc Pressure_y Qin -0.83E6
-bc heat_n Qin 5300
+bc Displacement_x HeatSink 0
+bc Displacement_y HeatSink 0
+bc Displacement_z HeatSink 0
+#bc Pressure_y Qin -0.83E6
+#bc heat_n Qin 5300
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Qin Semiconductor
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
-TopOpt_bc Voltage Ymin -0.06 -0.058 -0.056
+TopOpt_bc Voltage ElectrodeMinX 0.06 0.05 0.056
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_Initial_x 1
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>

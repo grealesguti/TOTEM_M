@@ -237,6 +237,10 @@ classdef BCInit < handle
                 fprintf('Boundary Name: %s, Surface Name: %s, Value: %f\n', boundaryName, surfaceName, value);
                 
                 if strcmp(boundaryName, 'Temperature')
+                    if all(strcmp(mesh.data.NodalSelectionNames, surfaceName) == 0)
+                        warning(append('BoundaryName ',surfaceName,' non-existent. Check your input data.'));
+                        error('Terminating the code due to the condition.');
+                    end
                     % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
                     nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
                     
@@ -253,6 +257,10 @@ classdef BCInit < handle
                     end
                 elseif strcmp(boundaryName, 'Voltage')
                     % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
+                    if all(strcmp(mesh.data.NodalSelectionNames, surfaceName) == 0)
+                        warning(append('BoundaryName ',surfaceName,' non-existent. Check your input data.'));
+                        error('Terminating the code due to the condition.');
+                    end
                     nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
                     
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
@@ -267,6 +275,10 @@ classdef BCInit < handle
                         end
                     end
                 elseif startsWith(boundaryName, 'Displacement')
+                    if all(strcmp(mesh.data.NodalSelectionNames, surfaceName) == 0)
+                        warning(append('BoundaryName ',surfaceName,' non-existent. Check your input data.'));
+                        error('Terminating the code due to the condition.');
+                    end
                     % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
                     nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
                     

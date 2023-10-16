@@ -94,8 +94,10 @@ classdef Mesh < handle
                         if ~isfield(obj.data, 'NODE')
                             obj.data.NODE = cell(1, 1);
                         end
-                        
-                        obj.data.NODE{nodeID} = nodeCoords;
+                            if strcmp(inputReader.Units,'mm')
+                                nodeCoords=nodeCoords/1000;
+                            end
+                            obj.data.NODE{nodeID} = nodeCoords;
                         
                         case '*ELEMENT'
                                 % Read the element data
