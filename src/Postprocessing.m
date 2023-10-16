@@ -109,8 +109,7 @@ classdef Postprocessing < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_x_TV(obj,mesh,solver,filepath)
             % Append the date and '.vtk' extension to the filepath
-            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
-            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');         
+            outputFilePath = filepath;         
             
             xx = mesh.elements_density;
 
@@ -153,6 +152,9 @@ classdef Postprocessing < handle
             % Update the figure
             sgtitle('Optimization Progress');
             hold off;
+
+        % Add this line to update the figure in each iteration
+        drawnow;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [sorted_Tn]=Benchmark_T_PLOT_axis(obj,fig,solver,axis)

@@ -190,11 +190,21 @@ classdef InputReader < handle
 
                     % Check if the key does not start with 'Penalty_'
                     if ~startsWith(key, 'Penalty_')
+                    % Check if the key does not start with 'Penalty_'
+                        other=0;
+                        penalkey=append('Penalty_',key);
+                        for k = 1:numel(keys)
+                            other_key=keys{k};
+                            if strcmp(other_key,penalkey)
+                                other=1;
+                            end
+                        end
                         % Create a new key with 'Penalty_' prefix
-                        newKey = ['Penalty_', key];
-
-                        % Assign a value of 1 to the new key
-                        newMaterial(newKey) = 1;
+                        if other==0
+                            newKey = ['Penalty_', key];
+                            % Assign a value of 1 to the new key
+                            newMaterial(newKey) = 1;
+                        end
                     end
                 end
 

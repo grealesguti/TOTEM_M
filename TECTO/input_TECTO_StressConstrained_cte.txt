@@ -20,11 +20,11 @@ InitialTemperature 298.15
 ## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
 ##
 material SemiconductorP+
-Seebeck 3 -7.04E-4 6.3E-6 -1.32E-8 8.33E-12
+Seebeck 0 1.45E-5
 Penalty_Seebeck 0 1
-ThermalConductivity 3 1.5775 -2.177E-3 -3.32E-6 1.59E-8
+ThermalConductivity 0 1.05
 Penalty_ThermalConductivity 0 3
-ElectricalConductivity  3 9.9615E5 -7.16E+3 18.489 -0.0164
+ElectricalConductivity  0 4608
 Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
@@ -34,11 +34,11 @@ Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
 
 material SemiconductorN-
-Seebeck 3 3.95E-4 -3.82E-6 7.34E-9 -3.98E-12 
+Seebeck 0 -1.99E-4
 Penalty_Seebeck 0 1
-ThermalConductivity 3 2.48 -4.51E-3 -4.6E-6 2.19E-8 
+ThermalConductivity 0 1.3
 Penalty_ThermalConductivity 0 3
-ElectricalConductivity 3 3.4581E5 -1.5947E3 2.8182 -0.0017
+ElectricalConductivity 0 76923
 Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6

@@ -106,6 +106,8 @@ classdef TopOpt
                 %% New NR starting point
                 % New Voltage drop
                 %obj.modifyNRStartingpoint()
+                odd_numbers = 1:2:length(solver.soldofs);
+                prevdofs=solver.soldofs(odd_numbers);
                 solver.soldofs=bcinit.initialdofs_;
                 for i=1:length(reader.TObcval)
                     nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
@@ -114,6 +116,8 @@ classdef TopOpt
                         solver.soldofs(nodes*2)=Voltage_value;
                     end
                 end
+                solver.soldofs(odd_numbers)=prevdofs;
+                
     
                 %% New Solve
                 solver.runNewtonRaphson(reader, mesh, bcinit);

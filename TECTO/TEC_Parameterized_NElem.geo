@@ -1,9 +1,10 @@
 // Gmsh project created on Fri Aug 18 12:35:20 2023
 SetFactory("OpenCASCADE");
-xelem = 2;
-yelem = 2;
-zelem = 2+1;
-copper_elem = 2;
+xelem = 3;
+yelem = 3;
+zelem = 3+1;
+copper_elem = 5;
+xelem_d=xelem+1;
 
 
 Merge "TECblock.step";
@@ -29,7 +30,7 @@ Extrude {0, +0.1, 0} {
 }
 //+ Copper -X +Y
 Extrude {0, +0.2, 0} {
-  Surface{43}; Layers {copper_elem}; Recombine;
+  Surface{43}; Layers {1}; Recombine;
 }
 //+ Copper Middle
 Extrude {0.2, 0, 0} {
@@ -53,7 +54,7 @@ Extrude {0, -0.1, 0} {
 }
 //+ Copper +X -Y
 Extrude {0, -0.2, 0} {
-  Surface{73}; Layers {copper_elem}; Recombine;
+  Surface{73}; Layers {1}; Recombine;
 }
 //+ Electrode +X
 Extrude {0.1, 0, 0} {
@@ -98,3 +99,39 @@ Physical Surface("HeatSink", 221) = {117, 81};
 Physical Surface("Qin", 222) = {106, 97, 93};
 //+
 Physical Surface("Force", 223) = {92};
+//+
+//Transfinite Curve {198, 123, 190, 201, 193, 193, 126, 126, 115, 177, 184, 184, 118, 118, 180, 180, 186, 186, 165, 157, 78, 78, 162, 162, 154, 154, 75, 75, 70, 70, 134, 134, 149, 149, 67, 67, 131, 131, 150} = xelem_d Using Progression 1;
+//+
+//Transfinite Surface {117};
+//+
+//Transfinite Surface {104};
+//+
+//Transfinite Surface {106};
+//+
+//Transfinite Surface {89};
+//+
+//Transfinite Surface {82};
+//+
+//Transfinite Surface {81};
+//+
+//Transfinite Surface {93};
+//+
+//+Coherence;//+
+//+Transfinite Surface {93} Alternated;
+//+Coherence;//+//+
+//+Transfinite Curve {162, 165, 154, 157} = 4 Using Progression 1;
+//+
+//+Transfinite Surface {89} Alternated;
+//+
+//+Transfinite Surface {93} Alternated;
+
+//+Coherence;//+//+
+//+
+//+
+Extrude {0, -0.2, 0} {
+  Surface{108}; Surface{93}; Layers {1}; Recombine;
+}
+//+
+Coherence;
+//+
+Coherence;

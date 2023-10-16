@@ -2,7 +2,8 @@
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
 #mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
-mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_5el.inp Volume mm
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_5el.inp Volume mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex_Gmsh_5el.inp Volume mm
 
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
 physics thermoelectricity
@@ -74,19 +75,19 @@ bc Displacement_x HeatSink 0
 bc Displacement_y HeatSink 0
 bc Displacement_z HeatSink 0
 #bc Pressure_y Qin -0.83E6
-bc heat_n Qin 2700
+bc heat_n Qin 5300
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Qin TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
-TopOpt_bc Voltage ElectrodeMinX -0.06 -0.05 -0.045
+TopOpt_bc Voltage ElectrodeMinX 0.01 0.025 0.1
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_Initial_x 1
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
-TopOpt_Constraint Power 0.011
+TopOpt_Constraint Power 0.015
 TopOpt_Constraint Volume 0.9
 #TopOpt_Constraint Stress 20E6
 

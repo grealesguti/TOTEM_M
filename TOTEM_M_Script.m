@@ -17,7 +17,7 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
     
     % Create an instance of the InputReader class
         %filepath="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
-        filepath="TECTO/input_TECTO_StressConstrained.txt";
+        filepath="TECTO/input_TECTO_StressConstrained_noncte.txt";
         %filepath="Benchmarks/Elements/Benchmark_DecoupledThermoElectroMech/input_NonLinCouplSEffect.txt";
         %reader = InputReader("Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt");
         %reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt");
@@ -32,16 +32,16 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
 
         bcinit = BCInit(reader, mesh);
         fprintf('Initialized Loads\n');
-        solver = Solver(mesh, bcinit);
-        solver.runNewtonRaphson(reader, mesh, bcinit);
-        fprintf('Postprocessing\n');
+        %solver = Solver(mesh, bcinit);
+        %solver.runNewtonRaphson(reader, mesh, bcinit);
+        %fprintf('Postprocessing\n');
         
-        postprocessing.VTK_TV(solver,"TECTO/Results/VTK_TV")
+        %postprocessing.VTK_TV(solver,"TECTO/Results/VTK_TV")
 
-        TOO = TO_Objectives(reader,mesh,bcinit);
-        TOO.CalculateObjective(reader,mesh,solver)
-        TOC = TO_Constraints(reader,mesh,bcinit);
-        TOC.CalculateConstraint(reader,mesh,solver);
+        %TOO = TO_Objectives(reader,mesh,bcinit);
+        %TOO.CalculateObjective(reader,mesh,solver)
+        %TOC = TO_Constraints(reader,mesh,bcinit);
+        %TOC.CalculateConstraint(reader,mesh,solver);
 
         TO = TopOpt(reader,mesh);
 

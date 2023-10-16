@@ -40,7 +40,7 @@ classdef Solver < handle
                 %obj.SolveLinearSystemInParallel(bcinit);
                 
                 obj.max_iterations=20;
-                obj.tolerance=1e-6;
+                obj.tolerance=1e-4;
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -373,6 +373,10 @@ classdef Solver < handle
                 [De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 [Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 [Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+
+                if (reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity')>1)
+                    found=reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity');
+                end
 
                 Vee=Vee';
                 Tee=Tee';
