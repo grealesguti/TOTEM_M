@@ -1,8 +1,8 @@
 // Gmsh project created on Fri Aug 18 12:35:20 2023
 SetFactory("OpenCASCADE");
-xelem = 5;
-yelem = 10;
-zelem = 5+1;
+xelem = 1;
+yelem = 2;
+zelem = 1+1;
 copper_elem = 2;
 
 

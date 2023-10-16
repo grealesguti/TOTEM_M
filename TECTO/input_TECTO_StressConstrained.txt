@@ -67,7 +67,7 @@ bc Displacement_z HeatSink 0
 #bc heat_n Qin 5300
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
-TopOpt_Objective AverageTemperature Qin Semiconductor
+TopOpt_Objective AverageTemperature Qin TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage ElectrodeMinX 0.06 0.05 0.056
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>

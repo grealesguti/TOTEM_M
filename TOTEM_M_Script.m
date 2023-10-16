@@ -43,9 +43,9 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
         TOC = TO_Constraints(reader,mesh,bcinit);
         TOC.CalculateConstraint(reader,mesh,solver);
 
-        %TO = TopOpt(reader,mesh);
+        TO = TopOpt(reader,mesh);
 
-        %TO.runMMA(reader,mesh)
+        TO.runMMA(reader,mesh)
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %postprocessing.Benchmark_T_PLOT_axis(1,solver,2)
