@@ -26,17 +26,25 @@ classdef TopOpt
         df0dx
         fval_iter
         f0val_iter
+        xbc_iter
     end
     
     methods
         function obj = TopOpt(reader,mesh)
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
-            obj.maxiter = 50;
+            obj.maxiter = 40;
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             obj.n =length(obj.TOEL)+length(reader.TObcval);
             obj.xval=zeros(obj.n,1);
-            obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
+            if isempty(reader.TopOpt_Initial_x)
+                reader.TopOpt_Initial_x=1;
+                obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
+            else
+                mesh.elements_density(obj.TOEL)=ones(length(mesh.elements_density(obj.TOEL)),1)*reader.TopOpt_Initial_x;
+                obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
+            end
+            
             for i=1:length(reader.TObcval)
                 obj.xval(length(obj.TOEL)+i)=(reader.TObcval(i)-reader.TObcminval(i))/(reader.TObcmaxval(1)-reader.TObcminval(1));
             end
@@ -57,6 +65,7 @@ classdef TopOpt
             obj.kkttol = 1e-6;
             obj.f0val_iter=zeros(obj.maxiter+1,1);
             obj.fval_iter=zeros(obj.maxiter+1,obj.m);
+            obj.xbc_iter=zeros(obj.maxiter+1,length(reader.TObcval));
 
             dofs_TO=zeros(length(mesh.data.NODE)*2,1);
             for i=1:length(obj.TOEL)
@@ -91,6 +100,7 @@ classdef TopOpt
             obj.dfdx = TOC.dfdx;
             obj.f0val_iter(obj.outeriter+1)= TOO.fval;
             obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
+            obj.xbc_iter(obj.outeriter+1,length(reader.TObcval))= obj.xold1(length(obj.TOEL)+1:length(obj.xold1));
             %obj.initMMA() % including dfdx!!! running sensitivities should return dfdx, and filters
             kktnorm = 1000;
             while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter 
@@ -106,8 +116,8 @@ classdef TopOpt
                 %% New NR starting point
                 % New Voltage drop
                 %obj.modifyNRStartingpoint()
-                odd_numbers = 1:2:length(solver.soldofs);
-                prevdofs=solver.soldofs(odd_numbers);
+                %odd_numbers = 1:2:length(solver.soldofs);
+                %prevdofs=solver.soldofs(odd_numbers);
                 solver.soldofs=bcinit.initialdofs_;
                 for i=1:length(reader.TObcval)
                     nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
@@ -116,12 +126,12 @@ classdef TopOpt
                         solver.soldofs(nodes*2)=Voltage_value;
                     end
                 end
-                solver.soldofs(odd_numbers)=prevdofs;
+                %solver.soldofs(odd_numbers)=prevdofs;
                 
     
                 %% New Solve
                 solver.runNewtonRaphson(reader, mesh, bcinit);
-                post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_date_',currentDate,'_iter_',num2str(1000+obj.outeriter),'.vtk']))
+                post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
 
                 %% New objective, constraints and derivatives
                 TOO.CalculateObjective(reader,mesh,solver)
@@ -132,6 +142,11 @@ classdef TopOpt
                 obj.dfdx = TOC.dfdx;
                 obj.f0val_iter(obj.outeriter+1)= TOO.fval;
                 obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
+                if not(isempty(reader.TObcval))
+                   for bc=1:length(reader.TObcval)
+                        obj.xbc_iter(obj.outeriter+1,bc)= xmma(length(obj.TOEL)+i);
+                   end
+                end
                 %obj.FilteringSensitivities()
     
                 %% MMA parameters update
@@ -143,10 +158,12 @@ classdef TopOpt
                 %postprocesing.save()
     
                 %% Convergence
-                if obj.outeriter>5
-                    kktnorm=norm((obj.xval-obj.xold1)./obj.xval);
+                if obj.outeriter>10
+                    kktnorm=norm((obj.xval-obj.xold2)./obj.xval);
                 end
-                post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter)
+                post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
+                saveas(1, append([reader.rst_folder, 'MMA',currentDate,'.png']), 'png')
+
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -11,8 +11,8 @@ function [mat_x,Dmat_x] = CalculateMaterial_XDerivative(material,Th,x,p)
         end
     end       
 
-    mat_x=x^(p-1)*(mat-minmat);
-    Dmat_x=Dmat*x^(p-1);
+    mat_x=p*x^(p-1)*(mat-minmat);
+    Dmat_x=Dmat*p*x^(p-1);
     Dmat_x=0;
 
 end

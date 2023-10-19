@@ -128,7 +128,7 @@ classdef Postprocessing < handle
                 'data','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function PlotIter(~,fig,reader,iter,f0val,fval)
+        function PlotIter(~,fig,reader,iter,f0val,fval,xbc)
             % Ensure the specified figure exists and is active or create a new one
             if isempty(fig) || ~ishandle(fig) || ~strcmp(get(fig, 'Type'), 'figure')
                 fig = figure;
@@ -137,16 +137,41 @@ classdef Postprocessing < handle
                 figure(fig);
             end
         
-            subplot(1, 1 + length(fval(1, :)),1);
+            subplot(1, 1 + length(fval(1, :))+length(reader.TObcval),1);
             % Plot the objective function history
             plot(1:iter, f0val(1:iter), 'o-');
             title(reader.TopOpt_Objective);
         
             % Plot constraint histories in subplots
             for i = 1:length(fval(1, :))
-                subplot(1, 1 + length(fval(1, :)),i+1);
+                subplot(1, 1 + length(fval(1, :))+length(reader.TObcval),i+1);
+                hold on
+                yyaxis left;
                 plot(1:iter, fval(1:iter, i), 'o-');
+                yline(0,'b')
                 title(reader.TopOpt_ConstraintName{i});
+                yyaxis right;
+                plot(1:iter, (fval(1:iter, i)+1)*reader.TopOpt_ConstraintValue(i), 'g--');
+                yline(reader.TopOpt_ConstraintValue(i),'r--')
+
+            end
+
+            if not(isempty(reader.TObcval))
+                for i = 1:length(reader.TObcval)
+                    subplot(1, 1 + length(fval(1, :))+length(reader.TObcval),i+1+length(fval(1, :)));
+                    hold on
+                    xbc_value=xbc(1:iter,i);
+                    bc_value= reader.TObcminval(i)+xbc_value*(reader.TObcmaxval(i)-reader.TObcminval(i));
+                    yyaxis left;
+                    plot(1:iter, xbc_value, 'o-');
+                    yline(1,'b')
+                    yline(0,'b')
+                    title(reader.TObctype{i});
+                    yyaxis right;
+                    plot(1:iter, bc_value, 'g--');
+                    yline(reader.TObcmaxval(i),'r--')
+                    yline(reader.TObcminval(i),'r--')
+                end
             end
         
             % Update the figure

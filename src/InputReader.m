@@ -27,6 +27,7 @@ classdef InputReader < handle
         rst_folder
         T0
         Units
+        TopOpt_Initial_x
     end
     
     methods
@@ -48,7 +49,7 @@ classdef InputReader < handle
             end
             
             obj.meshFileName = 'defaultmesh.gmsh';
-            
+            obj.TopOpt_Initial_x=[];
             while ~feof(inputFile)
                 line = fgetl(inputFile);
                 %%disp(line)
@@ -61,7 +62,11 @@ classdef InputReader < handle
                         else
                             obj.meshFileName = tokens{2};
                             obj.MeshEntityName = tokens{3};
-                            obj.Units = tokens{4};
+                            if length(tokens)>3
+                                obj.Units = tokens{4};
+                            else
+                                obj.Units='m';
+                            end
                             fprintf('New Mesh File and Mesh entity: %s %s\n', obj.meshFileName, obj.MeshEntityName);
                         end
                     case 'rst_folder'
@@ -75,6 +80,9 @@ classdef InputReader < handle
                             obj.TopOpt_ObjectiveSelection = tokens{3};
                             obj.TopOpt_DesignElements = tokens{4};
                             fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
+                    case 'TopOpt_Initial_x'
+                            obj.TopOpt_Initial_x(1) = str2double(tokens{2});
+                            fprintf('New TopOpt_Initial_x entity: %s %s\n', obj.TopOpt_Objective);                            
                     case 'TopOpt_bc'
                             boundaryName = tokens{2};
                             surfaceName = tokens{3};

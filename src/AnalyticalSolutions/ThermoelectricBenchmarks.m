@@ -9,6 +9,10 @@ classdef ThermoelectricBenchmarks < handle
         FD_vals_ctemat
         diffFEM_nonlinmat
         FD_vals_nonlinmat
+        diffFEM_ctemat_TEC
+        FD_vals_ctemat_TEC
+        diffFEM_nonlinmat_TEC
+        FD_vals_nonlinmat_TEC
     end
     
     methods
@@ -44,6 +48,12 @@ classdef ThermoelectricBenchmarks < handle
 
             Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+
+            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
+            %[obj.diffFEM_ctemat_TEC, obj.FD_vals_ctemat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
+
+            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_noncte.txt";
+            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % https://link.springer.com/article/10.1007/s00466-006-0080-7
@@ -225,7 +235,11 @@ classdef ThermoelectricBenchmarks < handle
             xx = mesh.elements_density(test_element);
             xx_iter = xx * 0.9;
             mesh_1 = Mesh(reader);
-            
+                if isempty(reader.TopOpt_Initial_x)
+                    reader.TopOpt_Initial_x=1;
+                else
+                    mesh_1.elements_density(TOEL)=ones(length(mesh_1.elements_density(TOEL)),1)*reader.TopOpt_Initial_x;
+                end            
             % Calculate the initial objective function value
             value_0 = eval_fun(reader, mesh, solver);
             % Initialize history arrays to store err and diff values
@@ -286,6 +300,7 @@ classdef ThermoelectricBenchmarks < handle
         function [diff, err, cc] = Finite_Differences_bc(~, filename, reader, mesh, solver, eval_fun, index,index_TO)
             % Calculate the initial objective function value
             value_0 = eval_fun(reader, mesh, solver);
+            TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
 
             % Get the test element for density evaluation
             bcval = reader.bcval(index);
@@ -313,6 +328,12 @@ classdef ThermoelectricBenchmarks < handle
                 bcval_iter = (bcval + bcval_iter) / 2;
                 reader_1.bcval(index)=bcval_iter;
                 mesh_1 = Mesh(reader_1);
+                if isempty(reader_1.TopOpt_Initial_x)
+                    reader.TopOpt_Initial_x=1;
+                else
+                    mesh_1.elements_density(TOEL)=ones(length(mesh_1.elements_density(TOEL)),1)*reader_1.TopOpt_Initial_x;
+                end      
+
                 bcinit_1 = BCInit(reader_1, mesh_1);
                 
                 % Create a new solver and run the Newton-Raphson method
@@ -420,6 +441,12 @@ classdef ThermoelectricBenchmarks < handle
                 reader = InputReader(filepath);
                 fprintf('Initialized InputReader with filename: %s\n', filepath);
                 mesh = Mesh(reader);
+                TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+                if isempty(reader.TopOpt_Initial_x)
+                    reader.TopOpt_Initial_x=1;
+                else
+                    mesh.elements_density(TOEL)=ones(length(mesh.elements_density(TOEL)),1)*reader.TopOpt_Initial_x;
+                end
                 fprintf('Initialized Mesh\n');
                 bcinit = BCInit(reader, mesh);
                 fprintf('Initialized Loads\n');
@@ -455,17 +482,67 @@ classdef ThermoelectricBenchmarks < handle
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
-                [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,2); % Not OK
+                [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,2); % NOT OK 23.10.19
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
-                [FD_vals(7), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % Not OK
+                [FD_vals(7), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
 
                 diffFEM=zeros(1+ncon,length(TOO.TOEL)+1);
                 diffFEM(1,:)=TOO.dfdx;
                 diffFEM(2:end,:)=TOC.dfdx;
         end
-    
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [diffFEM, FD_vals] = run_SingleFEM_diff_TEC(obj, filepath)
+                % filepath="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
+                %reader = InputReader("Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEARHEX_PARAM.txt");
+                %reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt");
+                reader = InputReader(filepath);
+                fprintf('Initialized InputReader with filename: %s\n', filepath);
+                mesh = Mesh(reader);
+                TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+                if isempty(reader.TopOpt_Initial_x)
+                    reader.TopOpt_Initial_x=1;
+                else
+                    mesh.elements_density(TOEL)=ones(length(mesh.elements_density(TOEL)),1)*reader.TopOpt_Initial_x;
+                end
+                fprintf('Initialized Mesh\n');
+                bcinit = BCInit(reader, mesh);
+                fprintf('Initialized Loads\n');
+                solver = Solver(mesh, bcinit);
+                solver.runNewtonRaphson(reader, mesh, bcinit);
+                fprintf('Postprocessing\n');
+                TOO = TO_Objectives(reader,mesh,bcinit);
+                TOO.CalculateObjective(reader,mesh,solver)
+                TOC = TO_Constraints(reader,mesh,bcinit);
+                TOC.CalculateConstraint(reader,mesh,solver);
+                ncon = length(reader.TopOpt_ConstraintValue);
+                %bench = ThermoelectricBenchmarks();
+        
+                TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                [FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+        
+                TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
+        
+                TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
+                [FD_vals(3), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+        
+                TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
+                [FD_vals(4), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,126); %  OK
+
+                TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
+                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); % OK
+
+                diffFEM=zeros(1+ncon,length(TOO.TOEL)+1);
+                diffFEM(1,:)=TOO.dfdx;
+                diffFEM(2:end,:)=TOC.dfdx;
+        end
     end
 end
 

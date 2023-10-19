@@ -12,13 +12,17 @@ InitialTemperature 298.15
 ##
 material Volume
 Seebeck 1 8.2121E-05 3.5980E-07
+Penalty_Seebeck 0 1
 ThermalConductivity 1 2.9176 -0.0043
+Penalty_ThermalConductivity 0 3
 ElectricalConductivity 2 1.028E+5 -5.369E2 1.824
-ThermalExpansionCoefficient_x 0 0.0
-ThermalExpansionCoefficient_y 0 0.001
-ThermalExpansionCoefficient_z 0 0.0
-YoungModulus 0 100000000
-PoissonRatio 0 0.33
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
+PoissonRatio 0 0.241
 
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
@@ -27,15 +31,13 @@ bc Temperature Ymin 298
 bc Displacement_x Xmin 0
 bc Displacement_y Ymin 0
 bc Displacement_z Zmin 0
-bc Pressure_y Ymax -10
-
-
+#bc Pressure_y Ymax -10
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ymax Volume
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage Ymin -0.06 -0.058 -0.056
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
-TopOpt_Initial_x 1
+TopOpt_Initial_x 0.8
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
