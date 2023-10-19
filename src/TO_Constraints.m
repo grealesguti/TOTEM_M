@@ -23,12 +23,7 @@ classdef TO_Constraints < handle
             m=length(reader.TopOpt_ConstraintName);
             obj.fval=zeros(m,1);
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-            dV=0;
-            if dV~=0
-                n=length(obj.TOEL)+1;
-            else
-                n=length(obj.TOEL);
-            end
+            n =length(obj.TOEL)+length(reader.TObcval);
             obj.dfdx=zeros(m,n);
             % Initialize mesh TO parameters
             obj.freedofs=bcinit.dofs_free_;
@@ -212,7 +207,7 @@ classdef TO_Constraints < handle
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             for  ii=1:length(obj.TOEL)
                 element_Tag = obj.TOEL(ii);
-                [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
+                [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
                 LP_dU_element_dofs(ii,:)=element_dofs;
                 LP_dU_element(ii,:)=LJ;
@@ -234,7 +229,7 @@ classdef TO_Constraints < handle
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
-                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
+                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 element_sensitivities(ii)=LP_U(element_Tag)+ADJP(element_dofs)'*Rx;
             end
 

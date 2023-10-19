@@ -21,7 +21,6 @@ classdef ThermoelectricBenchmarks < handle
             %THERMOELECTRICBENCHMARKS Construct an instance of this class
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_LinearUncoupledSeebeck.txt";
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_NonLinCouplSEffect.txt";
-            Benchmark_Perez_Aparicio_NonLinCouplPEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_NonLinCouplPEffect.txt";
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt";
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
 
@@ -33,6 +32,23 @@ classdef ThermoelectricBenchmarks < handle
 
             obj.BenchmarksFunctions=[1,2,1,2];
 
+            %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
+            %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+         
+
+            %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
+            %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+
+            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
+            %[obj.diffFEM_ctemat_TEC, obj.FD_vals_ctemat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
+            %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff_TEC("TECTO/input_TECTO_StressConstrained_cte.txt"); 
+
+
+            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_noncte.txt";
+            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function []=runPhysicsBenchmarks(obj)
             for i=1:length(obj.BenchmarksFunctions)
                 if(obj.BenchmarksFunctions(i)==1)
                     Perez_Aparicio_LinearUncoupledSeebeck(obj,obj.Benchmarks{i},i)
@@ -41,19 +57,7 @@ classdef ThermoelectricBenchmarks < handle
                 elseif(obj.BenchmarksFunctions(i)==3)
                     Perez_Aparicio_CoupledPeltier(obj,obj.Benchmarks{i},i)
                 end
-            end
-
-            Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
-            [obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
-
-            Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
-            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
-
-            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
-            %[obj.diffFEM_ctemat_TEC, obj.FD_vals_ctemat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
-
-            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_noncte.txt";
-            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
+            end        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % https://link.springer.com/article/10.1007/s00466-006-0080-7
@@ -305,10 +309,13 @@ classdef ThermoelectricBenchmarks < handle
             % Get the test element for density evaluation
             bcval = reader.bcval(index);
             bcval_iter=bcval*0.95;
+            
             reader_1 = InputReader(filename);
             bcmax =  reader.TObcmaxval(index_TO);
             bcmin = reader.TObcminval(index_TO);
             dbc=bcmax-bcmin;
+            xbcval0=(bcval-bcmin)/dbc;
+            xbcval_iter=xbcval0*0.95;
 
 
             % Set convergence tolerance and counters
@@ -325,9 +332,89 @@ classdef ThermoelectricBenchmarks < handle
             
             while err > Tol && cc <= max_iterations
                 % Calculate finite difference and update density
-                bcval_iter = (bcval + bcval_iter) / 2;
-                reader_1.bcval(index)=bcval_iter;
+                xbcval_iter = (xbcval0 + xbcval_iter) / 2;
+                bcvalue=bcmin+dbc*xbcval_iter;
+                reader_1.bcval(index)=bcvalue;
                 mesh_1 = Mesh(reader_1);
+                mesh_1.elements_density=mesh.elements_density; 
+
+                bcinit_1 = BCInit(reader_1, mesh_1);
+                
+                % Create a new solver and run the Newton-Raphson method
+                solver_1 = Solver(mesh_1,bcinit_1);
+                solver_1.runNewtonRaphson(reader_1, mesh_1, bcinit_1);
+                
+                % Calculate the objective function value with the updated density
+                value = eval_fun(reader_1, mesh_1, solver_1);
+                
+                % Calculate finite difference and check for conve-rgence
+                diff = (value - value_0) / (xbcval_iter - xbcval0);
+                if cc > 2
+                    err = abs((diff_old - diff) / diff_old);
+                end
+                diff_old = diff;
+                fprintf('FD Iteration: %d, Error: %e, value: %e, value_0: %e, diff: %e, bcval_iter: %e\n', cc, err, value, value_0, diff, bcval_iter);     
+                
+                % Store err and diff values in history arrays
+                err_history(cc) = err;
+                diff_history(cc) = diff;
+
+                % Increment the counter
+                cc = cc + 1;
+            end
+
+                % Plot err and diff history at the end of iterations
+                figure;
+                subplot(2, 1, 1);
+                plot(1:length(err_history), err_history);
+                xlabel('Iteration');
+                ylabel('Error');
+                title('Convergence Plot - Error');
+                
+                subplot(2, 1, 2);
+                plot(1:length(diff_history), diff_history);
+                xlabel('Iteration');
+                ylabel('Difference');
+                title('Convergence Plot - Difference');
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [diff, err, cc] = Finite_Differences_bcTO(~, filename, reader, mesh, solver, eval_fun, index,index_TO)
+            % Calculate the initial objective function value
+            value_0 = eval_fun(reader, mesh, solver);
+            TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+
+            % Get the test element for density evaluation
+            bcval = xmma(length(obj.TOEL)+i);
+            bcval_iter=bcval*0.95;
+            
+            reader_1 = InputReader(filename);
+            bcmax =  reader.TObcmaxval(index_TO);
+            bcmin = reader.TObcminval(index_TO);
+            dbc=bcmax-bcmin;
+            xbcval0=(bcval-bcmin)/dbc;
+            xbcval_iter=xbcval0*0.95;
+
+            
+            % Set convergence tolerance and counters
+            Tol = 1e-3;
+            cc = 1;
+            err = 1;
+            diff_old = 0; % Initialize diff_old
+
+                % Store err and diff values in history arrays
+                err_history = [];
+                diff_history= [];
+
+            max_iterations = 15;
+            
+            while err > Tol && cc <= max_iterations
+                % Calculate finite difference and update density
+                xbcval_iter = (xbcval0 + xbcval_iter) / 2;
+                bcvalue=bcmin+dbc*xbcval_iter;
+                reader_1.bcval(index)=bcvalue;
+                mesh_1 = Mesh(reader_1);
+                mesh_1.elements_density=mesh.elements_density;
                 if isempty(reader_1.TopOpt_Initial_x)
                     reader.TopOpt_Initial_x=1;
                 else
@@ -344,7 +431,7 @@ classdef ThermoelectricBenchmarks < handle
                 value = eval_fun(reader_1, mesh_1, solver_1);
                 
                 % Calculate finite difference and check for conve-rgence
-                diff = (value - value_0) / (bcval_iter - bcval)*dbc;
+                diff = (value - value_0) / (xbcval_iter - xbcval0);
                 if cc > 2
                     err = abs((diff_old - diff) / diff_old);
                 end
@@ -525,7 +612,7 @@ classdef ThermoelectricBenchmarks < handle
         
                 TOO_1 = TO_Objectives(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
+                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 8,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
         
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
@@ -537,7 +624,7 @@ classdef ThermoelectricBenchmarks < handle
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); % OK
+                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 8,1); % OK
 
                 diffFEM=zeros(1+ncon,length(TOO.TOEL)+1);
                 diffFEM(1,:)=TOO.dfdx;

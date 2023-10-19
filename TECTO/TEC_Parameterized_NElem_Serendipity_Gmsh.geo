@@ -1,27 +1,34 @@
 // Gmsh project created on Mon Oct 16 16:55:41 2023
 SetFactory("OpenCASCADE");
 //+
-Box(1) = {0, 0, 0, 1, 0.2, 0.5};
 //+
 
-xelem=5;
+xelem=2;
 xelem_sub=xelem+1;
-yelem=5;
-zelem=5;
+yelem=2;
+zelem=1;
 zelem_sub=zelem+1;
 copper_elem=1;
 copper_sub=copper_elem+1;
+Height_Semiconductor=1.2;
+Height_Copper=0.05;
+Height_Solder=0.05;
+Extra_Semiconductor=1.2;
+Extra_Semiconductor_el=1;
 
 
-Extrude {0, 0.1, 0} {
+Box(1) = {0, 0, 0, 1, Height_Copper, 0.5};
+
+
+Extrude {0, Height_Solder, 0} {
   Surface{4}; Layers {1}; Recombine;
 }
 //+
-Extrude {0, 0.8, 0} {
+Extrude {0, Height_Semiconductor, 0} {
   Surface{11}; Layers {yelem}; Recombine;
 }
 //+
-Extrude {0, 0.1, 0} {
+Extrude {0, Height_Solder, 0} {
   Surface{16}; Layers {1}; Recombine;
 }
 //+
@@ -41,7 +48,7 @@ Transfinite Surface {5};
 Transfinite Surface {4};
 //+
 //+
-Extrude {+0, +0.2, 0} {
+Extrude {+0, +Height_Copper, 0} {
   Surface{21}; Layers {copper_elem}; Recombine;
 }
 //+
@@ -53,19 +60,19 @@ Extrude {1, 0, 0} {
   Surface{31}; Layers {xelem}; Recombine;
 }
 //+
-Extrude {0, -0.1, 0} {
+Extrude {0, -Height_Solder, 0} {
   Surface{34}; Layers {1}; Recombine;
 }
 //+
-Extrude {0, -0.8, 0} {
+Extrude {0, -Height_Semiconductor, 0} {
   Surface{41}; Layers {yelem}; Recombine;
 }
 //+
-Extrude {0, -0.1, 0} {
+Extrude {0, -Height_Solder, 0} {
   Surface{46}; Layers {1}; Recombine;
 }
 //+
-Extrude {0, -0.2, 0} {
+Extrude {0, -Height_Copper, 0} {
   Surface{51}; Layers {copper_elem}; Recombine;
 }
 //+
@@ -93,17 +100,53 @@ Physical Surface("ElectrodeMinX", 112) = {66};
 //+
 Physical Surface("Force", 113) = {25};
 //+
+//+
+Transfinite Volume{1};
+//+
+Extrude {0, 0, -0.1} {
+  Surface{12}; Surface{43}; Layers {Extra_Semiconductor_el}; Recombine;
+}
+//+
+Transfinite Volume{15};
+//+
+Transfinite Volume{14};
+//+
+Transfinite Curve {114, 111, 119, 122} = yelem+1 Using Progression 1;
+//+
+//+
+Extrude {0.05, 0, 0} {
+  Surface{13}; Layers {1}; Recombine;
+}
+//+
+Extrude {-0.05, 0, 0} {
+  Surface{44}; Layers {1}; Recombine;
+}
+
+Extrude {0, 0, -0.1} {
+  Surface{83}; Layers {Extra_Semiconductor_el}; Recombine;
+}
+//+
+Extrude {0, 0, -0.1} {
+  Surface{78}; Layers {Extra_Semiconductor_el}; Recombine;
+}
+
+//+
+Transfinite Curve {138, 135, 127, 130} = 10 Using Progression 1;
+
 Physical Volume("Copper", 114) = {1, 13, 11, 12, 7, 6, 5};
 //+
-Physical Volume("SemiconductorN-", 115) = {3};
+Physical Volume("SemiconductorN-", 115) = {3,14,16,19};
 //+
-Physical Volume("SemiconductorP+", 116) = {9};
+Physical Volume("SemiconductorP+", 116) = {9,15,17,18};
 //+
 Physical Volume("Solder", 117) = {2, 10, 8, 4};
 //+
-Physical Volume("Volume", 118) = {13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+Physical Volume("Volume", 118) = {13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,14,15,16,17,18,19};
 //+
-Physical Volume("TO", 119) = {3, 9};
+Physical Volume("TO", 119) = {3, 9,14,15,16,17,18,19};
+//+//+
+
 //+
+Coherence;
 //+
-Transfinite Volume{1};
+Coherence;

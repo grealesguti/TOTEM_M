@@ -20,11 +20,11 @@ InitialTemperature 298.15
 ## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
 ##
 material SemiconductorP+
-Seebeck 0 1.45E-5
+Seebeck 0 0.0002171645
 Penalty_Seebeck 0 1
-ThermalConductivity 0 1.05
+ThermalConductivity 0 1.054963
 Penalty_ThermalConductivity 0 3
-ElectricalConductivity  0 4608
+ElectricalConductivity  0 68829.89
 Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
@@ -34,11 +34,11 @@ Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
 
 material SemiconductorN-
-Seebeck 0 -1.99E-4
+Seebeck 0 -0.0001985263
 Penalty_Seebeck 0 1
-ThermalConductivity 0 1.3
+ThermalConductivity 0 1.305023
 Penalty_ThermalConductivity 0 3
-ElectricalConductivity 0 76923
+ElectricalConductivity 0 76897.2867561341
 Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
@@ -48,9 +48,9 @@ Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
 
 material Copper
-Seebeck 0 1e-9
-ThermalConductivity 0 398
-ElectricalConductivity 0 5.96E7
+Seebeck 0 0
+ThermalConductivity 0 385
+ElectricalConductivity 0 59880239.52095808
 ThermalExpansionCoefficient_x 0 17E-6
 ThermalExpansionCoefficient_y 0 17E-6
 ThermalExpansionCoefficient_z 0 17E-6
@@ -58,36 +58,37 @@ YoungModulus 0 130E9
 PoissonRatio 0 0.34
 
 material Solder
-Seebeck 0 1e-9
-ThermalConductivity 0 58.7
-ElectricalConductivity 0 2.3E7
-ThermalExpansionCoefficient_x 0 20E-6
-ThermalExpansionCoefficient_y 0 20E-6
-ThermalExpansionCoefficient_z 0 20E-6
-YoungModulus 0 45E9
-PoissonRatio 0 0.35
+Seebeck 0 0
+ThermalConductivity 0 385
+ElectricalConductivity 0 59880239.52095808
+ThermalExpansionCoefficient_x 0 17E-6
+ThermalExpansionCoefficient_y 0 17E-6
+ThermalExpansionCoefficient_z 0 17E-6
+YoungModulus 0 130E9
+PoissonRatio 0 0.34
 
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage ElectrodeMinX 0.0625
 bc Voltage ElectrodeMaxX 0.0
 bc Temperature HeatSink 298
 bc Displacement_x HeatSink 0
 bc Displacement_y HeatSink 0
 bc Displacement_z HeatSink 0
 #bc Pressure_y Qin -0.83E6
-bc heat_n Qin 2700
+bc heat_n Qin -5333
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Qin TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
-TopOpt_bc Voltage ElectrodeMinX -0.06 -0.05 -0.045
+TopOpt_bc Voltage ElectrodeMinX 0.0125 0.0625 0.125
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
-TopOpt_Initial_x 1
+TopOpt_Initial_x 0.5
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
 TopOpt_Constraint Power 0.011
-TopOpt_Constraint Volume 0.9
+TopOpt_Constraint Volume 1
 #TopOpt_Constraint Stress 20E6
 
 ## Output Options

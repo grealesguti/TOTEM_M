@@ -89,7 +89,7 @@ classdef TopOpt
             post = Postprocessing();
             post.initVTK(reader,mesh);
             currentDate = datestr(now, 'yyyy_mm_dd_HH_MM');
-            post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_date_',currentDate,'_iter_',num2str(1000+obj.outeriter),'.vtk']))
+            post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
             
             %% New derivatives
             TOO.CalculateObjective(reader,mesh,solver)
@@ -100,33 +100,54 @@ classdef TopOpt
             obj.dfdx = TOC.dfdx;
             obj.f0val_iter(obj.outeriter+1)= TOO.fval;
             obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
-            obj.xbc_iter(obj.outeriter+1,length(reader.TObcval))= obj.xold1(length(obj.TOEL)+1:length(obj.xold1));
+            if not(isempty(reader.TObcval))
+                obj.xbc_iter(obj.outeriter+1,length(reader.TObcval))= max(obj.xold1(length(obj.TOEL)+1:length(obj.xold1)),[0]);
+            end
             %obj.initMMA() % including dfdx!!! running sensitivities should return dfdx, and filters
             kktnorm = 1000;
+            lowv=obj.low;
+            uppv=obj.upp;
             while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
-                [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,obj.low,obj.upp] = ...
+                
+                [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,lowv,uppv] = ...
                     mmasub(obj.m,obj.n,obj.outeriter,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
-                    obj.f0val,obj.df0dx,obj.fval,obj.dfdx,obj.low,obj.upp,obj.a0,obj.a,obj.c,obj.d);
+                    obj.f0val,obj.df0dx,obj.fval,obj.dfdx,lowv,uppv,obj.a0,obj.a,obj.c,obj.d);
                 %% Filter densities
-                mesh.elements_density(obj.TOEL)=xmma(1:length(obj.TOEL));
+                for i = 1:length(reader.TObcval)
+                    if(strcmp(reader.TObctype,'Voltage'))
+                        Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
+                        reader.TObcval(i)=Voltage_value;
+                        reader.bcval(length(reader.bcval)-length(reader.TObcval)+i)=Voltage_value;
+                    end
+                end
+                %mesh_1 = Mesh(reader);
+                for i=1:length(obj.TOEL)
+                    mesh.elements_density(obj.TOEL(i))=xmma(i);
+                end
+                
                 %obj.FilteringDensitites()
     
                 %% New NR starting point
                 % New Voltage drop
                 %obj.modifyNRStartingpoint()
                 %odd_numbers = 1:2:length(solver.soldofs);
-                %prevdofs=solver.soldofs(odd_numbers);
-                solver.soldofs=bcinit.initialdofs_;
-                for i=1:length(reader.TObcval)
-                    nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
-                    if(strcmp(reader.TObctype,'Voltage'))
-                        Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
-                        solver.soldofs(nodes*2)=Voltage_value;
-                    end
-                end
-                %solver.soldofs(odd_numbers)=prevdofs;
+                %even_numbers = 2:2:length(solver.soldofs);
+                %prevdofs_odd=solver.soldofs(odd_numbers);
+                %prevdofs_even=solver.soldofs(even_numbers);
+                    
+                %bcinit1 = BCInit(reader, mesh);
+                solver = Solver(mesh, bcinit);
+                
+                %for i=1:length(reader.TObcval)
+                %    nodes=mesh_1.retrieveNodalSelection(reader.TObcloc(i));
+                %    if(strcmp(reader.TObctype,'Voltage'))
+                %        Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
+                %        solver.soldofs(nodes*2)=Voltage_value;
+                %    end
+                %end
+                %solver.soldofs(odd_numbers)=prevdofs_odd;
                 
     
                 %% New Solve
@@ -134,17 +155,21 @@ classdef TopOpt
                 post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
 
                 %% New objective, constraints and derivatives
+                TOC = TO_Constraints(reader,mesh,bcinit);
+                TOO = TO_Objectives(reader,mesh,bcinit);
                 TOO.CalculateObjective(reader,mesh,solver)
                 TOC.CalculateConstraint(reader,mesh,solver);
+                
                 obj.f0val = TOO.fval;
                 obj.df0dx = TOO.dfdx;
                 obj.fval = TOC.fval;
                 obj.dfdx = TOC.dfdx;
+
                 obj.f0val_iter(obj.outeriter+1)= TOO.fval;
                 obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
                 if not(isempty(reader.TObcval))
                    for bc=1:length(reader.TObcval)
-                        obj.xbc_iter(obj.outeriter+1,bc)= xmma(length(obj.TOEL)+i);
+                        obj.xbc_iter(obj.outeriter+1,bc)= xmma(length(obj.TOEL)+bc);
                    end
                 end
                 %obj.FilteringSensitivities()
@@ -174,12 +199,12 @@ classdef TopOpt
             density=0.9;density_old=1;
             mesh_copy.element_densities(obj.TOEL(1))=density;
             f_old=fun(reader,mesh,solver);
-            solver1=Solver(reader,mesh,bcinit);
+            solver=Solver(reader,mesh,bcinit);
             err=1;
             iter=1;
             while err>tol && iter<FDmaxiter
-                solver1.Assembly(reader,mesh_copy,bcinit)
-                solver1.runNewtonRaphson();
+                solver.Assembly(reader,mesh_copy,bcinit)
+                solver.runNewtonRaphson();
                 f=fun(reader,mesh,solver);
                 df=(f-f_old)/(density-density_old);
                 if iter>1
