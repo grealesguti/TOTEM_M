@@ -14,14 +14,14 @@ material Volume
 Seebeck 0 1.45E-5
 Penalty_Seebeck 0 1
 ThermalConductivity 0 1.05
-Penalty_ThermalConductivity 0 1
+Penalty_ThermalConductivity 0 3
 ElectricalConductivity  0 4608
-Penalty_ElectricalConductivity 0 1
+Penalty_ElectricalConductivity 0 3
 ThermalExpansionCoefficient_x 0 0E-6
 ThermalExpansionCoefficient_y 0 10E-6
 ThermalExpansionCoefficient_z 0 0E-6
 YoungModulus 0 61.6E9
-Penalty_YoungModulus 0 1
+Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
 
 
@@ -37,7 +37,7 @@ TopOpt_Objective AverageTemperature Ymax Volume
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage Ymin -0.06 -0.058 -0.056
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
-TopOpt_Initial_x 1
+TopOpt_Initial_x 0.8
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional

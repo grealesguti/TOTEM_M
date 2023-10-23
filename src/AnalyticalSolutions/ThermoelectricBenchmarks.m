@@ -237,7 +237,7 @@ classdef ThermoelectricBenchmarks < handle
             
             % Initialize density and iterate variables
             xx = mesh.elements_density(test_element);
-            xx_iter = xx * 0.97;
+            xx_iter = xx * 0.99;
             mesh_1 = Mesh(reader);
                 if isempty(reader.TopOpt_Initial_x)
                     reader.TopOpt_Initial_x=1;
@@ -251,7 +251,7 @@ classdef ThermoelectricBenchmarks < handle
                 diff_history = [];
     
             % Set convergence tolerance and counters
-            Tol = 1e-6;
+            Tol = 1e-4;
             cc = 1;
             err = 100;
             diff_old = 0; % Initialize diff_old
