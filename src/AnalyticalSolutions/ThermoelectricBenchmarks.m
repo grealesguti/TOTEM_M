@@ -549,9 +549,9 @@ classdef ThermoelectricBenchmarks < handle
                 ncon = length(reader.TopOpt_ConstraintValue);
                 %bench = ThermoelectricBenchmarks();
         
-                %TOO_1 = TO_Objectives(reader,mesh,bcinit);
-                %eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                %[FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                [FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
         
                 %TOO_1 = TO_Objectives(reader,mesh,bcinit);
                 %eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);

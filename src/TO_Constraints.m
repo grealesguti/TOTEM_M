@@ -423,7 +423,6 @@ classdef TO_Constraints < handle
                 end
             end
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            orderdof_U=zeros(Number_Of_M_Dofs,1);
             %%%% Elemental wise
             GaussfunctionTag_KUU=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KuDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_KUT=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KutDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
@@ -434,20 +433,24 @@ classdef TO_Constraints < handle
                 
                 element_nodes = mesh.data.ELEMENTS{ElementTag};
                 number_of_nodes=length(element_nodes);
-                orderdof_U(element_nodes*3-2)=element_nodes*3-2;
-                orderdof_U(element_nodes*3-1)=element_nodes*3-1;
-                orderdof_U(element_nodes*3)=element_nodes*3;
+                orderdof_U=zeros(length(element_nodes)*3,1);
+                orderdof_TV=zeros(length(element_nodes)*2,1);
                 %Uee = solver.soldofs_mech(orderdof_U);
                 Tee=zeros(1,number_of_nodes);
                 Vee=zeros(1,number_of_nodes);
                 Uee=zeros(1,number_of_nodes*3);
                 element_dof_indexes=zeros(number_of_nodes*2,1);
                 for nd=1:length(element_nodes)
+                    orderdof_U(nd*3-2)=element_nodes(nd)*3-2;
+                    orderdof_U(nd*3-1)=element_nodes(nd)*3-1;
+                    orderdof_U(nd*3)=element_nodes(nd)*3;
                     element_dof_indexes(nd)=element_nodes(nd)*2-1;
                     element_dof_indexes(number_of_nodes+nd)=element_nodes(nd)*2;
                     %element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
                     Tee(nd)=solver.soldofs(element_nodes(nd)*2-1);
                     Vee(nd)=solver.soldofs(element_nodes(nd)*2);
+                    orderdof_TV(nd)=element_nodes(nd)*2-1;
+                    orderdof_TV(nd+length(element_nodes))=element_nodes(nd)*2;
                     Uee((nd-1)*3+1)=solver.soldofs_mech((element_nodes(nd)-1)*3+1);
                     Uee((nd-1)*3+2)=solver.soldofs_mech((element_nodes(nd)-1)*3+2);
                     Uee((nd-1)*3+3)=solver.soldofs_mech((element_nodes(nd)-1)*3+3);
@@ -455,15 +458,15 @@ classdef TO_Constraints < handle
 
 
                 %%%% Derivatives
-                [KUUd,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
-                [KUTd,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
-                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
+                [KUUd,flag,element_dofs_U]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
+                [KUTd,flag,element_dofs_T]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
+                [Rx,flag,element_dofs_Rx]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
 
                 %Adji=AdjU(orderdofU(:,ii)');
                 element_sensitivities(ii)= sum(Luel(ii,:))...
-                    +AdjU(orderdofU(:,ii)')'*(KUUd*Uee')...
-                    -AdjU(orderdofU(:,ii)')'*(KUTd*(Tee'-str2double(reader.T0)))...
-                    +AdjTV(orderdofTV(:,ii))'*Rx;%...
+                    +AdjU(orderdof_U)'*(KUUd*Uee')...
+                    -AdjU(orderdof_U)'*(KUTd*(Tee'-str2double(reader.T0)))...
+                    +AdjTV(element_dof_indexes)'*Rx;%...
 
             end
 
@@ -607,17 +610,17 @@ classdef TO_Constraints < handle
             end
 
             sigmaVM0_ordered=zeros(total_number_of_elements,1);
-            Luel_ordered = zeros(total_number_of_elements,2);
+            %Luel_ordered = zeros(total_number_of_elements,2);
             for i = 1:total_number_of_elements
                 % Recover each element tag
                 elementTag = mesh_elements(i);
                 sigmaVM0_ordered(elementTag)=sigmaVM0(i);
-                Luel_ordered(elementTag,:)=Luel(i,:);
+                %Luel_ordered(elementTag,:)=Luel(i,:);
             end
             Ld=Ld/evTi_summation/Sobj;
             LdT=LdT/evTi_summation/Sobj;
             Luel=Luel/evTi_summation/Sobj;
-            Luel_ordered=Luel_ordered/evTi_summation/Sobj;            
+            %Luel_ordered=Luel_ordered/evTi_summation/Sobj;            
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[F_T,flag]=Integration_KutDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)

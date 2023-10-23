@@ -19,19 +19,18 @@ for i = 1:total_number_of_elements
     element_nodes = mesh.data.ELEMENTS{elementTag};
     number_of_nodes = length(element_nodes);
     element_coordinates=zeros(3,number_of_nodes);
-    dof_per_node=2;
     Tee=zeros(1,number_of_nodes);
     Uee=zeros(1,number_of_nodes*3);
-    element_dof_indexes=zeros(number_of_nodes*dof_per_node,1);
+    element_dof_indexes=zeros(number_of_nodes*2,1);
     element_material_index=mesh.elements_material(elementTag);
     xx= mesh.elements_density(elementTag);
     Number_of_Nodes = length(element_coordinates(1,:));
 
     for ei=1:number_of_nodes
-        element_dof_indexes(ei)=element_nodes(ei)*dof_per_node-1;
-        element_dof_indexes(number_of_nodes+i)=element_nodes(ei)*dof_per_node;
+        element_dof_indexes(ei)=element_nodes(ei)*2-1;
+        element_dof_indexes(number_of_nodes+i)=element_nodes(ei)*2;
         element_coordinates(:,ei)=mesh.data.NODE{element_nodes(ei)};
-        Tee(ei)=initialdofs(element_nodes(ei)*dof_per_node-1);
+        Tee(ei)=solver.soldofs(element_nodes(ei)*2-1);
         Uee((ei-1)*3+1)=solver.soldofs_mech((element_nodes(ei)-1)*3+1);
         Uee((ei-1)*3+2)=solver.soldofs_mech((element_nodes(ei)-1)*3+2);
         Uee((ei-1)*3+3)=solver.soldofs_mech((element_nodes(ei)-1)*3+3);
@@ -81,11 +80,6 @@ for i = 1:total_number_of_elements
                 sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
                 sigmaVM0(i) = sVM0;
 end
-sigmaVM0_ordered=zeros(total_number_of_nodes,1);
-for i = 1:total_number_of_elements
-    % Recover each element tag
-    elementTag = mesh_elements(i);
-     sigmaVM0_ordered(elementTag)=sigmaVM0(i);
-end
+
 end
 
