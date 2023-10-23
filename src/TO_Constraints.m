@@ -456,12 +456,13 @@ classdef TO_Constraints < handle
 
                 %%%% Derivatives
                 [KUUd,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
-                [KUTd,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
-                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 14, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
+                [KUTd,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
+                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
 
-                Adji=AdjU(orderdofU(:,ii)');
+                %Adji=AdjU(orderdofU(:,ii)');
                 element_sensitivities(ii)= sum(Luel(ii,:))...
-                    +Adji'*(KUUd*Uee')-Adji'*(KUTd*(Tee'-str2double(reader.T0)))...
+                    +AdjU(orderdofU(:,ii)')'*(KUUd*Uee')...
+                    -AdjU(orderdofU(:,ii)')'*(KUTd*(Tee'-str2double(reader.T0)))...
                     +AdjTV(orderdofTV(:,ii))'*Rx;%...
 
             end
