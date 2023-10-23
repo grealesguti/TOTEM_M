@@ -28,6 +28,7 @@ classdef InputReader < handle
         T0
         Units
         TopOpt_Initial_x
+        KSUp
     end
     
     methods
@@ -47,7 +48,7 @@ classdef InputReader < handle
             if inputFile == -1
                 error('Error opening file.');
             end
-            
+            obj.KSUp=3;
             obj.meshFileName = 'defaultmesh.gmsh';
             obj.TopOpt_Initial_x=[];
             while ~feof(inputFile)

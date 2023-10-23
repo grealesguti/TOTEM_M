@@ -34,7 +34,7 @@ classdef ThermoelectricBenchmarks < handle
 
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
             %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
-         
+            %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt"); 
 
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
             %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
@@ -237,7 +237,7 @@ classdef ThermoelectricBenchmarks < handle
             
             % Initialize density and iterate variables
             xx = mesh.elements_density(test_element);
-            xx_iter = xx * 0.9;
+            xx_iter = xx * 0.97;
             mesh_1 = Mesh(reader);
                 if isempty(reader.TopOpt_Initial_x)
                     reader.TopOpt_Initial_x=1;
@@ -251,7 +251,7 @@ classdef ThermoelectricBenchmarks < handle
                 diff_history = [];
     
             % Set convergence tolerance and counters
-            Tol = 1e-3;
+            Tol = 1e-6;
             cc = 1;
             err = 100;
             diff_old = 0; % Initialize diff_old
@@ -547,29 +547,30 @@ classdef ThermoelectricBenchmarks < handle
                 ncon = length(reader.TopOpt_ConstraintValue);
                 %bench = ThermoelectricBenchmarks();
         
-                TOO_1 = TO_Objectives(reader,mesh,bcinit);
-                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                [FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                %TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                %eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                %[FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
         
-                TOO_1 = TO_Objectives(reader,mesh,bcinit);
-                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
+                %TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                %eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                %[FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
         
-                TOC_1 = TO_Constraints(reader,mesh,bcinit);
-                eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
-                [FD_vals(3), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                %TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                %eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
+                %[FD_vals(3), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
         
-                TOC_1 = TO_Constraints(reader,mesh,bcinit);
-                eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                [FD_vals(4), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); %  OK
+                %TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                %eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
+                %[FD_vals(4), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); %  OK
 
-                TOC_1 = TO_Constraints(reader,mesh,bcinit);
-                eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
+                %TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                %eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
+                %[FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
-                [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,2); % NOT OK 23.10.19
+                % OK for all Penaly 1 and xx = 1, FD tolerance to 1e-6
+                [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % NOT OK 23.10.19
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);

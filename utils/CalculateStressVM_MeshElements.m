@@ -73,7 +73,7 @@ for i = 1:total_number_of_elements
                 B(:,(bi-1)*3+1:(bi)*3)=Bi;
             end
 
-            eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
+            %eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
             %se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
             %sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
                 se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
