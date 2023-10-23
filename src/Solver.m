@@ -122,7 +122,7 @@ classdef Solver < handle
                 elementTag = mesh_elements(i);
                 
                 % Compute element stiffness matrix and residual
-                [Ke, element_dof_indexes_T, element_dof_indexes_M] = obj.gaussIntegrationK(3, 14, elementTag, mesh, initialdofs_TV, reader, etype_element,'DecoupledThermoMechanical_Load');
+                [Ke, element_dof_indexes_T, element_dof_indexes_M] = obj.gaussIntegrationK(3, 5, elementTag, mesh, initialdofs_TV, reader, etype_element,'DecoupledThermoMechanical_Load');
                 
                 % Accumulate residuals and stiffness matrix contributions
                 %KJvnz(:, i) = reshape(Ke, dofs_per_element*node_el, 1);
@@ -578,7 +578,7 @@ classdef Solver < handle
                 [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                 Temperature_solution = obj.soldofs(1:2:end);
                 obj.KUT=KThermalLoad;
-                obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2num(reader.T0));
+                obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
                 obj.SolveLinearSystemInParallel(reader.physics,bcinit)
             end
             if iter==obj.max_iterations

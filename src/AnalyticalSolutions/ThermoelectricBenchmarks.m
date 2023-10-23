@@ -238,12 +238,8 @@ classdef ThermoelectricBenchmarks < handle
             % Initialize density and iterate variables
             xx = mesh.elements_density(test_element);
             xx_iter = xx * 0.99;
-            mesh_1 = Mesh(reader);
-                if isempty(reader.TopOpt_Initial_x)
-                    reader.TopOpt_Initial_x=1;
-                else
-                    mesh_1.elements_density(TOEL)=ones(length(mesh_1.elements_density(TOEL)),1)*reader.TopOpt_Initial_x;
-                end            
+       
+            %bcinit_1 = BCInit(reader, mesh_1);
             % Calculate the initial objective function value
             value_0 = eval_fun(reader, mesh, solver);
             % Initialize history arrays to store err and diff values
@@ -260,11 +256,17 @@ classdef ThermoelectricBenchmarks < handle
             while (err > Tol && cc <= max_iterations) || cc<3
                 % Calculate finite difference and update density
                 xx_iter = (xx + xx_iter) / 2;
+                mesh_1 = Mesh(reader);
+                if isempty(reader.TopOpt_Initial_x)
+                    reader.TopOpt_Initial_x=1;
+                else
+                    mesh_1.elements_density(TOEL)=ones(length(mesh_1.elements_density(TOEL)),1)*reader.TopOpt_Initial_x;
+                end   
                 mesh_1.elements_density(test_element) = xx_iter;
-                
+                bcinit_1 = BCInit(reader, mesh_1);
                 % Create a new solver and run the Newton-Raphson method
-                solver_1 = Solver(mesh_1,bcinit);
-                solver_1.runNewtonRaphson(reader, mesh_1, bcinit);
+                solver_1 = Solver(mesh_1,bcinit_1);
+                solver_1.runNewtonRaphson(reader, mesh_1, bcinit_1);
                 
                 % Calculate the objective function value with the updated density
                 value = eval_fun(reader, mesh_1, solver_1);

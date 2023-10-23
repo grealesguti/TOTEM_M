@@ -51,6 +51,7 @@ classdef InputReader < handle
             obj.KSUp=3;
             obj.meshFileName = 'defaultmesh.gmsh';
             obj.TopOpt_Initial_x=[];
+            
             while ~feof(inputFile)
                 line = fgetl(inputFile);
                 %%disp(line)

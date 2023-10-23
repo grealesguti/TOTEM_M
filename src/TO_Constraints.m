@@ -485,7 +485,7 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [sigmaVM0_ordered,Ld,LdT,Luel] = CalculateStressVM_Derivatives_MeshElements(obj,reader,mesh,solver,index_con)
-            PKS=3;
+            PKS=reader.KSUp;
             Sobj=reader.TopOpt_ConstraintValue(index_con);
             mesh_elements = obj.TOEL;
             total_number_of_elements = length(mesh_elements);
