@@ -17,9 +17,9 @@ ThermalConductivity 0 1.05
 Penalty_ThermalConductivity 0 1
 ElectricalConductivity  0 4608
 Penalty_ElectricalConductivity 0 1
-ThermalExpansionCoefficient_x 0 10E-6
+ThermalExpansionCoefficient_x 0 0E-6
 ThermalExpansionCoefficient_y 0 10E-6
-ThermalExpansionCoefficient_z 0 10E-6
+ThermalExpansionCoefficient_z 0 0E-6
 YoungModulus 0 61.6E9
 Penalty_YoungModulus 0 1
 PoissonRatio 0 0.241

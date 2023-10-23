@@ -569,7 +569,9 @@ classdef ThermoelectricBenchmarks < handle
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
-                % OK for all Penaly 1 and xx = 1, FD tolerance to 1e-6
+                % OK for all Penaly 1 and xx = 1, FD tolerance to 1e-6, and
+                % only thermal expansion in Y -> issue with thermal
+                % expansion and or boundary conditions??
                 [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % NOT OK 23.10.19
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
