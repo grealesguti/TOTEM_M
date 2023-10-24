@@ -549,32 +549,29 @@ classdef ThermoelectricBenchmarks < handle
                 ncon = length(reader.TopOpt_ConstraintValue);
                 %bench = ThermoelectricBenchmarks();
         
-                %TOO_1 = TO_Objectives(reader,mesh,bcinit);
-                %eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                %[FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                [FD_vals(1), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
         
-                %TOO_1 = TO_Objectives(reader,mesh,bcinit);
-                %eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                %[FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
+                TOO_1 = TO_Objectives(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
+                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
         
-                %TOC_1 = TO_Constraints(reader,mesh,bcinit);
-                %eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
-                %[FD_vals(3), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
+                TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
+                [FD_vals(3), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK
         
-                %TOC_1 = TO_Constraints(reader,mesh,bcinit);
-                %eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                %[FD_vals(4), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); %  OK
+                TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
+                [FD_vals(4), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); %  OK
 
-                %TOC_1 = TO_Constraints(reader,mesh,bcinit);
-                %eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                %[FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
+                TOC_1 = TO_Constraints(reader,mesh,bcinit);
+                eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
+                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
-                % OK for all Penaly 1 and xx = 1, FD tolerance to 1e-6, and
-                % only thermal expansion in Y -> issue with thermal
-                % expansion and or boundary conditions??
-                [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % NOT OK 23.10.19
+                [FD_vals(6), err] = obj.Finite_Differences_DensityElement( reader, mesh, bcinit, solver, eval_fun,1); % OK 23.10.24
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);

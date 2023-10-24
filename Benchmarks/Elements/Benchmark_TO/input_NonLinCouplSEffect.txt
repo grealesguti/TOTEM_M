@@ -17,9 +17,9 @@ ThermalConductivity 0 1.05
 Penalty_ThermalConductivity 0 3
 ElectricalConductivity  0 4608
 Penalty_ElectricalConductivity 0 3
-ThermalExpansionCoefficient_x 0 0E-6
+ThermalExpansionCoefficient_x 0 10E-6
 ThermalExpansionCoefficient_y 0 10E-6
-ThermalExpansionCoefficient_z 0 0E-6
+ThermalExpansionCoefficient_z 0 10E-6
 YoungModulus 0 61.6E9
 Penalty_YoungModulus 0 3
 PoissonRatio 0 0.241
@@ -28,9 +28,10 @@ PoissonRatio 0 0.241
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
 bc Voltage Ymax 0.0
 bc Temperature Ymin 298
-bc Displacement_x Xmin 0
+bc Displacement_x Ymin 0
 bc Displacement_y Ymin 0
-bc Displacement_z Zmin 0
+bc Displacement_z Ymin 0
+bc Pressure_y Ymax -100000
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ymax Volume
@@ -44,7 +45,7 @@ TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
 TopOpt_Constraint Power 0.3
 TopOpt_Constraint Volume 0.8
-TopOpt_Constraint Stress 10000000
+TopOpt_Constraint Stress 10000
 KSU 3
 
 ## Output Options
