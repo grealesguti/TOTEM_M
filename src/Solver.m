@@ -432,10 +432,10 @@ classdef Solver < handle
                 Dalpha_x = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
                 Dalpha_y = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
                 Dalpha_z = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-                DE = reader.getmaterialproperty(element_material_index,'YoungModulus');
+                DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
 
-                %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
                 alphav=zeros(6,1);
