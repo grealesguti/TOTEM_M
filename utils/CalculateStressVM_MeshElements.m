@@ -36,49 +36,49 @@ for i = 1:total_number_of_elements
         Uee((ei-1)*3+3)=solver.soldofs_mech((element_nodes(ei)-1)*3+3);
     end
 
-            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, 0, 0, 0);
+    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, 0, 0, 0);
 
-            JM = dShape' * element_coordinates';
-            %Jacinv = inv(JM);
-            DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
-            % FIXME, calculate from all dofs input
-            Th = N * Tee';
+    JM = dShape' * element_coordinates';
+    %Jacinv = inv(JM);
+    DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
+    % FIXME, calculate from all dofs input
+    Th = N * Tee';
 
-            Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
-            Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
-            Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-            DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
-            nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+    Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+    Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+    Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+    DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
+    nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
 
-            [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
-            %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+    [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
 
-            alphav=zeros(6,1);
-            alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];
+    alphav=zeros(6,1);
+    alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];
 
-            C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
-                nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
-                0 0 0 0 0 (1-2*nu)/2];
+    C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+        nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+        0 0 0 0 0 (1-2*nu)/2];
 
-            % Preallocate memory for B-Operators
-            Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
-            for bi=1:Number_of_Nodes
-                Bi(1,1) = DN(1,bi);
-                Bi(2,2) = DN(2,bi);
-                Bi(3,3) = DN(3,bi);
-                Bi(4,:) = [DN(2,bi),DN(1,bi),0];
-                Bi(5,:) = [0,DN(3,bi),DN(2,bi)];
-                Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
-                B(:,(bi-1)*3+1:(bi)*3)=Bi;
-            end
+    % Preallocate memory for B-Operators
+    Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
+    for bi=1:Number_of_Nodes
+        Bi(1,1) = DN(1,bi);
+        Bi(2,2) = DN(2,bi);
+        Bi(3,3) = DN(3,bi);
+        Bi(4,:) = [DN(2,bi),DN(1,bi),0];
+        Bi(5,:) = [0,DN(3,bi),DN(2,bi)];
+        Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
+        B(:,(bi-1)*3+1:(bi)*3)=Bi;
+    end
 
-            %eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
-            %se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
-            %sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
-                se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
-                %se0=C*eps   -C*alphav*N*(Tee-str2double(reader.T0))';
-                sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
-                sigmaVM0(i) = sVM0;
+    %eps=B*Uee'+alphav*N*(Tee-str2double(reader.T0))';
+    %se0=C*eps-C*alphav*N*(Tee-str2double(reader.T0))';
+    %sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+    se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+    %se0=C*eps   -C*alphav*N*(Tee-str2double(reader.T0))';
+    sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+    sigmaVM0(i) = sVM0;
 end
 
 end

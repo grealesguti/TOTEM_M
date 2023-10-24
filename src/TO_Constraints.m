@@ -388,19 +388,16 @@ classdef TO_Constraints < handle
             %% ADJOINT
             %%%% modificar systema a resolver para los adjuntos
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %% U Adjoint        % Kuu^T xu=-Ld
-            A11 = distributed(-solver.KStiff(obj.freedofs_mech,obj.freedofs_mech)');
-            B11=distributed(LdU(obj.freedofs_mech)');
-            AdjU(obj.freedofs_mech)=A11\B11';
+            %% U Adjoint        % Kuu^T lambda_u=-Ld
+            A11 = distributed(solver.KStiff(obj.freedofs_mech,obj.freedofs_mech)');
+            B11=distributed(-LdU(obj.freedofs_mech));
+            AdjU(obj.freedofs_mech)=A11\B11;
 
-            %% TV Adjoint       % [KJ]^T xTV=-LdT-Koo*xu % check
-            AdjTR=zeros(2*obj.Number_of_nodes,1);
-            AdjTR(1:obj.Number_of_nodes)=-solver.KUT'*AdjU;
+            %% TV Adjoint       % [KJ]^T x lambda_TV = -[LdT,0]-(-K_UT)^T*lambda_u % check
             LdTV=zeros(obj.Number_of_nodes*2,1);
-            for i=1:obj.Number_of_nodes
-                LdTV((i-1)*2+1)=LdT(i)+AdjTR(i);
-            end
-            A22 = distributed((solver.KT(obj.freedofs,obj.freedofs))');
+            odd_indices = 1:2:length(LdTV); % Get even indices
+            LdTV(odd_indices)=-LdT+solver.KUT'*AdjU;
+            A22 = distributed(-(solver.KT(obj.freedofs,obj.freedofs))'); % we store the negative KT
             B22 = distributed(LdTV(obj.freedofs));%% LT is in U T dofs, change into TV and get free ones!!!
             AdjTV(obj.freedofs)=A22\B22;
 
@@ -414,33 +411,24 @@ classdef TO_Constraints < handle
                 element_nodes = mesh.data.ELEMENTS{ElementTag};
                 number_of_nodes=length(element_nodes);
                 orderdof_U=zeros(number_of_nodes*3,1);
-                Tee=zeros(1,number_of_nodes);
-                Vee=zeros(1,number_of_nodes);
-                Uee=zeros(1,number_of_nodes*3);
-                element_dof_indexes=zeros(number_of_nodes*2,1);
                 for nd=1:length(element_nodes)
                     orderdof_U(nd*3-2)=element_nodes(nd)*3-2;
                     orderdof_U(nd*3-1)=element_nodes(nd)*3-1;
                     orderdof_U(nd*3)=element_nodes(nd)*3;
-                    element_dof_indexes(nd)=element_nodes(nd)*2-1;
-                    element_dof_indexes(number_of_nodes+nd)=element_nodes(nd)*2;
-                    Tee(nd)=solver.soldofs(element_nodes(nd)*2-1);
-                    Vee(nd)=solver.soldofs(element_nodes(nd)*2);
-                    Uee((nd-1)*3+1)=solver.soldofs_mech((element_nodes(nd)-1)*3+1);
-                    Uee((nd-1)*3+2)=solver.soldofs_mech((element_nodes(nd)-1)*3+2);
-                    Uee((nd-1)*3+3)=solver.soldofs_mech((element_nodes(nd)-1)*3+3);
                 end
+                Uee=solver.soldofs_mech(orderdof_U);
 
                 %%%% Derivatives
                 [KUUd,flag,element_dofs_U]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
                 [KUTd,flag,element_dofs_T]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
                 [Rx,flag,element_dofs_Rx]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
+                TVee=solver.soldofs(element_dofs_Rx);
 
                 %Adji=AdjU(orderdofU(:,ii)');
                 element_sensitivities(ii)= sum(Luel(ii,:))...
                     +AdjU(orderdof_U)'*(KUUd*Uee')...
-                    -AdjU(orderdof_U)'*(KUTd*(Tee'-str2double(reader.T0)))...
-                    +AdjTV(element_dof_indexes)'*Rx;%...
+                    -AdjU(orderdof_U)'*(KUTd*(TVee(1:number_of_nodes)-str2double(reader.T0)))...
+                    +AdjTV(element_dofs_Rx)'*Rx;%...
 
             end
 
@@ -580,7 +568,7 @@ classdef TO_Constraints < handle
                 LdT=LdT+(aa*Li2)'; % L for mech dofs, which multiplies d(\Delta \Theta)/dx = d(T-Tref)/dx
 
                 Luel(i,:)=[ evTi*daVM'*dCx*B*Uee';...
-                    (evTi*daVM'*(-(dCx*alphav)*N))*(Tee-str2double(reader.T0))'];  % L for mech and T dofs, which multiplies [U;(T-Tref)]
+                            evTi*daVM'*(-dCx*alphav*N)*(Tee-str2double(reader.T0))'];  % L for mech and T dofs, which multiplies [U;(T-Tref)]
             end
 
             sigmaVM0_ordered=zeros(total_number_of_elements,1);

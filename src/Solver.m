@@ -40,7 +40,7 @@ classdef Solver < handle
                 %obj.SolveLinearSystemInParallel(bcinit);
                 
                 obj.max_iterations=20;
-                obj.tolerance=1e-4;
+                obj.tolerance=1e-6;
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -544,7 +544,7 @@ classdef Solver < handle
             % Initialize some parameters and initial guess
             residual = obj.tolerance * 1000;
             prev_residual = residual*2;
-            threshold=1e-6;
+            threshold=1e-8;
             
             for iter = 1:obj.max_iterations
                 % Assembly the system matrix
