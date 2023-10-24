@@ -481,7 +481,7 @@ classdef Solver < handle
                 %DN1 = JM \ dShape'; % FIXME and check it is the same!
 
                 % FIXME, calculate from all dofs input
-                %Th = N * Tee';
+                Th = N * Tee';
             
                 % FIXME: Calculate material properties
                 %Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
@@ -494,13 +494,13 @@ classdef Solver < handle
                 %[De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 %[Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
-                %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
                 %alphav=zeros(6,1);
                 %alphav(1:3,1)=Dalpha;
 
-                C = DEp./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
                     0 0 0 0 0 (1-2*nu)/2];
                 

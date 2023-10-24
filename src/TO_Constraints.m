@@ -33,27 +33,27 @@ classdef TO_Constraints < handle
             obj.Elements_volume = obj.CalculateAllElementVolume(mesh);
             obj.V_TOT=sum(obj.Elements_volume);
         end
-
-        function CalculateConstraint(obj,reader,mesh,solver)
+    
+        function CalculateConstraint(obj, reader, mesh, solver)
             index_constraint = 1;
-            for i=1:length(reader.TopOpt_ConstraintName)
-                ConstraintName=reader.TopOpt_ConstraintName{i};
-                switch ConstraintName
-                    case 'Power'
-                        obj.fval_Power(reader,mesh,solver,index_constraint);
-                        obj.dfdx_Power(reader,mesh,solver,index_constraint);
-                        index_constraint=index_constraint+1;
-                    case 'Volume'
-                        obj.fval_Volume(reader,mesh,solver,index_constraint);
-                        obj.dfdx_Volume(reader,index_constraint);
-                        index_constraint=index_constraint+1;
-                    case 'Stress'
-                        obj.fval_Stress(reader,mesh,solver,index_constraint);
-                        obj.dfdx_Stress(reader,mesh,solver,index_constraint);
-                        index_constraint=index_constraint+1;
+            for i = 1:length(reader.TopOpt_ConstraintName)
+                ConstraintName = reader.TopOpt_ConstraintName{i};
+                if startsWith(ConstraintName, 'Power')
+                    obj.fval_Power(reader, mesh, solver, index_constraint);
+                    obj.dfdx_Power(reader, mesh, solver, index_constraint);
+                    index_constraint = index_constraint + 1;
+                elseif startsWith(ConstraintName, 'Volume')
+                    obj.fval_Volume(reader, mesh, solver, index_constraint);
+                    obj.dfdx_Volume(reader, index_constraint);
+                    index_constraint = index_constraint + 1;
+                elseif startsWith(ConstraintName, 'Stress')
+                    obj.fval_Stress(reader, mesh, solver, index_constraint);
+                    obj.dfdx_Stress(reader, mesh, solver, index_constraint);
+                    index_constraint = index_constraint + 1;
                 end
             end
         end
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [K,R,element_dof_indexes] = GaussIntegration_dx(~,dimension, order, elementTag, mesh, initialdofs,reader,etype,integrationFunctionhandle)
             %3, 14, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}
@@ -369,9 +369,16 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function fvalue=fval_Stress(obj,reader,mesh,solver,index_con)
-            obj.SVM=CalculateStressVM_MeshElements(reader,mesh,solver,reader.TopOpt_DesignElements);
-            fvalue= KSU(obj.SVM/reader.TopOpt_ConstraintValue(index_con)-1,reader.KSUp); % KSU OK
-            obj.fval(index_con)=fvalue;
+            if strcmp(reader.TopOpt_ConstraintName{index_con},'Stress_Pnorm')
+                obj.SVM=CalculateStressVM_MeshElements(reader,mesh,solver,reader.TopOpt_DesignElements);
+                fvalue=(1/length(obj.SVM)*sum((obj.SVM./reader.TopOpt_ConstraintValue(index_con)).^reader.KSUp))^(1/reader.KSUp)-1;
+                obj.fval(index_con)=fvalue;
+            else
+                obj.SVM=CalculateStressVM_MeshElements(reader,mesh,solver,reader.TopOpt_DesignElements);
+                fvalue= KSU(obj.SVM/reader.TopOpt_ConstraintValue(index_con)-1,reader.KSUp); % KSU OK
+                obj.fval(index_con)=fvalue;
+            end
+
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function dfdx_Stress(obj,reader,mesh,solver,index_con)
@@ -383,8 +390,11 @@ classdef TO_Constraints < handle
             Number_Of_TV_Dofs = obj.Number_of_nodes*2;
             AdjU=zeros(Number_Of_M_Dofs,1);
             AdjTV=zeros(Number_Of_TV_Dofs,1);
-            [sVM0,LdU,LdT,Luel] = obj.CalculateStressVM_Derivatives_MeshElements(reader,mesh,solver,index_con);
-
+            if strcmp(reader.TopOpt_ConstraintName{index_con},'Stress_Pnorm')
+                [LdU,LdT,Luel] = obj.CalculateStressVM_Derivatives_MeshElements_Pnorm(reader,mesh,solver,index_con);
+            else
+                [sVM0,LdU,LdT,Luel] = obj.CalculateStressVM_Derivatives_MeshElements(reader,mesh,solver,index_con);
+            end
             %% ADJOINT
             %%%% modificar systema a resolver para los adjuntos
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -451,6 +461,7 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [sigmaVM0_ordered,Ld,LdT,Luel] = CalculateStressVM_Derivatives_MeshElements(obj,reader,mesh,solver,index_con)
+
             PKS=reader.KSUp;
             Sobj=reader.TopOpt_ConstraintValue(index_con);
             mesh_elements = obj.TOEL;
@@ -585,6 +596,116 @@ classdef TO_Constraints < handle
             %Luel_ordered=Luel_ordered/evTi_summation/Sobj;            
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [LdU,LdT,Luel] = CalculateStressVM_Derivatives_MeshElements_Pnorm(obj,reader,mesh,solver,index_con)
+            Sobj=reader.TopOpt_ConstraintValue(index_con);
+            mesh_elements = obj.TOEL;
+            total_number_of_elements = length(mesh_elements);
+            total_number_of_nodes = length(mesh.data.NODE);
+            Summation_Pnorm=0;
+            [node_el, etype_element] = mesh.retrievemeshtype(reader);
+
+            LdU=zeros(total_number_of_nodes*3,1);
+            LdT=zeros(total_number_of_nodes*1,1);
+            Luel=zeros(total_number_of_elements,2);
+
+            %elementTag = mesh_elements(1);
+            %element_nodes = mesh.data.ELEMENTS{elementTag};
+            %number_of_nodes = length(element_nodes);
+
+            %Ld_U=zeros(total_number_of_elements,number_of_nodes*3*number_of_nodes*3);
+            %Ld_U_dofs=zeros(total_number_of_elements,number_of_nodes*3);
+
+            for i = 1:total_number_of_elements
+
+                % Recover each element tag
+                elementTag = mesh_elements(i);
+                element_nodes = mesh.data.ELEMENTS{elementTag};
+                number_of_nodes = length(element_nodes);
+                element_coordinates=zeros(3,number_of_nodes);
+                element_dof_indexes_TV=zeros(number_of_nodes*2,1);
+                element_dof_indexes_T=zeros(number_of_nodes,1);
+                element_material_index=mesh.elements_material(elementTag);
+                xx= mesh.elements_density(elementTag);
+                Number_of_Nodes = length(element_coordinates(1,:));
+                element_dof_indexes_M=zeros(number_of_nodes*3,1);
+
+                for nd=1:number_of_nodes
+                    element_dof_indexes_TV(nd)=element_nodes(nd)*2-1;
+                    element_dof_indexes_TV(number_of_nodes+nd)=element_nodes(nd)*2;
+                    element_dof_indexes_T(nd)=element_nodes(nd);
+                    element_dof_indexes_M((nd-1)*3+1)=(element_nodes(nd)-1)*3+1;
+                    element_dof_indexes_M((nd-1)*3+2)=(element_nodes(nd)-1)*3+2;
+                    element_dof_indexes_M((nd-1)*3+3)=(element_nodes(nd)-1)*3+3;
+                    element_coordinates(:,nd)=mesh.data.NODE{element_nodes(nd)};
+                end
+                Uee=solver.soldofs_mech(element_dof_indexes_M);
+                Tee= solver.soldofs(element_dof_indexes_TV(1:number_of_nodes))';
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, 0, 0, 0);
+
+                JM = dShape' * element_coordinates';
+                DN = inv(JM) * dShape'; 
+                Th = N * Tee';
+
+                Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+                Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+                Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+                DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
+                nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+
+                [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,...
+                    reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,...
+                    reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                alphav=zeros(6,1);
+                alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];
+
+                C = DE/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];
+
+                dCx=DE_dx/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];
+                % Preallocate memory for B-Operators
+                Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
+                for bi=1:Number_of_Nodes
+                    Bi(1,1) = DN(1,bi);
+                    Bi(2,2) = DN(2,bi);
+                    Bi(3,3) = DN(3,bi);
+                    Bi(4,:) = [DN(2,bi),DN(1,bi),0];
+                    Bi(5,:) = [0,DN(3,bi),DN(2,bi)];
+                    Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
+                    B(:,(bi-1)*3+1:(bi)*3)=Bi;
+                end
+                
+                se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+                sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2 ...
+                    -se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3) ...
+                    +3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+                Summation_Pnorm=Summation_Pnorm+(sVM0)^reader.KSUp;
+                %% Derivative of VM stress with each of the stress components
+                daVM=[  1/(2*sVM0)*(2*se0(1)-se0(2)-se0(3));...
+                        1/(2*sVM0)*(2*se0(2)-se0(1)-se0(3));...
+                        1/(2*sVM0)*(2*se0(3)-se0(1)-se0(2));...
+                        3/(sVM0)*se0(4);...
+                        3/(sVM0)*se0(5);...
+                        3/(sVM0)*se0(6);];
+                %%%%%%%%%%%%%%
+                %% FIXME: for parfor the Li and Li2 is a solution, another way is storing all coefficients and adding after the parfor loop
+                %Ld_U(i,:)=sVM0^(reader.KSUp-1)*daVM'*C*B; % L for mech dofs, which multiplies dU/dx
+                element_multiplier=sVM0^(reader.KSUp-1)*daVM';
+                LdU(element_dof_indexes_M)=LdU(element_dof_indexes_M)+(element_multiplier*C*B)';
+                LdT(element_dof_indexes_T)=LdT(element_dof_indexes_T)-(element_multiplier*C*alphav*N)';
+                Luel(i,:)=[element_multiplier*dCx*B*Uee',element_multiplier*(-dCx*alphav*N)*(Tee-str2double(reader.T0))'];  % L for mech and T dofs, which multiplies [U;(T-Tref)]
+            end
+            %Pnorm=(Summation_Pnorm/total_number_of_elements)^(1/reader.KSUp);
+            dPnorm_common=(Summation_Pnorm/total_number_of_elements)^(1/reader.KSUp-1)*1/total_number_of_elements/Sobj;
+            Luel=Luel*dPnorm_common;
+            LdU=LdU*dPnorm_common;
+            LdT=LdT*dPnorm_common;
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[F_T,flag]=Integration_KutDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
                 flag=[];
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
@@ -652,7 +773,7 @@ classdef TO_Constraints < handle
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
 
                 %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
-                [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
 
                 dCx = DE_dx./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
