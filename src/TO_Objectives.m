@@ -165,7 +165,7 @@ classdef TO_Objectives < handle
             B=distributed((LAdj(obj.freedofs)));
             AdjT(obj.freedofs)=A\B;
             % Calculate material derivatives
-            for ii=1:length(obj.TOEL)
+            parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
 
                 [R_dx,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 

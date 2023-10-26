@@ -29,6 +29,7 @@ classdef InputReader < handle
         Units
         TopOpt_Initial_x
         KSUp
+        Rst_name
     end
     
     methods
@@ -51,6 +52,7 @@ classdef InputReader < handle
             obj.KSUp=3;
             obj.meshFileName = 'defaultmesh.gmsh';
             obj.TopOpt_Initial_x=[];
+            obj.Rst_name='Rst_';
             
             while ~feof(inputFile)
                 line = fgetl(inputFile);

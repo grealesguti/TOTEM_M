@@ -33,7 +33,7 @@ classdef TopOpt
         function obj = TopOpt(reader,mesh)
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
-            obj.maxiter = 40;
+            obj.maxiter = 75;
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             obj.n =length(obj.TOEL)+length(reader.TObcval);
             obj.xval=zeros(obj.n,1);
@@ -89,7 +89,9 @@ classdef TopOpt
             post = Postprocessing();
             post.initVTK(reader,mesh);
             currentDate = datestr(now, 'yyyy_mm_dd_HH_MM');
-            post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+            folderName = fullfile(reader.rst_folder, append(reader.Rst_name,'_', currentDate));
+            mkdir(folderName);
+            post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
             
             %% New derivatives
             TOO.CalculateObjective(reader,mesh,solver)
@@ -152,7 +154,7 @@ classdef TopOpt
     
                 %% New Solve
                 solver.runNewtonRaphson(reader, mesh, bcinit);
-                post.VTK_x_TV(mesh,solver,append([reader.rst_folder, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+                post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
 
                 %% New objective, constraints and derivatives
                 TOC = TO_Constraints(reader,mesh,bcinit);
@@ -187,7 +189,7 @@ classdef TopOpt
                     kktnorm=norm((obj.xval-obj.xold2)./obj.xval);
                 end
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
-                saveas(1, append([reader.rst_folder, 'MMA',currentDate,'.png']), 'png')
+                saveas(1, append([reader.rst_folder,reader.Rst_name, 'MMA',currentDate,'.png']), 'png')
 
             end
         end

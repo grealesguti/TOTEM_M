@@ -544,7 +544,7 @@ classdef Solver < handle
             % Initialize some parameters and initial guess
             residual = obj.tolerance * 1000;
             prev_residual = residual*2;
-            threshold=1e-8;
+            threshold=1e-4;
             
             for iter = 1:obj.max_iterations
                 % Assembly the system matrix

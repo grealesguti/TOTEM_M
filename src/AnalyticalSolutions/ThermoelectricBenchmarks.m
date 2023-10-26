@@ -38,6 +38,7 @@ classdef ThermoelectricBenchmarks < handle
 
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
             %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+            %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt"); 
 
             %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
             %[obj.diffFEM_ctemat_TEC, obj.FD_vals_ctemat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
@@ -555,7 +556,7 @@ classdef ThermoelectricBenchmarks < handle
         
                 TOO_1 = TO_Objectives(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOO_1.fval_AverageTemp(reader,mesh,solver);
-                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
+                [FD_vals(2), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); %  OK. Needs to adjust the value of the constraint (6=default) in the overall bc values vector in reader
         
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Volume(reader,mesh,solver,2); % matters which index is given!!!
@@ -567,7 +568,7 @@ classdef ThermoelectricBenchmarks < handle
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Power(reader,mesh,solver,1);
-                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
+                [FD_vals(5), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); % OK
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
@@ -575,7 +576,7 @@ classdef ThermoelectricBenchmarks < handle
 
                 TOC_1 = TO_Constraints(reader,mesh,bcinit);
                 eval_fun=@(reader,mesh,solver) TOC_1.fval_Stress(reader,mesh,solver,3);
-                [FD_vals(7), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 6,1); % OK
+                [FD_vals(7), err] = obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, 7,1); % OK
 
                 diffFEM=zeros(1+ncon,length(TOO.TOEL)+1);
                 diffFEM(1,:)=TOO.dfdx;

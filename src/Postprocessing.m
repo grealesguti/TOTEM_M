@@ -173,9 +173,14 @@ classdef Postprocessing < handle
                     yline(reader.TObcminval(i),'r--')
                 end
             end
-        
+            %folder = reader.rst_folder;
+                        % Split the string by '/' symbol
+            %splitString = strsplit(folder, '/');
+            
+            % Recover the last element
+            %lastElement = splitString{end};
             % Update the figure
-            sgtitle('Optimization Progress');
+            sgtitle(append('Optimization Progress:',reader.Rst_name));
             hold off;
 
         % Add this line to update the figure in each iteration
