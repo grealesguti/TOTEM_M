@@ -34,7 +34,6 @@ function [K,element_dof_indexes] = GeneralGaussIntegration(dimension, order, ele
 
             element_material_index=mesh.elements_material(elementTag);
 
-
             integrationFunction = @(natcoords) integrationFunctionhandle(natcoords, element_coordinates, Tee, Vee, element_material_index,reader, mesh, etype, mesh.elements_density(elementTag));      
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             flagGloop=0;

@@ -107,6 +107,42 @@ classdef Postprocessing < handle
                 'data','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_qth(obj,reader,mesh,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');         
+
+            qth = CalculateHeatFlow_nodes(reader,mesh,solver);
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'data','POINT_DATA',qth','qth','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_q(obj,reader,mesh,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');         
+
+            q = CalculateTotalHeatFlow_nodes(reader,mesh,solver);
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'data','POINT_DATA',q','qth','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_j(obj,reader,mesh,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');         
+
+            j = CalculateTotalCurrentDensity_nodes(reader,mesh,solver);
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'data','POINT_DATA',j','qth','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_x_TV(obj,mesh,solver,filepath)
             % Append the date and '.vtk' extension to the filepath
             outputFilePath = filepath;         
@@ -187,6 +223,51 @@ classdef Postprocessing < handle
         drawnow;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         function SaveIterCSV(~,filepath,reader,iter,f0val,fval,xbc)
+            
+                % Initialize a cell array to store the data
+                dataToWrite = cell(iter, 2 + length(fval(1, :)) + length(reader.TObcval));
+            
+                % Add headers to the cell array
+                dataToWrite{1, 1} = 'Iteration';
+                dataToWrite{1, 2} = reader.TopOpt_Objective;
+                constraintNames = reader.TopOpt_ConstraintName;
+            
+                for i = 1:length(fval(1, :))
+                        dataToWrite{1, 2 + 2 * i - 1} = [constraintNames{i}, '_value'];
+                        dataToWrite{1, 2 + 2 * i} = [constraintNames{i}, '_right_value'];
+                end
+            
+                if ~isempty(reader.TObcval)
+                    for i = 1:length(reader.TObcval)
+                        dataToWrite{1, 2 + 2 * length(fval(1, :)) + i} = [reader.TObctype{i}, '_value'];
+                        dataToWrite{1, 2 + 2 * length(fval(1, :)) + i + 1} = [reader.TObctype{i}, '_right_value'];
+                    end
+                end
+            
+                % Store data for each iteration
+                for i = 2:iter
+                    dataToWrite{i, 1} = i-1;
+                    dataToWrite{i, 2} = f0val(i);
+                    for j = 1:length(fval(1, :))
+                        dataToWrite{i, 2 + 2 * j - 1} = fval(i, j);
+                        dataToWrite{i, 2 + 2 * j} = (fval(i, j) + 1) * reader.TopOpt_ConstraintValue(j);
+                    end
+                    if ~isempty(reader.TObcval)
+                        for k = 1:length(reader.TObcval)
+                            dataToWrite{i, 2 + 2 * length(fval(1, :)) + k} = xbc(i, k);
+                            dataToWrite{i, 2 + 2 * length(fval(1, :)) + k + 1} = reader.TObcminval(k) + xbc(i, k) * (reader.TObcmaxval(k) - reader.TObcminval(k));
+                        end
+                    end
+                end
+            
+                % Specify the CSV file path
+                csvFilePath = filepath;
+            
+                % Write the data to a CSV file
+                writecell(dataToWrite, csvFilePath, 'WriteMode', 'append');
+         end
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [sorted_Tn]=Benchmark_T_PLOT_axis(obj,fig,solver,axis)
             Tn=zeros(obj.total_number_of_nodes,1);
             Tn_loc=zeros(obj.total_number_of_nodes,1);
