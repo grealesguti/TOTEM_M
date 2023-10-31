@@ -173,6 +173,62 @@ classdef ThermoelectricBenchmarks < handle
 
         end        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % https://link.springer.com/article/10.1007/s00466-006-0080-7
+        function [xv,Tx,Vx,Ux,Power_Bench] = GR_HeatInjection(~,filename,index)
+
+                %reader = InputReader(filename);
+                %fprintf('Initialized InputReader with filename: %s\n', filename);
+                %mesh = Mesh(reader);
+                %fprintf('Initialized Mesh\n');
+                %bcinit = BCInit(reader, mesh);
+                %fprintf('Initialized Loads\n');
+                %solver = Solver(mesh, bcinit);
+                %solver.runNewtonRaphson(reader, mesh, bcinit);
+                %fprintf('Postprocessing\n');
+                %postprocessing = Postprocessing();
+                %postprocessing.initVTK(reader,mesh);
+
+
+                L=1.524e-3;
+                steps=100;
+                x_step=L/steps;
+                xv=zeros(steps,1);
+                Tx=zeros(steps,1);
+                Vx=zeros(steps,1);
+                Ux=zeros(steps,1); % int((T(x)-298.15)*alpha dx)
+                alpha=1e-3;
+
+
+
+                for i=1:100
+                    xv(i)=x_step*(i-1);
+                    Tx(i)=3.794e7*xv(i)*(1.524e-3-xv(i))+298.15;
+                    Vx(i)= 5.788E-2 - 4.913E1*xv(i) + 7.315E3*xv(i)^2;
+                    Ux(i)=(-xv(i)^2*((37940000*xv(i))/3 - 8332820879051308801875/288230376151711744))*alpha;
+                end
+                j=3.199e6;
+                Power = 5.788e-2*(j*0.0014^2);
+                Power_FEM = CalculatePower(reader,mesh,solver);
+                Power_Bench = abs(Power-Power_FEM);
+                fprintf('Power benchmark, Analytical: %s FEM: %s\n', [Power,Power_FEM]);
+
+                figure(index)
+                hold on
+                subplot(1, 3,1);
+                hold on
+                postprocessing.Benchmark_T_PLOT_axis(index,solver,2)
+                plot(xv,Tx)
+                subplot(1, 3,2);
+                hold on
+                postprocessing.Benchmark_V_PLOT_axis(index,solver,2)
+                plot(xv,Vx)
+                subplot(1, 3,3);
+                hold on
+                postprocessing.Benchmark_U_PLOT_axis(index,solver,2)
+                plot(xv,Ux)
+
+        end        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [xv,Tx,Vx] = Perez_Aparicio_CoupledPeltier(~,filename,index)
         end        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -380,7 +436,6 @@ classdef ThermoelectricBenchmarks < handle
                 ylabel('Difference');
                 title('Convergence Plot - Difference');
         end
-
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [diff, err, cc] = Finite_Differences_bcTO(~, filename, reader, mesh, solver, eval_fun, index,index_TO)
             % Calculate the initial objective function value

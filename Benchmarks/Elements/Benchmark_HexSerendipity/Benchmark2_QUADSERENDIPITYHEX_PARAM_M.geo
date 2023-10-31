@@ -2,7 +2,10 @@
 lc_x = 0.0014;
 lc_y = 0.001524;
 lc_z = 0.0014;
-
+nelem1=5;
+npoints1=nelem1+1;
+nelem2=5;
+npoints2=nelem2+1;
 // Define points with parameterized coordinates
 Point(1) = {0, 0, 0, lc_x};         // Point 1
 Point(2) = {lc_x, 0, 0, lc_x};      // Point 2
@@ -52,7 +55,7 @@ Volume(1) = {1};
 
 // Define transfinite meshing
 Transfinite Volume {1};
-Transfinite Curve {8, 6, 2, 4} = 10 Using Progression 1;
+Transfinite Curve {8, 6, 2, 4} = npoints1 Using Progression 1;
 Transfinite Surface {2};
 Transfinite Surface {6};
 Transfinite Surface {4};
@@ -91,7 +94,7 @@ Mesh.ElementSizeFactor = 1; // Element Size Factor -> 1
 Mesh.MinSize = 2;
 Mesh.MaxSize = 1e22;
 
-Transfinite Curve {9, 5, 10, 1, 12, 7, 11, 3} = 10 Using Progression 1;
+Transfinite Curve {9, 5, 10, 1, 12, 7, 11, 3} = npoints2 Using Progression 1;
 
 // Export mesh to msh
 //Mesh 3;

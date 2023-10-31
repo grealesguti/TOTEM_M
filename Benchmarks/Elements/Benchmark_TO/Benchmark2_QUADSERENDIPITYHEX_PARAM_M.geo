@@ -97,7 +97,7 @@ Transfinite Curve {9, 5, 10, 1, 12, 7, 11, 3} = 2 Using Progression 1;
 //Mesh 3;
 
 // Run using: gmsh script.geo //+
-Physical Volume("0", 13) = {1};
+Physical Volume("Volume", 13) = {1};
 //+
 Physical Surface("Ymax", 14) = {5};
 //+

@@ -95,7 +95,7 @@ classdef BCInit < handle
                 coordinates(:,i)=node_coordinates';
             end
             T3=obj.calculate_T3(coordinates);
-            coordinates_tr = T3 \ coordinates;
+            coordinates_tr = inv(T3) \ coordinates;
             result= zeros(length(element_nodes),1);
             % Create a new matrix to store the result without the last row
             coordinates_tr_XY = [];
@@ -317,7 +317,7 @@ classdef BCInit < handle
                     tempLoadVectors = cell(1, numWorkers);
                     
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value, mesh);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 5, element, value, mesh);
                     %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
                     
                     % Loop through elements in parallel
@@ -332,7 +332,8 @@ classdef BCInit < handle
                         for elementIdx = workerElements
                             % Calculate element_load_vector for the current element
                             element_load_vector = gaussIntegrationBCFun(elementIdx);
-                            obj.loadVector_(mesh.data.ELEMENTS{elementIdx}*2-1) = obj.loadVector_(mesh.data.ELEMENTS{elementIdx}*2-1) + element_load_vector;
+                            element_nodes = mesh.data.ELEMENTS{elementIdx};
+                            obj.loadVector_(element_nodes*2-1) = obj.loadVector_(element_nodes*2-1) + element_load_vector;
                         end
                     end
                     

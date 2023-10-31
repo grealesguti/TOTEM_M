@@ -284,6 +284,7 @@ classdef Mesh < handle
                 elseif etype_element == "C3D8" % Hexahedral 8 node element
                     node_el = 8;
                     flag = 3;
+                    naturalcoordinates=obj.elements.GetHexahedralNodeLocations();
                 elseif etype_element == "C3D20" % Hexahedral 20 node element
                     node_el = 20;
                     flag = 4;

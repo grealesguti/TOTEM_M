@@ -3,18 +3,19 @@ SetFactory("OpenCASCADE");
 //+
 //+
 
-xelem=2;
+xelem=24;
 xelem_sub=xelem+1;
-yelem=2;
-zelem=1;
+yelem=24;
+zelem=12;
 zelem_sub=zelem+1;
-copper_elem=1;
+copper_elem=3;
 copper_sub=copper_elem+1;
 Height_Semiconductor=1.2;
-Height_Copper=0.05;
+Height_Copper=0.1;
 Height_Solder=0.05;
 Extra_Semiconductor=1.2;
 Extra_Semiconductor_el=1;
+El_TopUnion=5;
 
 
 Box(1) = {0, 0, 0, 1, Height_Copper, 0.5};
@@ -53,7 +54,7 @@ Extrude {+0, +Height_Copper, 0} {
 }
 //+
 Extrude {0.2, 0, 0} {
-  Surface{23}; Layers {1}; Recombine;
+  Surface{23}; Layers {El_TopUnion}; Recombine;
 }
 //+
 Extrude {1, 0, 0} {
@@ -141,7 +142,7 @@ Physical Volume("SemiconductorP+", 116) = {9,15,17,18};
 //+
 Physical Volume("Solder", 117) = {2, 10, 8, 4};
 //+
-Physical Volume("Volume", 118) = {13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,14,15,16,17,18,19};
+//Physical Volume("Volume", 118) = {13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,14,15,16,17,18,19};
 //+
 Physical Volume("TO", 119) = {3, 9,14,15,16,17,18,19};
 //+//+
@@ -150,3 +151,33 @@ Physical Volume("TO", 119) = {3, 9,14,15,16,17,18,19};
 Coherence;
 //+
 Coherence;
+//+
+Extrude {0, 0.2, 0} {
+  Surface{26}; Surface{30}; Surface{35}; Layers {5}; Recombine;
+}
+//+
+Extrude {0, -0.2, 0} {
+  Surface{3}; Surface{62}; Surface{56}; Surface{60}; Layers {5}; Recombine;
+}
+//+
+
+Coherence;
+//+
+Coherence;
+//+
+Physical Volume("Ceramic", 228) = {24, 23,  25, 26, 22, 21, 20};
+Physical Volume("Volume", 118) = {13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,14,15,16,17,18,19,20,21,22,23,24,25,26};
+
+//+
+Physical Surface("Ceramic_Top", 229) = {109, 113, 117};
+//+
+Physical Surface("Ceramic_Bottom", 230) = {122, 131, 110};
+//+
+//+
+Physical Surface("Top_Semiconductors", 231) = {41, 16};
+//+
+Physical Surface("top", 232) = {109, 113, 117};
+//+
+Physical Surface("bottom", 233) = {126, 122, 131, 135};
+//+
+Physical Surface("symmetry", 234) = {14, 42, 32, 114, 110, 27, 24, 107, 19, 77, 82, 37, 47, 52, 127, 132, 57, 6, 9, 120, 123, 63};

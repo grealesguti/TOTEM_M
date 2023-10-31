@@ -28,10 +28,11 @@ PoissonRatio 0 0.241
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
 bc Voltage Ymax 0.0
 bc Temperature Ymin 298
-bc Displacement_x Xmin 0
+bc Displacement_x Ymin 0
 bc Displacement_y Ymin 0
-bc Displacement_z Zmin 0
-#bc Pressure_y Ymax -10
+bc Displacement_z Ymin 0
+bc Pressure_y Ymax -100000
+
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ymax Volume
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
@@ -44,7 +45,8 @@ TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
 TopOpt_Constraint Power 0.3
 TopOpt_Constraint Volume 0.8
-TopOpt_Constraint Stress 10000000
+TopOpt_Constraint Stress_Pnorm 10000
+KSU 3
 
 ## Output Options
 ## output <data> <path/outputname>

@@ -27,6 +27,8 @@ classdef TopOpt
         fval_iter
         f0val_iter
         xbc_iter
+        Voltage_value
+        Voltage_initial
     end
     
     methods
@@ -62,7 +64,7 @@ classdef TopOpt
             obj.d       = ones(obj.m,1);
             obj.a0      = 1;
             obj.a       = zeros(obj.m,1);
-            obj.kkttol = 1e-6;
+            obj.kkttol = 1e-8;
             obj.f0val_iter=zeros(obj.maxiter+1,1);
             obj.fval_iter=zeros(obj.maxiter+1,obj.m);
             obj.xbc_iter=zeros(obj.maxiter+1,length(reader.TObcval));
@@ -82,7 +84,12 @@ classdef TopOpt
             bcinit = BCInit(reader, mesh);
             solver = Solver(mesh, bcinit);
             solver.runNewtonRaphson(reader, mesh, bcinit);
-            TOO = TO_Objectives(reader,mesh,bcinit);
+                for i = 1:length(reader.TObcval)
+                    if(strcmp(reader.TObctype,'Voltage'))
+                        obj.Voltage_initial=reader.TObcval(i);
+                    end
+                end
+                TOO = TO_Objectives(reader,mesh,bcinit);
             TOO.CalculateObjective(reader,mesh,solver)
             TOC = TO_Constraints(reader,mesh,bcinit);
             TOC.CalculateConstraint(reader,mesh,solver);
@@ -109,7 +116,7 @@ classdef TopOpt
             kktnorm = 1000;
             lowv=obj.low;
             uppv=obj.upp;
-            while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter 
+            while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter || obj.outeriter<20
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
                 
@@ -119,9 +126,9 @@ classdef TopOpt
                 %% Filter densities
                 for i = 1:length(reader.TObcval)
                     if(strcmp(reader.TObctype,'Voltage'))
-                        Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
-                        reader.TObcval(i)=Voltage_value;
-                        reader.bcval(length(reader.bcval)-length(reader.TObcval)+i)=Voltage_value;
+                        obj.Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
+                        reader.TObcval(i)=obj.Voltage_value;
+                        reader.bcval(length(reader.bcval)-length(reader.TObcval)+i)=obj.Voltage_value;
                     end
                 end
                 %mesh_1 = Mesh(reader);
@@ -134,22 +141,22 @@ classdef TopOpt
                 %% New NR starting point
                 % New Voltage drop
                 %obj.modifyNRStartingpoint()
-                %odd_numbers = 1:2:length(solver.soldofs);
-                %even_numbers = 2:2:length(solver.soldofs);
-                %prevdofs_odd=solver.soldofs(odd_numbers);
-                %prevdofs_even=solver.soldofs(even_numbers);
+                odd_numbers = 1:2:length(solver.soldofs);
+                even_numbers = 2:2:length(solver.soldofs);
+                prevdofs_odd=solver.soldofs(odd_numbers);
+                prevdofs_even=solver.soldofs(even_numbers);
                     
                 %bcinit1 = BCInit(reader, mesh);
                 solver = Solver(mesh, bcinit);
                 
-                %for i=1:length(reader.TObcval)
-                %    nodes=mesh_1.retrieveNodalSelection(reader.TObcloc(i));
-                %    if(strcmp(reader.TObctype,'Voltage'))
-                %        Voltage_value=reader.TObcminval(i)+xmma(length(obj.TOEL)+i)*(reader.TObcmaxval(i)-reader.TObcminval(i));
-                %        solver.soldofs(nodes*2)=Voltage_value;
-                %    end
-                %end
-                %solver.soldofs(odd_numbers)=prevdofs_odd;
+                for i=1:length(reader.TObcval)
+                    nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
+                    if(strcmp(reader.TObctype,'Voltage'))
+                        solver.soldofs(odd_numbers)=prevdofs_odd;
+                        solver.soldofs(even_numbers)=prevdofs_even*obj.Voltage_value/obj.Voltage_initial;
+                        solver.soldofs(nodes*2)=obj.Voltage_value;
+                    end
+                end
                 
     
                 %% New Solve
@@ -161,7 +168,8 @@ classdef TopOpt
                 TOO = TO_Objectives(reader,mesh,bcinit);
                 TOO.CalculateObjective(reader,mesh,solver)
                 TOC.CalculateConstraint(reader,mesh,solver);
-                
+
+                f0valold=obj.f0val;
                 obj.f0val = TOO.fval;
                 obj.df0dx = TOO.dfdx;
                 obj.fval = TOC.fval;
@@ -184,13 +192,11 @@ classdef TopOpt
                 %% write results
                 %postprocesing.save()
     
-                %% Convergence
-                if obj.outeriter>10
-                    kktnorm=norm((obj.xval-obj.xold2)./obj.xval);
-                end
-                post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
-                saveas(1, append([reader.rst_folder,reader.Rst_name, 'MMA',currentDate,'.png']), 'png')
 
+                kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
+                post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
+                saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
+                post.SaveIterCSV(append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

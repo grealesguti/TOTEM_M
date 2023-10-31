@@ -5,7 +5,7 @@
 mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_5el.inp Volume mm
 
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
-physics thermoelectricity
+physics decoupledthermoelectromechanical
 solver NR
 InitialTemperature 298.15
 
@@ -30,7 +30,7 @@ ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
 ThermalExpansionCoefficient_z 0 15E-6
 YoungModulus 0 61.6E9
-Penalty_YoungModulus 0 3
+Penalty_YoungModulus 0 5
 PoissonRatio 0 0.241
 
 material SemiconductorN-
@@ -44,7 +44,7 @@ ThermalExpansionCoefficient_x 0 15E-6
 ThermalExpansionCoefficient_y 0 15E-6
 ThermalExpansionCoefficient_z 0 15E-6
 YoungModulus 0 61.6E9
-Penalty_YoungModulus 0 3
+Penalty_YoungModulus 0 5
 PoissonRatio 0 0.241
 
 material Copper
@@ -75,7 +75,9 @@ bc Displacement_x HeatSink 0
 bc Displacement_y HeatSink 0
 bc Displacement_z HeatSink 0
 #bc Pressure_y Qin -0.83E6
-bc heat_n Qin -5333
+bc heat_n Qin 5333
+bc Pressure_y Qin -0.9E6
+
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Qin TO
@@ -90,6 +92,7 @@ TopOpt_NR V proporcional
 TopOpt_Constraint Power 0.011
 TopOpt_Constraint Volume 1
 #TopOpt_Constraint Stress 20E6
+TopOpt_Constraint Stress_Pnorm 10E6
 
 ## Output Options
 ## output <data> <path/outputname>

@@ -1,0 +1,78 @@
+*Heading
+ C:\Archive\Programming\MATLAB\TOTEM_M\Benchmarks\Elements\Benchmark_HexSerendipity\Benchmark2_HEX_PARAM_M
+*NODE
+1, 0, 0, 0
+2, 1, 0, 0
+3, 1, 1, 0
+4, 0, 1, 0
+5, 0, 0, 1
+6, 1, 0, 1
+7, 1, 1, 1
+8, 0, 1, 1
+******* E L E M E N T S *************
+*ELEMENT, type=T3D2, ELSET=Line1
+9, 1, 2
+*ELEMENT, type=T3D2, ELSET=Line2
+10, 2, 3
+*ELEMENT, type=T3D2, ELSET=Line3
+11, 3, 4
+*ELEMENT, type=T3D2, ELSET=Line4
+12, 4, 1
+*ELEMENT, type=T3D2, ELSET=Line5
+13, 5, 6
+*ELEMENT, type=T3D2, ELSET=Line6
+14, 6, 7
+*ELEMENT, type=T3D2, ELSET=Line7
+15, 7, 8
+*ELEMENT, type=T3D2, ELSET=Line8
+16, 8, 5
+*ELEMENT, type=T3D2, ELSET=Line9
+17, 1, 5
+*ELEMENT, type=T3D2, ELSET=Line10
+18, 2, 6
+*ELEMENT, type=T3D2, ELSET=Line11
+19, 3, 7
+*ELEMENT, type=T3D2, ELSET=Line12
+20, 4, 8
+*ELEMENT, type=CPS4, ELSET=Surface1
+21, 5, 6, 2, 1
+*ELEMENT, type=CPS4, ELSET=Surface2
+22, 5, 6, 7, 8
+*ELEMENT, type=CPS4, ELSET=Surface3
+23, 8, 5, 1, 4
+*ELEMENT, type=CPS4, ELSET=Surface4
+24, 1, 2, 3, 4
+*ELEMENT, type=CPS4, ELSET=Surface5
+25, 4, 8, 7, 3
+*ELEMENT, type=CPS4, ELSET=Surface6
+26, 6, 7, 3, 2
+*ELEMENT, type=C3D8, ELSET=Volume1
+27, 7, 6, 5, 8, 3, 2, 1, 4
+*ELSET,ELSET=Ymax
+25, 
+*ELSET,ELSET=Ymin
+21, 
+*ELSET,ELSET=Zmax
+22, 
+*ELSET,ELSET=Zmin
+24, 
+*ELSET,ELSET=Xmin
+23, 
+*ELSET,ELSET=Xmax
+26, 
+*ELSET,ELSET=Volume
+27, 
+*NSET,NSET=Ymax
+3, 4, 7, 8, 
+*NSET,NSET=Ymin
+1, 2, 5, 6, 
+*NSET,NSET=Zmax
+5, 6, 7, 8, 
+*NSET,NSET=Zmin
+1, 2, 3, 4, 
+*NSET,NSET=Xmin
+1, 4, 5, 8, 
+*NSET,NSET=Xmax
+2, 3, 6, 7, 
+*NSET,NSET=Volume
+1, 2, 3, 4, 5, 6, 7, 8, 

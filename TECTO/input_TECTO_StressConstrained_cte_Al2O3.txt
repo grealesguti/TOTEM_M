@@ -1,0 +1,107 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_5el.inp Volume mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex_ceramic_Gmsh_24x24x12el.inp Volume mm
+rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
+physics decoupledthermoelectromechanical
+solver NR
+InitialTemperature 298.15
+
+## Bi2Te3 Mechanical Properties: https://repository.bilkent.edu.tr/server/api/core/bitstreams/502cdf62-9b13-4faf-b245-8196af9e81ab/content
+## Bi2Te3 Thermal Expansion: https://www.researchgate.net/publication/227109210_Thermal_expansion_of_bismuth_telluride
+## Bi2Te3 Thermal Expansion: https://www.physics.purdue.edu/quantum/files/XChen_expansion_apl11.pdf
+## Bi2Te3 Thermoelectric Properties: https://link.springer.com/article/10.1007/s11664-015-3898-y
+## Copper Mechanical Properties: https://www.mit.edu/~6.777/matprops/copper.htm
+## Solder Mechanical Properties: https://www.metallurgy.nist.gov/solder/clech/Sn-Ag-Cu_Other.htm#Young , https://www.jstage.jst.go.jp/article/matertrans/46/6/46_6_1271/_pdf , https://www.electronics-cooling.com/2006/08/thermal-conductivity-of-solders/
+## Copper Electrical Properties: 
+## Solder Electrical Properties: https://us.rs-online.com/m/d/8d9ef1f686bf70839a288bf4fd8e669e.pdf7
+## Ceramic : https://www.azom.com/properties.aspx?ArticleID=52
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
+##
+material SemiconductorP+
+Seebeck 3 -7.04E-4 6.3E-6 -1.32E-8 8.33E-12
+Penalty_Seebeck 0 1
+ThermalConductivity 3 1.5775 -2.177E-3 -3.32E-6 1.59E-8
+Penalty_ThermalConductivity 0 3
+ElectricalConductivity  3 9.9615E5 -7.16E+3 18.489 -0.0164
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
+PoissonRatio 0 0.241
+
+material SemiconductorN-
+Seebeck 3 3.95E-4 -3.82E-6 7.34E-9 -3.98E-12 
+Penalty_Seebeck 0 1
+ThermalConductivity 3 2.48 -4.51E-3 -4.6E-6 2.19E-8 
+Penalty_ThermalConductivity 0 3
+ElectricalConductivity 3 3.4581E5 -1.5947E3 2.8182 -0.0017
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
+PoissonRatio 0 0.241
+
+material Copper
+Seebeck 0 0
+ThermalConductivity 0 385
+ElectricalConductivity 0 59880239.52095808
+ThermalExpansionCoefficient_x 0 17E-6
+ThermalExpansionCoefficient_y 0 17E-6
+ThermalExpansionCoefficient_z 0 17E-6
+YoungModulus 0 130E9
+PoissonRatio 0 0.34
+
+material Solder
+Seebeck 0 0
+ThermalConductivity 0 58.7
+ElectricalConductivity 0 2.3E7
+ThermalExpansionCoefficient_x 0 20E-6
+ThermalExpansionCoefficient_y 0 20E-6
+ThermalExpansionCoefficient_z 0 20E-6
+YoungModulus 0 45E9
+PoissonRatio 0 0.35
+
+material Ceramic # Al2O3
+Seebeck 0 1E-8
+ThermalConductivity 0 50
+ElectricalConductivity 0 0.001
+ThermalExpansionCoefficient_x 0 19.6E-6
+ThermalExpansionCoefficient_y 0 19.6E-6
+ThermalExpansionCoefficient_z 0 19.6E-6
+YoungModulus 0 300E9
+PoissonRatio 0 0.21
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage ElectrodeMaxX 0.0
+bc Temperature bottom 300
+bc Displacement_x bottom 0
+bc Displacement_y bottom 0
+bc Displacement_z bottom 0
+bc Pressure_y top -0.9E6
+bc heat_n top 500
+#bc Displacement_z SymmetryZ 0
+
+## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
+TopOpt_Objective AverageTemperature Ceramic_Top TO
+## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
+TopOpt_bc Voltage ElectrodeMinX 0.0125 0.05 0.2
+## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_Initial_x 1
+## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_NR T previous  
+TopOpt_NR V proporcional
+## Topopoly Optimization Constraints
+TopOpt_Constraint Power 0.011
+TopOpt_Constraint Volume 1
+TopOpt_Constraint Stress_Pnorm 10E6
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk

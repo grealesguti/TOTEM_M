@@ -40,7 +40,7 @@ classdef Solver < handle
                 %obj.SolveLinearSystemInParallel(bcinit);
                 
                 obj.max_iterations=20;
-                obj.tolerance=1e-6;
+                obj.tolerance=1e-8;
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

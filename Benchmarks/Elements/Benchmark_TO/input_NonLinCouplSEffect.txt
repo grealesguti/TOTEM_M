@@ -1,7 +1,7 @@
 # Input File for FEM Simulation with Mesh Reference
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
-mesh_file Benchmarks/Elements/Benchmark_TO/Benchmark2_SERENDIPITYHEX_PARAM_M.inp Volume
+mesh_file Benchmarks/Elements/Benchmark_TO/Benchmark2_LinearHEX_PARAM_M.inp Volume
 rst_folder Benchmarks/Elements/Benchmark_TO/Results/
 physics decoupledthermoelectromechanical
 rst_folder Benchmarks/Elements/Benchmark_TO/Results/
@@ -45,7 +45,7 @@ TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
 TopOpt_Constraint Power 0.3
 TopOpt_Constraint Volume 0.8
-TopOpt_Constraint Stress 10000
+TopOpt_Constraint Stress_Pnorm 10000
 KSU 3
 
 ## Output Options
