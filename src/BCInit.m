@@ -44,17 +44,34 @@ classdef BCInit < handle
         obj.boundaryConditions(mesh,inputReader);
     end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function T3 = calculate_T3(~,nodes)
+        function T3 = calculate_T3(~,nodes,dim)
             % Check if the input matrix is 3x(nodes per element)
             if size(nodes, 1) ~= 3
                 error('Input matrix must be 3x(nodes per element)');
             end
-        
+            if dim>1
             % Extract node coordinates
             V1 = nodes(:, 1);
             V2 = nodes(:, 2);
             V3 = nodes(:, 3);
-        
+            elseif dim==1
+            V1 = nodes(:, 1);
+            V2 = nodes(:, 2);
+                % find which axis is common for both
+                V3=[];
+                for i=1:3
+                    axis=V1(i)-V2(i);
+                    if axis==0
+                        V3 =(V1+V2)/2;
+                        Vnadd=zeros(3,1);
+                        Vnadd(axis)=V1(axis);
+                        V3=V3+Vnadd;
+                    end
+                end
+                if V3==[]
+                   fprintf('Warning: For 1D T3, no V3 was created.\n');
+                end
+            end
             % Calculate the unit normal vector XN
             V12 = V2 - V1;
             V31 = V3 - V1;
@@ -94,7 +111,9 @@ classdef BCInit < handle
                 node_coordinates=mesh.data.NODE{element};
                 coordinates(:,i)=node_coordinates';
             end
-            T3=obj.calculate_T3(coordinates);
+            etype=mesh.data.ElementTypes{elementTag};
+            dim = mesh.retrieveelementdimension(etype);
+            T3=obj.calculate_T3(coordinates,dim);
             coordinates_tr = inv(T3) \ coordinates;
             result= zeros(length(element_nodes),1);
             % Create a new matrix to store the result without the last row
@@ -194,26 +213,44 @@ classdef BCInit < handle
         function F_q = CteSurfBC(~,natcoords, coords, value, element,mesh)
             % Define variables
             etype=mesh.data.ElementTypes{element};
-        
+            dim = mesh.retrieveelementdimension(etype);
             % Extract natural coordinates
-            xi = 0;
-            eta = 0;
-            if size(natcoords, 1) >= 2 && size(natcoords, 2) >= 1
-                xi = natcoords(1);  % Extracts the first element (a)
-                eta = natcoords(2); % Extracts the second element (b)
-            else
-                % Handle the case when natcoords doesn't have the expected dimensions.
-                fprintf('Wrong natural coordinates dimension.\n');
-                % You may want to print an error message or take appropriate action.
-                return;
+            if dim==2
+                xi = 0;
+                eta = 0;
+                if size(natcoords, 1) >= 2 && size(natcoords, 2) >= 1
+                    xi = natcoords(1);  % Extracts the first element (a)
+                    eta = natcoords(2); % Extracts the second element (b)
+                else
+                    % Handle the case when natcoords doesn't have the expected dimensions.
+                    fprintf('Wrong natural coordinates dimension.\n');
+                    % You may want to print an error message or take appropriate action.
+                    return;
+                end
+            
+                % Calculate shape functions and their derivatives
+                [shapeFunctions,shapeFunctionDerivatives]=mesh.selectShapeFunctionsAndDerivatives(etype, xi, eta, -1);
+            
+                % Calculate Jacobian matrix JM
+                JM = shapeFunctionDerivatives' * coords';
+            elseif dim==1
+                xi = 0;
+                if size(natcoords, 1) >= 2 && size(natcoords, 2) >= 1
+                    xi = natcoords(1);  % Extracts the first element (a)
+                else
+                    % Handle the case when natcoords doesn't have the expected dimensions.
+                    fprintf('Wrong natural coordinates dimension.\n');
+                    % You may want to print an error message or take appropriate action.
+                    return;
+                end
+            
+                % Calculate shape functions and their derivatives
+                [shapeFunctions,shapeFunctionDerivatives]=mesh.selectShapeFunctionsAndDerivatives(etype, xi, -1, -1);
+            
+                % Calculate Jacobian matrix JM
+                JM = shapeFunctionDerivatives' * coords';
+
             end
-        
-            % Calculate shape functions and their derivatives
-            [shapeFunctions,shapeFunctionDerivatives]=mesh.selectShapeFunctionsAndDerivatives(etype, xi, eta, -1);
-        
-            % Calculate Jacobian matrix JM
-            JM = shapeFunctionDerivatives' * coords';
-        
             % Calculate the determinant of the Jacobian
             detJ = det(JM);
         
@@ -274,6 +311,25 @@ classdef BCInit < handle
                             fprintf('Node index out of bounds: %d\n', node);
                         end
                     end
+                elseif strcmp(boundaryName, 'FreeDofs_Voltage')
+                    % Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
+                    if all(strcmp(mesh.data.NodalSelectionNames, surfaceName) == 0)
+                        warning(append('BoundaryName ',surfaceName,' non-existent. Check your input data.'));
+                        error('Terminating the code due to the condition.');
+                    end
+                    nodes=mesh.data.NSET{strcmp(mesh.data.NodalSelectionNames, surfaceName)};
+                    
+                    % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
+                    for node = nodes
+                        if (node*2+1) < length(obj.initialdofs_)
+                            obj.initialdofs_(node*2) = value;
+                            obj.dofs_fixed_(node*2)=0;
+                        else
+                            % Handle the case where the node index is out of bounds.
+                            % This could be an error condition depending on your application.
+                            fprintf('Node index out of bounds: %d\n', node);
+                        end
+                    end
                 elseif startsWith(boundaryName, 'Displacement')
                     if all(strcmp(mesh.data.NodalSelectionNames, surfaceName) == 0)
                         warning(append('BoundaryName ',surfaceName,' non-existent. Check your input data.'));
@@ -303,6 +359,7 @@ classdef BCInit < handle
                     end
                 elseif strcmp(boundaryName, 'heat_n')
                     %% Heat integration
+
                     % Assuming 'getElementsAndNodeTagsForPhysicalGroup' returns a cell array of vectors
                     elementindexVector=mesh.retrieveElementalSelection(surfaceName);
                     %data.ELSET{strcmp(mesh.data.ElementSelectionNames, surfaceName)};
@@ -315,9 +372,10 @@ classdef BCInit < handle
                     %numWorkers = numel(gcp); % Get the number of workers
                     numWorkers=1;
                     tempLoadVectors = cell(1, numWorkers);
-                    
+                    etype=mesh.data.ElementTypes{elementindexVector(1)};
+                    dim = mesh.retrieveelementdimension(etype);
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 5, element, value, mesh);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dim, 5, element, value, mesh);
                     %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
                     
                     % Loop through elements in parallel
@@ -353,9 +411,10 @@ classdef BCInit < handle
                     %numWorkers = numel(gcp); % Get the number of workers
                     numWorkers=1;
                     tempLoadVectors = cell(1, numWorkers);
-                    
+                    etype=mesh.data.ElementTypes{elementindexVector(1)};
+                    dim = mesh.retrieveelementdimension(etype);
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value, mesh);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dim, 3, element, value, mesh);
                     %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
                     direction=0;
