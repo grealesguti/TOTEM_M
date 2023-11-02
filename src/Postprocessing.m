@@ -164,6 +164,49 @@ classdef Postprocessing < handle
                 'data','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_matidx_TV(obj,mesh,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            %outputFilePath = filepath;         
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');     
+            xx = mesh.elements_material;
+
+            Tn=zeros(obj.total_number_of_nodes,1);
+            Vn=zeros(obj.total_number_of_nodes,1);
+            
+            for i=1:obj.total_number_of_nodes
+                Tn(i) = solver.soldofs(i*2-1);
+                Vn(i) = solver.soldofs(i*2);
+            end
+    
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'CELL_DATA',xx(obj.mesh_elements)',...
+                'material','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_freedofs(obj,bcinit,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            %outputFilePath = filepath;         
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_TV_', dateStr, '.vtk');     
+            fixdofs = bcinit.dofs_fixed_;
+
+            Tn=zeros(obj.total_number_of_nodes,1);
+            Vn=zeros(obj.total_number_of_nodes,1);
+            
+            for i=1:obj.total_number_of_nodes
+                Tn(i) = fixdofs(i*2-1);
+                Vn(i) = fixdofs(i*2);
+            end
+    
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'POINT_DATA',[Tn';Vn']','TVfixed','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function PlotIter(~,fig,reader,iter,f0val,fval,xbc)
             % Ensure the specified figure exists and is active or create a new one
             if isempty(fig) || ~ishandle(fig) || ~strcmp(get(fig, 'Type'), 'figure')
