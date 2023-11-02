@@ -3,10 +3,10 @@ SetFactory("OpenCASCADE");
 //+
 //+
 
-xelem=24;
+xelem=5;
 xelem_sub=xelem+1;
-yelem=24;
-zelem=12;
+yelem=5;
+zelem=5;
 zelem_sub=zelem+1;
 copper_elem=3;
 copper_sub=copper_elem+1;
@@ -181,3 +181,12 @@ Physical Surface("top", 232) = {109, 113, 117};
 Physical Surface("bottom", 233) = {126, 122, 131, 135};
 //+
 Physical Surface("symmetry", 234) = {14, 42, 32, 114, 110, 27, 24, 107, 19, 77, 82, 37, 47, 52, 127, 132, 57, 6, 9, 120, 123, 63};
+
+//+
+Physical Surface("Ceramic_Contact", 235) = {26, 35, 3, 56, 62, 60};
+//+
+Physical Volume("Al2O3", 236) = {23, 24, 25, 26, 22, 21, 20};
+//+
+Physical Surface("Contact_CeramicTop", 237) = {35, 26, 30};
+//+
+Physical Surface("Contact_CeramicBottom", 238) = {3, 56, 62, 60};

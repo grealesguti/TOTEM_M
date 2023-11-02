@@ -70,8 +70,8 @@ PoissonRatio 0 0.35
 
 material Ceramic # Al2O3
 Seebeck 0 1E-8
-ThermalConductivity 0 50
-ElectricalConductivity 0 0.001
+ThermalConductivity 0 48
+ElectricalConductivity 0 0
 ThermalExpansionCoefficient_x 0 19.6E-6
 ThermalExpansionCoefficient_y 0 19.6E-6
 ThermalExpansionCoefficient_z 0 19.6E-6
