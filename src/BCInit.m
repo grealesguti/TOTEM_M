@@ -62,19 +62,7 @@ classdef BCInit < handle
             V1 = nodes(:, 1);
             V2 = nodes(:, 2);
                 % find which axis is common for both
-                V3=[];
-                for i=1:3
-                    axis=V1(i)-V2(i);
-                    if axis==0
-                        V3 =(V1+V2)/2;
-                        Vnadd=zeros(3,1);
-                        Vnadd(axis)=V1(axis);
-                        V3=V3+Vnadd;
-                    end
-                end
-                if V3==[]
-                   fprintf('Warning: For 1D T3, no V3 was created.\n');
-                end
+            V3=[0,0,1]';
             end
             % Calculate the unit normal vector XN
             V12 = V2 - V1;
@@ -238,15 +226,7 @@ classdef BCInit < handle
                 % Calculate Jacobian matrix JM
                 JM = shapeFunctionDerivatives' * coords';
             elseif dim==1
-                xi = 0;
-                if size(natcoords, 1) >= 2 && size(natcoords, 2) >= 1
-                    xi = natcoords(1);  % Extracts the first element (a)
-                else
-                    % Handle the case when natcoords doesn't have the expected dimensions.
-                    fprintf('Wrong natural coordinates dimension.\n');
-                    % You may want to print an error message or take appropriate action.
-                    return;
-                end
+                xi = natcoords(1);
             
                 % Calculate shape functions and their derivatives
                 [shapeFunctions,shapeFunctionDerivatives]=mesh.selectShapeFunctionsAndDerivatives(etype, xi, -1, -1);
@@ -377,27 +357,35 @@ classdef BCInit < handle
                     numWorkers=1;
                     tempLoadVectors = cell(1, numWorkers);
                     etype=mesh.data.ElementTypes{elementindexVector(1)};
-                    dim = mesh.retrieveelementdimension(etype);
+                    dimint = mesh.retrieveelementdimension(etype);
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dim, 5, element, value, mesh);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dimint, 3, element, value, mesh);
                     %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
-                    
-                    % Loop through elements in parallel
-                    for workerIdx = 1:numWorkers
-                        % Initialize temporary load vector for this worker
-                        tempLoadVector = zeros(size(obj.loadVector_));
-                        
-                        % Calculate elements for this worker
-                        workerElements = elementindexVector(workerIdx:numWorkers:end);
-                        
+
                         % Loop through elements for this worker
-                        for elementIdx = workerElements
+                        for element = 1:length(elementindexVector)
                             % Calculate element_load_vector for the current element
+                            elementIdx=elementindexVector(element);
                             element_load_vector = gaussIntegrationBCFun(elementIdx);
                             element_nodes = mesh.data.ELEMENTS{elementIdx};
                             obj.loadVector_(element_nodes*2-1) = obj.loadVector_(element_nodes*2-1) + element_load_vector;
                         end
-                    end
+
+%                     for workerIdx = 1:numWorkers
+%                         % Initialize temporary load vector for this worker
+%                         tempLoadVector = zeros(size(obj.loadVector_));
+%                         
+%                         % Calculate elements for this worker
+%                         workerElements = elementindexVector(workerIdx:numWorkers:end);
+%                         
+%                         % Loop through elements for this worker
+%                         for elementIdx = workerElements
+%                             % Calculate element_load_vector for the current element
+%                             element_load_vector = gaussIntegrationBCFun(elementIdx);
+%                             element_nodes = mesh.data.ELEMENTS{elementIdx};
+%                             obj.loadVector_(element_nodes*2-1) = obj.loadVector_(element_nodes*2-1) + element_load_vector;
+%                         end
+%                     end
                     
                     fprintf('HEAT INTEGRATION FINISHED.\n');
                

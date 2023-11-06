@@ -319,8 +319,12 @@ classdef Mesh < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [dim] = retrieveelementdimension(~,etype_element)
+
+
                 if etype_element == "CPS4" % 4-node quadrangle
                     dim=2;
+                elseif etype_element == "T3D2" % 4-node quadrangle
+                    dim=1;
                 elseif etype_element == "CPS8" % 8-node second-order quadrangle
                     dim=2;
                 elseif etype_element == "C3D8" % Hexahedral 8 node element
