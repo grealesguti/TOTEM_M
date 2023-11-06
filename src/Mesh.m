@@ -189,22 +189,23 @@ classdef Mesh < handle
             % Initialize output variables
             shapeFunctions = [];
             shapeFunctionDerivatives = [];
-        
+            elements=Elements();
+
             if etype == "CPS4" % 4-node quadrangle
-                shapeFunctions = obj.elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
-                shapeFunctionDerivatives = obj.elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
+                shapeFunctions = elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
+                shapeFunctionDerivatives = elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == "CPS8" % 8-node second order quadrangle
-                shapeFunctions = obj.elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
-                shapeFunctionDerivatives = obj.elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
+                shapeFunctions = elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
+                shapeFunctionDerivatives = elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == "T3D2" % 8-node second order quadrangle
-                shapeFunctions = obj.elements.EvaluateLinearLineShapeFunctions(xi);
-                shapeFunctionDerivatives = obj.elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
+                shapeFunctions = elements.EvaluateLinearLineShapeFunctions(xi);
+                shapeFunctionDerivatives = elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
            elseif etype == "C3D8" % Hexahedral 8 node element
-                shapeFunctions = obj.elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
-                shapeFunctionDerivatives = obj.elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
+                shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
+                shapeFunctionDerivatives = elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
             elseif etype == "C3D20" % Hexahedral 20 node element
-                shapeFunctions = obj.elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
-                shapeFunctionDerivatives = obj.elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
+                shapeFunctions = elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
+                shapeFunctionDerivatives = elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
             else
                 % Handle unsupported element types or return an error code
                 % You can choose an appropriate error handling strategy here

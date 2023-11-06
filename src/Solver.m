@@ -9,6 +9,7 @@ classdef Solver < handle
         soldofs
         soldofs_mech
         loadVector
+        loadVector_copy
         numNodes
         thermoelectricityintegrationFunctionFun
         KT
@@ -32,6 +33,7 @@ classdef Solver < handle
         
                 % Initialize the loadVector_ member with a size double the number of nodes
                 obj.loadVector = bcinit.loadVector_;
+                obj.loadVector_copy=obj.loadVector;
                 obj.loadVector_mech = bcinit.loadVector_mech;
                 obj.soldofs = bcinit.initialdofs_;
                 
@@ -44,7 +46,7 @@ classdef Solver < handle
                 fprintf('### SOLVER Initialized.\n');
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function [KJs, Ra] = Assembly_Thermoelectricity(obj, reader, mesh)
+        function [KJs, Ral, Ra] = Assembly_Thermoelectricity(obj, reader, mesh)
             mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
             total_number_of_elements = length(mesh_elements);
             total_number_of_nodes = length(mesh.data.NODE);
@@ -64,16 +66,17 @@ classdef Solver < handle
             % Initialize the parallel pool with the desired number of workers
             %numWorkers = 4; % Adjust the number of workers as needed
             %pool = parpool(numWorkers);
-            
-            parfor i = 1:total_number_of_elements
+            etype=mesh.data.ElementTypes{mesh_elements(1)};
+            dim = mesh.retrieveelementdimension(etype);            
+            for i = 1:total_number_of_elements
                 % Create a separate variable for each parallel iteration
                 Rs = zeros(total_number_of_dofs, 1);
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
-                
+
                 % Compute element stiffness matrix and residual
-                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(3, 5, elementTag, mesh, initialdofs, reader, etype_element,'Thermoelectricity');
+                [Ke, Re, element_dof_indexes] = obj.gaussIntegrationK(dim, reader.GI_order, elementTag, mesh, initialdofs, reader, etype_element,'Thermoelectricity');
                 
                 % Assembly in global residual
                 Rs(element_dof_indexes, 1) = Re(:, 1);
@@ -97,14 +100,16 @@ classdef Solver < handle
             KJs = sparse(KJvrr, KJvcr, KJvnzr, total_number_of_dofs, total_number_of_dofs);
             
             % Subtract external load
-            Ra = Ra - obj.loadVector;
+            Ral = Ra - obj.loadVector;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [KStiffness, KTemp_Load] = Assembly_DecoupledThermoMech(obj, reader, mesh)
             mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
             total_number_of_elements = length(mesh_elements);
             total_number_of_nodes = length(mesh.data.NODE);
-            dofs_per_node = 3;
+            etype=mesh.data.ElementTypes{mesh_elements(1)};
+            dim = mesh.retrieveelementdimension(etype); 
+            dofs_per_node = dim;
             total_number_of_dofs = total_number_of_nodes * dofs_per_node;
             
             [node_el, etype_element] = mesh.retrievemeshtype(reader);
@@ -116,13 +121,13 @@ classdef Solver < handle
             
             initialdofs_TV = obj.soldofs;
 
-            parfor i = 1:total_number_of_elements
+            for i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
                 
                 % Compute element stiffness matrix and residual
-                [Ke, element_dof_indexes_T, element_dof_indexes_M] = obj.gaussIntegrationK(3, 5, elementTag, mesh, initialdofs_TV, reader, etype_element,'DecoupledThermoMechanical_Load');
+                [Ke, element_dof_indexes_T, element_dof_indexes_M] = obj.gaussIntegrationK(dim,  reader.GI_order, elementTag, mesh, initialdofs_TV, reader, etype_element,'DecoupledThermoMechanical_Load');
                 
                 % Accumulate residuals and stiffness matrix contributions
                 %KJvnz(:, i) = reshape(Ke, dofs_per_element*node_el, 1);
@@ -131,9 +136,9 @@ classdef Solver < handle
                 %KJvr(:, i) = reshape(repmat_idx_M, dofs_per_element*node_el, 1);
                 %KJvc(:, i) = reshape(repmat_idx_T', dofs_per_element*node_el, 1);   
 
-                nnv=3*node_el*node_el;
+                nnv=dim*node_el*node_el;
                 KJvnz(:,i)=reshape(Ke,nnv,1);
-                KJvc(:,i)=reshape(repmat(element_dof_indexes_T,node_el*3,1),nnv,1);
+                KJvc(:,i)=reshape(repmat(element_dof_indexes_T,node_el*dim,1),nnv,1);
                 KJvr(:,i)=reshape(repmat(element_dof_indexes_M,node_el,1)',nnv,1);
             end
             KJvnzr=reshape(KJvnz,total_number_of_elements*dofs_per_element*node_el,1);
@@ -154,7 +159,7 @@ classdef Solver < handle
                 elementTag = mesh_elements(i);
                 
                 % Compute element stiffness matrix and residual
-                [Ke, empt, element_dof_indexes] = obj.gaussIntegrationK(3, 5, elementTag, mesh, initialdofs_TV, reader, etype_element,'Mechanical');
+                [Ke, empt, element_dof_indexes] = obj.gaussIntegrationK(dim,  reader.GI_order, elementTag, mesh, initialdofs_TV, reader, etype_element,'Mechanical');
                 
                 % Accumulate residuals and stiffness matrix contributions
                 KJvnz(:, i) = reshape(Ke, dofs_per_element^2, 1);
@@ -221,24 +226,24 @@ classdef Solver < handle
                 element_nodes = mesh.data.ELEMENTS{elementTag};
                 number_of_nodes = length(element_nodes);
                 element_coordinates=zeros(3,number_of_nodes);
-                dof_per_node=3;
+                [dof_per_node] = mesh.retrieveelementdimension(etype);
+
                 Tee=zeros(1,number_of_nodes);
                 element_dof_indexes=zeros(number_of_nodes*dof_per_node,1);
                 element_dof_indexes_T=zeros(number_of_nodes,1);
-
                 for i=1:number_of_nodes
-                    element_dof_indexes((i-1)*dof_per_node+1)=(element_nodes(i)-1)*dof_per_node+1;
-                    element_dof_indexes((i-1)*dof_per_node+2)=(element_nodes(i)-1)*dof_per_node+2;
-                    element_dof_indexes((i-1)*dof_per_node+3)=(element_nodes(i)-1)*dof_per_node+3;
+                    for j=1:dof_per_node
+                        element_dof_indexes((i-1)*dof_per_node+j)=(element_nodes(i)-1)*dof_per_node+j;
+                    end
                     element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
                     Tee(i)=initialdofs(element_nodes(i)*2-1);
-                    element_dof_indexes_T(i)=element_nodes(i);
                 end
     
-                element_dof_indexes_T=zeros(1,number_of_nodes);element_dof_indexes=zeros(1,3*number_of_nodes);
+                element_dof_indexes_T=zeros(1,number_of_nodes);
+                element_dof_indexes=zeros(1,dof_per_node*number_of_nodes);
                 for i=1:number_of_nodes
-                    for j=1:3
-                        element_dof_indexes((i-1)*3+j)=(element_nodes(i)-1)*3+j;
+                    for j=1:dof_per_node
+                        element_dof_indexes((i-1)*dof_per_node+j)=(element_nodes(i)-1)*dof_per_node+j;
                     end
                     element_dof_indexes_T(i)=element_nodes(i);
                 end
@@ -253,14 +258,14 @@ classdef Solver < handle
                 element_nodes = mesh.data.ELEMENTS{elementTag};
                 number_of_nodes = length(element_nodes);
                 element_coordinates=zeros(3,number_of_nodes);
-                dof_per_node=3;
+                [dof_per_node] = mesh.retrieveelementdimension(etype);
                 Tee=zeros(1,number_of_nodes);
                 Uee=zeros(1,number_of_nodes*3);
                 element_dof_indexes=zeros(number_of_nodes*dof_per_node,1);
                 for i=1:number_of_nodes
-                    element_dof_indexes((i-1)*dof_per_node+1)=(element_nodes(i)-1)*dof_per_node+1;
-                    element_dof_indexes((i-1)*dof_per_node+2)=(element_nodes(i)-1)*dof_per_node+2;
-                    element_dof_indexes((i-1)*dof_per_node+3)=(element_nodes(i)-1)*dof_per_node+3;
+                    for j=1:dof_per_node
+                        element_dof_indexes((i-1)*dof_per_node+j)=(element_nodes(i)-1)*dof_per_node+j;
+                    end
                     element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
                     Tee(i)=initialdofs(element_nodes(i)*2-1);
                 end
@@ -295,6 +300,7 @@ classdef Solver < handle
                         natcoords(1) = gaussPoints(i);
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
+                        [Ke,Re] = integrationFunction(natcoords) ;
                         Ke=Ke.* (weights(i) * weights(j));
                         Re=Re.* (weights(i) * weights(j));
                         K = K + Ke;
@@ -354,9 +360,14 @@ classdef Solver < handle
             % Outputs:
             %   - KJ: Jacobian matrix
             %   - R: Residues
-            
+            [dim] = mesh.retrieveelementdimension(etype);
+            if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
-
+            end
                 JM = dShape' * element_coordinates';
                 %Jacinv = inv(JM);
                 DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
@@ -417,8 +428,14 @@ classdef Solver < handle
             % Outputs:
             %   - KJ: Jacobian matrix
             %   - R: Residues
-            
+            [dim] = mesh.retrieveelementdimension(etype);
+            if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            end
                 Number_of_Nodes = length(element_coordinates(1,:));
                 JM = dShape' * element_coordinates';
                 %Jacinv = inv(JM);
@@ -438,15 +455,38 @@ classdef Solver < handle
                 [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
+ 
+
+
+                
+                detJ = det(JM);
+            if dim==2
+               alphav=zeros(3,1);
+               alphav(1:2,1)=[Dalpha_x,Dalpha_y];
+
+                C = DE / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
+                % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
+                % - nu, 0; 0, 0, (1 - 2 * nu) / 2]; % plane strain
+
+                Bi = zeros(3, 2);
+                B = zeros(3, Number_of_Nodes * 2);
+            
+                for i = 1:Number_of_Nodes
+                    Bi(1, 1) = DN(1, i);
+                    Bi(2, 2) = DN(2, i);
+                    Bi(3, 1) = DN(2, i);
+                    Bi(3, 2) = DN(1, i);
+            
+                    B(:, (i - 1) * 2 + 1 : i * 2) = Bi;
+                end                
+            elseif dim==3
                 alphav=zeros(6,1);
-                alphav(1:3,1)=[Dalpha_x,Dalpha_y,Dalpha_z];
+                alphav(1:3,1)=[Dalpha_x,Dalpha_y,Dalpha_z];    
 
                 C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
                     0 0 0 0 0 (1-2*nu)/2];
-                
-                detJ = det(JM);
-            
+
                 Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
                     for i=1:Number_of_Nodes
                         Bi(1,1) = DN(1,i);
@@ -458,7 +498,7 @@ classdef Solver < handle
                         B(:,(i-1)*3+1:(i)*3)=Bi;
         
                     end
-                        
+            end
                      F_T=detJ*(B'*C*alphav*N);
                      emp=[];
             
@@ -472,8 +512,14 @@ classdef Solver < handle
             % Outputs:
             %   - KJ: Jacobian matrix
             %   - R: Residues
-            
+            [dim] = mesh.retrieveelementdimension(etype);
+            if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            end
                 Number_of_Nodes = length(element_coordinates(1,:));
                 JM = dShape' * element_coordinates';
                 %Jacinv = inv(JM);
@@ -499,13 +545,32 @@ classdef Solver < handle
                 
                 %alphav=zeros(6,1);
                 %alphav(1:3,1)=Dalpha;
+                
+                % Preallocate memory for B-Operators
+ 
+            if dim==2
+
+                C = DE / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
+                % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
+                % - nu, 0; 0, 0, (1 - 2 * nu) / 2]; % plane strain
+
+                Bi = zeros(3, 2);
+                B = zeros(3, Number_of_Nodes * 2);
+            
+                for i = 1:Number_of_Nodes
+                    Bi(1, 1) = DN(1, i);
+                    Bi(2, 2) = DN(2, i);
+                    Bi(3, 1) = DN(2, i);
+                    Bi(3, 2) = DN(1, i);
+            
+                    B(:, (i - 1) * 2 + 1 : i * 2) = Bi;
+                end                
+            elseif dim==3 
 
                 C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
                     0 0 0 0 0 (1-2*nu)/2];
-                
-                % Preallocate memory for B-Operators
- 
+
                 Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
                     for i=1:Number_of_Nodes
                         Bi(1,1) = DN(1,i);
@@ -517,6 +582,7 @@ classdef Solver < handle
                         B(:,(i-1)*3+1:(i)*3)=Bi;
         
                     end
+            end
 
                 KUU=det(JM)*(B'*C*B);
                      emp=[];
@@ -540,38 +606,45 @@ classdef Solver < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function residual = runNewtonRaphson(obj,reader, mesh,bcinit)
-            % Initialize some parameters and initial guess
-            residual = obj.tolerance * 1000;
-            prev_residual = residual*2;
-            threshold=1e-4;
-            
-            for iter = 1:obj.max_iterations
-                % Assembly the system matrix
-                [obj.KT, obj.Residual] = obj.Assembly_Thermoelectricity(reader, mesh);
-            
-                if (residual < obj.tolerance && iter > 1)
-                    % Converged, return both the solution and the final residual
-                    fprintf(append('### NR. CONVERGED with tolerance:',num2str(obj.tolerance),'\n'));
-                    break;
-                end
-            
-                % Solve the system using the tangential matrix and residual: KT*dU=R->dU
-                obj.SolveLinearSystemInParallel('', bcinit)
-            
-                % Calculate the residual (error)
-                dofs_free = bcinit.dofs_free_;
-                residual = normest(obj.Residual(dofs_free)); % Calculate the norm
-            
-                fprintf('### NR. Iteration %d residual %f\n', iter, residual);
-            
-                % Check if the change in residual is small
-                if abs(residual - prev_residual) < threshold
-                    fprintf('### NR. Convergence with residual change under: 1e-6.\n');
-                    break;
-                end
-            
-                prev_residual = residual;
+        function residual_norm = runNewtonRaphson(obj,reader, mesh,bcinit)
+            total_load = bcinit.loadVector_;
+            for loadstep = 1: reader.NR_nloads
+                bcinit.loadVector_=total_load/reader.NR_nloads*loadstep;
+                % Initialize some parameters and initial guess
+                residual = obj.tolerance * 1000;
+                threshold=reader.solver_threshold;
+                
+                for iter = 1:obj.max_iterations
+                    % Assembly the system matrix
+                    [obj.KT, obj.Residual] = obj.Assembly_Thermoelectricity(reader, mesh);
+                
+                    if (residual < obj.tolerance && iter > 1)
+                        % Converged, return both the solution and the final residual
+                        fprintf(append('### NR. CONVERGED with tolerance:',num2str(obj.tolerance),'\n'));
+                        break;
+                    end
+                
+                    % Solve the system using the tangential matrix and residual: KT*dU=R->dU
+                    obj.SolveLinearSystemInParallel('', bcinit)
+                
+                    % Calculate the residual (error)
+                    dofs_free = bcinit.dofs_free_;
+                    residual_norm = normest(obj.Residual(dofs_free)); % Calculate the norm
+                
+                    fprintf('### NR. Iteration %d residual %f\n', iter, residual_norm);
+                
+                    % Check if the change in residual is small
+                    if abs(residual_norm) < threshold
+                        fprintf('### NR. Convergence with residual change under: %f.\n',threshold);
+                        break;
+                    elseif abs(residual_norm)>10000 || isnan(abs(residual_norm))
+                        fprintf('### NR. Diverged with residual: %f.\n',residual_norm);
+                        odd_numbers = 1:2:length(obj.soldofs);
+                        fprintf('### Min Temp: %f.\n',min(obj.soldofs(odd_numbers)));
+                        fprintf('### Max Temp: %f.\n',max(obj.soldofs(odd_numbers)));
+                        break
+                    end
+                end 
             end
 
             if strcmp(reader.physics,'decoupledthermoelectromechanical')
@@ -618,6 +691,30 @@ classdef Solver < handle
             error('Newton-Raphson did not converge: iteration limit');
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [R,Q,K] = funArcLen(obj,reader,bcinit,mesh,t)
+             dofs_free = bcinit.dofs_free_;
+             obj.soldofs(dofs_free)=t(1:end-1);
+             %obj.soldofs=t(1:end-1);
+             lambda=t(end);         
+             [obj.KT, obj.Residual, R] = obj.Assembly_Thermoelectricity(reader, mesh);
+             K=-obj.KT(dofs_free,dofs_free);
+             R=R-obj.loadVector_copy*lambda;
+             R=R(dofs_free);
+             Q=obj.loadVector(dofs_free);
+        end
+        function [R,K] = funArcLen_LamMorley(obj,reader,bcinit,mesh,t)
+             dofs_free = bcinit.dofs_free_;
+             obj.soldofs(dofs_free)=t;
+             %obj.soldofs=t(1:end-1);
+             [K, Ral, R] = obj.Assembly_Thermoelectricity(reader, mesh);
+             obj.KT=K;
+             obj.Residual=Ral;
+             K=-K(dofs_free,dofs_free);
+             R=R(dofs_free);
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     end
     
     methods (Access = private)
