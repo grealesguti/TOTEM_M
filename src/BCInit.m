@@ -429,7 +429,7 @@ classdef BCInit < handle
                         for elementIdx = workerElements
                             % Calculate element_load_vector for the current element
                             element_load_vector = gaussIntegrationBCFun(elementIdx);
-                            obj.loadVector_mech((mesh.data.ELEMENTS{elementIdx}-1)*3+direction) = obj.loadVector_mech(mesh.data.ELEMENTS{elementIdx}*3+direction) + element_load_vector;
+                            obj.loadVector_mech((mesh.data.ELEMENTS{elementIdx}-1)*obj.dim+direction) = obj.loadVector_mech(mesh.data.ELEMENTS{elementIdx}*obj.dim+direction) + element_load_vector;
                         end
                     end
                     
