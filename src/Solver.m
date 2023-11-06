@@ -637,7 +637,7 @@ classdef Solver < handle
                     if abs(residual_norm) < threshold
                         fprintf('### NR. Convergence with residual change under: %f.\n',threshold);
                         break;
-                    elseif abs(residual_norm)>10000 || isnan(abs(residual_norm))
+                    elseif abs(residual_norm)>1000000 || isnan(abs(residual_norm))
                         fprintf('### NR. Diverged with residual: %f.\n',residual_norm);
                         odd_numbers = 1:2:length(obj.soldofs);
                         fprintf('### Min Temp: %f.\n',min(obj.soldofs(odd_numbers)));
