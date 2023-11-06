@@ -15,6 +15,7 @@ classdef BCInit < handle
         loadVector_mech
         numDofs_mech
         dofs_free_mech
+        dim
     end
     
     properties (Access = private)
@@ -35,9 +36,12 @@ classdef BCInit < handle
         obj.initialdofs_ = zeros(obj.numDofs, 1);
 
         %thermomech
-        obj.numDofs_mech=obj.numNodes*3;
+        meshelements=mesh.retrieveElementalSelection(inputReader.MeshEntityName);
+            etype=mesh.data.ElementTypes{meshelements(1)};
+            obj.dim = mesh.retrieveelementdimension(etype); 
+            obj.numDofs_mech=obj.numNodes*obj.dim;
         obj.loadVector_mech = zeros(obj.numDofs_mech, 1);
-        obj.dofs_fixed_mech_=zeros(length(mesh.data.NODE)*3,1);
+        obj.dofs_fixed_mech_=zeros(length(mesh.data.NODE)*obj.dim,1);
         obj.initialdofs_mech_ = zeros(obj.numDofs_mech, 1);
 
         % Call boundaryConditions to perform any necessary setup
@@ -348,9 +352,9 @@ classdef BCInit < handle
                         direction=3;
                     end
                     for node = nodes
-                        if (node*3) < length(obj.initialdofs_mech_)
-                            obj.initialdofs_mech_((node-1)*3+direction) = value;
-                            obj.dofs_fixed_mech_ ((node-1)*3+direction) = 1;
+                        if (node*obj.dim) < length(obj.initialdofs_mech_)
+                            obj.initialdofs_mech_((node-1)*obj.dim+direction) = value;
+                            obj.dofs_fixed_mech_ ((node-1)*obj.dim+direction) = 1;
                         else
                             % Handle the case where the node index is out of bounds.
                             % This could be an error condition depending on your application.
