@@ -7,7 +7,7 @@ function Power = CalculatePower(reader,mesh,solver)
     mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
     for i=1:length(mesh_elements)
         element_tag= mesh_elements(i);
-        [Element_Power,element_dof_indexes]=GeneralGaussIntegration(dim, 3, element_tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_tag},integrationfunction);
+        [Element_Power,element_dof_indexes]=GeneralGaussIntegration(dim, reader.GI_order, element_tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_tag},integrationfunction);
         Power=Power+Element_Power;
     end
 end

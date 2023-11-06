@@ -160,9 +160,13 @@ switch upper(dataType)
                 cells=[varargin{ cidx(ii) + 1 }(:,:)']';
                 ncells=(length(cells(:,1)));
                 nodepercell=int2str(length(cells(1,:)));
-                if nodepercell>8
+                nodepercellint=length(cells(1,:));
+                if nodepercellint>8
                     nodepercell=8;cells=cells(:,1:8);
                     cell_type=12;celltypecol=zeros(ncells,1);celltypecol(:,1)=cell_type;
+                elseif nodepercellint==4
+                    nodepercell=4;
+                    cell_type=9;celltypecol=zeros(ncells,1);celltypecol(:,1)=cell_type;
                 end
                 prncells=['\nCELLS ',int2str(ncells),' ',int2str((nodepercell+1)*ncells),'\n'];
                 fprintf(fid,prncells);

@@ -8,6 +8,7 @@ classdef Postprocessing < handle
         coordinates
         element_node_idxs
         mesh_elements
+        dim
     end
     
     methods
@@ -25,10 +26,19 @@ classdef Postprocessing < handle
             for i=1:obj.total_number_of_nodes
                 obj.coordinates(:,i)=mesh.data.NODE{i};
             end
-            obj.element_node_idxs=zeros(obj.total_number_of_elements,8);
+            meshelements=mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{meshelements(1)};
+            obj.dim = mesh.retrieveelementdimension(etype); 
+            if obj.dim==2
+                node_per_el = 4;
+            else
+                node_per_el = 8;
+            end
+
+            obj.element_node_idxs=zeros(obj.total_number_of_elements,node_per_el);
             for i=1:obj.total_number_of_elements
                 nodal_idxx=mesh.data.ELEMENTS{obj.mesh_elements(i)};
-                obj.element_node_idxs(i,:) = nodal_idxx(1:8);
+                obj.element_node_idxs(i,:) = nodal_idxx(1:node_per_el);
             end        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -362,10 +372,12 @@ classdef Postprocessing < handle
 
             Un_loc=zeros(obj.total_number_of_nodes,1);
             for i=1:obj.total_number_of_nodes
-                Ux(i)= solver.soldofs_mech((i-1)*3+1);
-                Uy(i)= solver.soldofs_mech((i-1)*3+2);
-                Uz(i)= solver.soldofs_mech((i-1)*3+3);
-                Un(i) = solver.soldofs_mech((i-1)*3+axis);
+                Ux(i)= solver.soldofs_mech((i-1)*obj.dim+1);
+                Uy(i)= solver.soldofs_mech((i-1)*obj.dim+2);
+                if obj.dim==3
+                    Uz(i)= solver.soldofs_mech((i-1)*3+3);
+                end
+                Un(i) = solver.soldofs_mech((i-1)*obj.dim+axis);
                 Un_loc(i) = obj.coordinates(axis,i);
             end
             % Sort Tn_loc and get the sorting indices

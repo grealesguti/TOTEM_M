@@ -101,8 +101,14 @@ classdef TO_Objectives < handle
                         natcoords(1) = gaussPoints(i);
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
+                        Ke= integrationFunction(natcoords) ;
                         Ke=Ke.* (weights(i) * weights(j));
-                        K = K + Ke;
+                                if flagGloop==1
+                                            K = K + Ke;
+                                else
+                                            flagGloop=1;
+                                            K=Ke;
+                                end  
                     end
                 end
             elseif dimension == 3
@@ -191,10 +197,12 @@ classdef TO_Objectives < handle
             B=distributed((LAdj(obj.freedofs)));
             AdjT(obj.freedofs)=A\B;
             % Calculate material derivatives
-            parfor ii=1:length(obj.TOEL)
+            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            dim = mesh.retrieveelementdimension(etype); 
+            for ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
 
-                [R_dx,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 
+                [R_dx,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 
             
                 ADJ_element=AdjT(element_dofs)';%
                 element_sensitivities(ii)=ADJ_element*R_dx;
@@ -239,11 +247,13 @@ classdef TO_Objectives < handle
             A = distributed((solver.KT(obj.freedofs,obj.freedofs))'); 
             B=distributed((LAdj(obj.freedofs)));
             AdjT(obj.freedofs)=A\B;
+            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            dim = mesh.retrieveelementdimension(etype); 
             % Calculate material derivatives
             parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
 
-                [R_dx,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 
+                [R_dx,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 
             
                 ADJ_element=AdjT(element_dofs)';%
                 element_sensitivities(ii)=ADJ_element*R_dx;
@@ -271,7 +281,16 @@ classdef TO_Objectives < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)        
                 flag=[];
-                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                %[N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+
+                [dim] = mesh.retrieveelementdimension(etype);
+                if dim==2
+                    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                    element_coordinates=element_coordinates(1:2,:);
+                    N=N';
+                else
+                    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                end
 
                 JM = dShape' * element_coordinates';
 
@@ -331,12 +350,15 @@ classdef TO_Objectives < handle
             LP_U_element=zeros(number_of_TO_elements,1);
             LP_dU=zeros(obj.Number_of_dofs,1);
             LP_U=zeros(nodes_per_element,1);
-
+            %!FIXME: elemetns of a surface or line not the objective
+            %elements in TO
+            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            dim = mesh.retrieveelementdimension(etype); 
             %% Derivatives to Vf
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Heat_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            parfor  ii=1:length(obj.TOEL)
+            parfor  ii=1:length(obj.TOEL) % ERROR, integrate over the heat surface!! not TOEL
                 element_Tag = obj.TOEL(ii);
-                [L_dU,L_U,element_dofs]=obj.GaussIntegration_dx(2, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
+                [L_dU,L_U,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
                 LP_dU_element_dofs(ii,:)=element_dofs;
                 LP_dU_element(ii,:)=L_dU*direction;
@@ -351,11 +373,12 @@ classdef TO_Objectives < handle
 
             %% Power sensitivity
             ADJP(obj.freedofs)=(solver.KT(obj.freedofs,obj.freedofs))'\LP_dU(obj.freedofs);
-
+            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
-                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
+                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 element_sensitivities(ii)=LP_U(element_Tag)+ADJP(element_dofs)'*Rx;
             end
 
@@ -378,7 +401,15 @@ classdef TO_Objectives < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[L_U,L_dU]=integration_Heat_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
-            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            % [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            [dim] = mesh.retrieveelementdimension(etype);
+            if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            end
 
             JM = dShape' * element_coordinates';
 

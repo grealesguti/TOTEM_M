@@ -1,5 +1,13 @@
 function Powe = IntegrationPower(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
+                %[N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            [dim] = mesh.retrieveelementdimension(etype);
+            if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            end
 
                 JM = dShape' * element_coordinates';
                 detJ=det(JM);

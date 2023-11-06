@@ -40,7 +40,6 @@ classdef Solver < handle
                 %[obj.KT,obj.Residual]=obj.Assembly(inputReader,mesh,bcinit);
 
                 %obj.SolveLinearSystemInParallel(bcinit);
-                
                 obj.max_iterations=20;
                 obj.tolerance=1e-8;
                 fprintf('### SOLVER Initialized.\n');
@@ -68,7 +67,7 @@ classdef Solver < handle
             %pool = parpool(numWorkers);
             etype=mesh.data.ElementTypes{mesh_elements(1)};
             dim = mesh.retrieveelementdimension(etype);            
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
                 % Create a separate variable for each parallel iteration
                 Rs = zeros(total_number_of_dofs, 1);
 
@@ -121,7 +120,7 @@ classdef Solver < handle
             
             initialdofs_TV = obj.soldofs;
 
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -154,7 +153,7 @@ classdef Solver < handle
             KJvnz = zeros(dofs_per_element^2, total_number_of_elements);
             KJvc = zeros(dofs_per_element^2, total_number_of_elements);
             KJvr = zeros(dofs_per_element^2, total_number_of_elements);
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
                 % Recover each element tag
                 elementTag = mesh_elements(i);
                 
@@ -607,6 +606,10 @@ classdef Solver < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function residual_norm = runNewtonRaphson(obj,reader, mesh,bcinit)
+                meshelements=mesh.retrieveElementalSelection(reader.MeshEntityName);
+                etype=mesh.data.ElementTypes{meshelements(1)};
+                dim = mesh.retrieveelementdimension(etype); 
+
             total_load = bcinit.loadVector_;
             for loadstep = 1: reader.NR_nloads
                 bcinit.loadVector_=total_load/reader.NR_nloads*loadstep;
@@ -637,7 +640,13 @@ classdef Solver < handle
                     if abs(residual_norm) < threshold
                         fprintf('### NR. Convergence with residual change under: %f.\n',threshold);
                         break;
-                    elseif abs(residual_norm)>1000000 || isnan(abs(residual_norm))
+                    elseif (abs(residual_norm)>1000000 || isnan(abs(residual_norm))) && dim==3
+                        fprintf('### NR. Diverged with residual: %f.\n',residual_norm);
+                        odd_numbers = 1:2:length(obj.soldofs);
+                        fprintf('### Min Temp: %f.\n',min(obj.soldofs(odd_numbers)));
+                        fprintf('### Max Temp: %f.\n',max(obj.soldofs(odd_numbers)));
+                        break
+                    elseif (abs(residual_norm)>100000000 || isnan(abs(residual_norm))) && dim==2
                         fprintf('### NR. Diverged with residual: %f.\n',residual_norm);
                         odd_numbers = 1:2:length(obj.soldofs);
                         fprintf('### Min Temp: %f.\n',min(obj.soldofs(odd_numbers)));

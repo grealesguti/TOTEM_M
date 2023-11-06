@@ -15,11 +15,15 @@ classdef TO_Constraints < handle
         Elements_volume
         V_TOT
         SVM
+        dim
     end
 
     methods
         function obj = TO_Constraints(reader,mesh,bcinit)
             % Initialize size of obj. variables
+            meshelements=mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{meshelements(1)};
+            obj.dim = mesh.retrieveelementdimension(etype); 
             m=length(reader.TopOpt_ConstraintName);
             obj.fval=zeros(m,1);
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
@@ -32,6 +36,7 @@ classdef TO_Constraints < handle
             obj.Number_of_nodes=length(mesh.data.NODE);
             obj.Elements_volume = obj.CalculateAllElementVolume(mesh);
             obj.V_TOT=sum(obj.Elements_volume);
+
         end
     
         function CalculateConstraint(obj, reader, mesh, solver)
@@ -204,10 +209,12 @@ classdef TO_Constraints < handle
             Pobj = reader.TopOpt_ConstraintValue(dfdx_index);
 
             %% Derivatives to Vf
+            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor  ii=1:length(obj.TOEL)
                 element_Tag = obj.TOEL(ii);
-                [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
+                [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
                 LP_dU_element_dofs(ii,:)=element_dofs;
                 LP_dU_element(ii,:)=LJ;
@@ -225,11 +232,12 @@ classdef TO_Constraints < handle
 
             %% Power sensitivity
             ADJP(obj.freedofs)=(solver.KT(obj.freedofs,obj.freedofs))'\LP_dU(obj.freedofs);
-
+            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
-                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(3, 5, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
+                [Rx,flag,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 element_sensitivities(ii)=LP_U(element_Tag)+ADJP(element_dofs)'*Rx;
             end
 
@@ -252,8 +260,16 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[K_dx,P_dx]=integration_Power_dx_1(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
-            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
-
+           % [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                       [dim] = mesh.retrieveelementdimension(etype);
+ 
+           if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            end
             JM = dShape' * element_coordinates';
 
             %Jacinv = inv(JM);
@@ -298,7 +314,15 @@ classdef TO_Constraints < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[Rx,flag]=integration_R_dx(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
             flag=[];
-            [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            % [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            [dim] = mesh.retrieveelementdimension(etype);
+            if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                element_coordinates=element_coordinates(1:2,:);
+                N=N';
+            else
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+            end
 
             JM = dShape' * element_coordinates';
 
@@ -347,11 +371,19 @@ classdef TO_Constraints < handle
             for i=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(i);
                 element_nodes=mesh.data.ELEMENTS{element_Tag};
-                coordinates=zeros(3,8);
-                for j=1:8
-                    coordinates(:,j)=mesh.data.NODE{element_nodes(j)};
-                end
+                if obj.dim == 2
+                    coordinates=zeros(3,4);
+                    for j=1:4
+                        coordinates(:,j)=mesh.data.NODE{element_nodes(j)};
+                    end                    
+                    Elements_volume(i)=CalculateQuadArea(coordinates');
+                else
+                    coordinates=zeros(3,8);
+                    for j=1:8
+                        coordinates(:,j)=mesh.data.NODE{element_nodes(j)};
+                    end
                 Elements_volume(i)=CalculateHexVolume(coordinates');
+                end
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -427,11 +459,12 @@ classdef TO_Constraints < handle
                     orderdof_U(nd*3)=element_nodes(nd)*3;
                 end
                 Uee=solver.soldofs_mech(orderdof_U);
-
+                etype=mesh.data.ElementTypes{obj.TOEL(1)};
+                dim = mesh.retrieveelementdimension(etype); 
                 %%%% Derivatives
-                [KUUd,flag,element_dofs_U]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
-                [KUTd,flag,element_dofs_T]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
-                [Rx,flag,element_dofs_Rx]=obj.GaussIntegration_dx(3, 5, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
+                [KUUd,flag,element_dofs_U]=obj.GaussIntegration_dx(dim,  reader.GI_order, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
+                [KUTd,flag,element_dofs_T]=obj.GaussIntegration_dx(dim,  reader.GI_order, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
+                [Rx,flag,element_dofs_Rx]=obj.GaussIntegration_dx(dim,  reader.GI_order, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
                 TVee=solver.soldofs(element_dofs_Rx);
 
                 %Adji=AdjU(orderdofU(:,ii)');

@@ -110,7 +110,7 @@ classdef BCInit < handle
             result= zeros(length(element_nodes),1);
             % Create a new matrix to store the result without the last row
             coordinates_tr_XY = [];
-            tolerance = 1e-6; % Define your tolerance here
+            tolerance = 1e-9; % Define your tolerance here
             
             % Iterate through the rows of coordinates_tr and copy rows that do not meet the tolerance condition
             for i = 1:size(coordinates_tr, 1)
@@ -137,7 +137,7 @@ classdef BCInit < handle
             
             if isempty(coordinates_tr_XY)
                 % Handle the case when all rows were removed, resulting in an empty matrix.
-                fprintf('Warning: All rows removed. coordinates_tr_XY is empty.\n');
+                warning(' All rows removed. coordinates_tr_XY is empty.\n');
                 % You may want to print a warning message or take appropriate action.
             end
            

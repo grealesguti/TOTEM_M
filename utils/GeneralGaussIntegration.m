@@ -57,6 +57,7 @@ function [K,element_dof_indexes] = GeneralGaussIntegration(dimension, order, ele
                         natcoords(1) = gaussPoints(i);
                         natcoords(2) = gaussPoints(j);
                         % Explicitly use the element-wise multiplication .* for arrays
+                        Ke = integrationFunction(natcoords) ;
                         Ke=Ke.* (weights(i) * weights(j));
 
                         if flagGloop==1
