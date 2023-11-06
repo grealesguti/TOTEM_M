@@ -187,22 +187,24 @@ classdef Mesh < handle
         % Add getter and setter methods here
         function [shapeFunctions, shapeFunctionDerivatives] = selectShapeFunctionsAndDerivatives(~,etype, xi, eta, zeta)
             % Initialize output variables
-            elements=Elements();
             shapeFunctions = [];
             shapeFunctionDerivatives = [];
         
             if etype == "CPS4" % 4-node quadrangle
-                shapeFunctions = elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
-                shapeFunctionDerivatives = elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
+                shapeFunctions = obj.elements.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
+                shapeFunctionDerivatives = obj.elements.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta);
             elseif etype == "CPS8" % 8-node second order quadrangle
-                shapeFunctions = elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
-                shapeFunctionDerivatives = elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
-            elseif etype == "C3D8" % Hexahedral 8 node element
-                shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
-                shapeFunctionDerivatives = elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
+                shapeFunctions = obj.elements.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta);
+                shapeFunctionDerivatives = obj.elements.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta);
+            elseif etype == "T3D2" % 8-node second order quadrangle
+                shapeFunctions = obj.elements.EvaluateLinearLineShapeFunctions(xi);
+                shapeFunctionDerivatives = obj.elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
+           elseif etype == "C3D8" % Hexahedral 8 node element
+                shapeFunctions = obj.elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
+                shapeFunctionDerivatives = obj.elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
             elseif etype == "C3D20" % Hexahedral 20 node element
-                shapeFunctions = elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
-                shapeFunctionDerivatives = elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
+                shapeFunctions = obj.elements.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta);
+                shapeFunctionDerivatives = obj.elements.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta);
             else
                 % Handle unsupported element types or return an error code
                 % You can choose an appropriate error handling strategy here
@@ -277,6 +279,7 @@ classdef Mesh < handle
                 if etype_element == "CPS4" % 4-node quadrangle
                     node_el = 4;
                     flag = 1;
+                    naturalcoordinates=obj.elements.GetQuadNodeLocations();
                 elseif etype_element == "CPS8" % 8-node second-order quadrangle
                     node_el = 8;
                     flag = 2;
@@ -289,6 +292,10 @@ classdef Mesh < handle
                     node_el = 20;
                     flag = 4;
                     naturalcoordinates=obj.elements.GetSerendipityQuadHexahedralNodeLocations();
+                elseif etype_element == "T3D2" % 8-node second-order quadrangle
+                    node_el = 2;
+                    flag = 5;
+                    naturalcoordinates=obj.elements.GetHexahedralNodeLocations();
                 else
                     flag = 0;
                     % Handle unsupported element types or return an error code
@@ -310,5 +317,21 @@ classdef Mesh < handle
             
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [dim] = retrieveelementdimension(~,etype_element)
+                if etype_element == "CPS4" % 4-node quadrangle
+                    dim=2;
+                elseif etype_element == "CPS8" % 8-node second-order quadrangle
+                    dim=2;
+                elseif etype_element == "C3D8" % Hexahedral 8 node element
+                    dim=3;
+                elseif etype_element == "C3D20" % Hexahedral 20 node element
+                    dim=3;
+                else
+                    dim=-1;
+                end
+                          
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     end
 end
