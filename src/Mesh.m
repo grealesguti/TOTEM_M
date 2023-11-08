@@ -8,6 +8,10 @@ classdef Mesh < handle
         elements_material
         elements_density
         dofs_fixed
+        element_characteristic_size
+        Elements_volume
+        Element_size
+        dim
     end
     
     methods
@@ -180,6 +184,13 @@ classdef Mesh < handle
                 obj.data.ElementSelectionNames=elementselectionnames;
                 obj.data.NodalSelectionNames=nodalselectionnames;
                 obj.data.ElementTypes=elementtypes;
+                obj.Elements_volume = obj.CalculateAllElementVolume(inputReader);
+
+                if obj.dim==2
+                    obj.Element_size=sqrt(min(obj.Elements_volume));
+                elseif obj.dim==3
+                    obj.Element_size=(min(obj.Elements_volume))^1/3;
+                end
                 % Close the file
                 fclose(fid);
         end
@@ -337,6 +348,29 @@ classdef Mesh < handle
                           
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+        function [Elements_volume]=CalculateAllElementVolume(obj,reader)
+            mesh_elements = obj.retrieveElementalSelection(reader.MeshEntityName);
+                etype=obj.data.ElementTypes{mesh_elements(1)};
+                obj.dim = obj.retrieveelementdimension(etype);             
+            Elements_volume=zeros(length(mesh_elements),1);
+            for i=1:length(mesh_elements)
+                element_Tag=mesh_elements(i);
+                element_nodes=obj.data.ELEMENTS{element_Tag};
+                if obj.dim == 2
+                    coordinates=zeros(3,4);
+                    for j=1:4
+                        coordinates(:,j)=obj.data.NODE{element_nodes(j)};
+                    end                    
+                    Elements_volume(i)=CalculateQuadArea(coordinates');
+                else
+                    coordinates=zeros(3,8);
+                    for j=1:8
+                        coordinates(:,j)=obj.data.NODE{element_nodes(j)};
+                    end
+                Elements_volume(i)=CalculateHexVolume(coordinates');
+                end
+            end
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end
