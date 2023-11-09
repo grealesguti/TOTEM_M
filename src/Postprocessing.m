@@ -396,6 +396,30 @@ classdef Postprocessing < handle
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function plotmaterialT(obj,fig,element_material_index,material_property,Tmin,Tmax,reader)
+            steps=100;
+            Dev=zeros(1,steps);
+            Ddev=zeros(1,steps);
+            Thv=zeros(1,steps);
+            c=1;
+            xx=1;
+            for Th = Tmin:(Tmax-Tmin)/steps:Tmax
+                Dep = reader.getmaterialproperty(element_material_index,material_property);
+                [De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,append('Penalty_',material_property)));
+                Dev(c)=De;
+                Ddev(c)=Dde;
+                Thv(c)=Th;
+                c=c+1;
+            end
+
+            figure(fig)
+            yyaxis left
+            plot(Thv,Dev)
+            yyaxis right
+            plot(Thv,Ddev)
+            grid on
+        end
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     end
 end

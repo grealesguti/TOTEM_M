@@ -3,10 +3,10 @@ SetFactory("OpenCASCADE");
 //+
 //+
 
-xelem=5;
+xelem=24;
 xelem_sub=xelem+1;
-yelem=5;
-zelem=5;
+yelem=24;
+zelem=12;
 zelem_sub=zelem+1;
 copper_elem=3;
 copper_sub=copper_elem+1;
@@ -190,3 +190,23 @@ Physical Volume("Al2O3", 236) = {23, 24, 25, 26, 22, 21, 20};
 Physical Surface("Contact_CeramicTop", 237) = {35, 26, 30};
 //+
 Physical Surface("Contact_CeramicBottom", 238) = {3, 56, 62, 60};
+//+
+Physical Surface("Surface_2D", 239) = {14, 19, 24, 107, 114, 110, 27, 32, 37, 42, 47, 9, 6, 120, 123, 63, 52, 127, 132, 57};
+//+
+Physical Surface("Solder_2D", 240) = {9, 47, 37, 19};
+//+
+Physical Surface("Copper_2D", 241) = {24, 32, 27, 6, 63, 52, 57};
+//+
+Physical Surface("Ceramic_2D", 242) = {120, 123, 127, 132, 107, 110, 114};
+//+
+Physical Surface("SemiconductorL_2D", 243) = {14};
+//+
+Physical Surface("SemiconductorR_2D", 244) = {42};
+//+
+Physical Curve("VoltageL_2D", 245) = {105};
+//+
+Physical Curve("VoltageR_2D", 246) = {95};
+//+
+Physical Curve("TopCeramic_2D", 247) = {173, 176, 181};
+//+
+Physical Curve("BottomCeramic_2D", 248) = {194, 191, 200, 207};

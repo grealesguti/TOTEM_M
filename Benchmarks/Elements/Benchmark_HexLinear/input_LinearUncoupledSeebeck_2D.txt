@@ -27,6 +27,24 @@ bc Temperature Ymax 298.15
 bc Displacement_y Ymin 0
 bc Displacement_x Surface 0
 
+## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
+TopOpt_Objective AverageTemperature Ymax Surface
+## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
+TopOpt_bc Voltage Ymin -0.06 -0.058 -0.056
+## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_Initial_x 0.8
+## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_NR T previous  
+TopOpt_NR V proporcional
+## Topopoly Optimization Constraints
+TopOpt_Constraint Power 0.3
+TopOpt_Constraint Volume 0.8
+#TopOpt_Constraint Stress_Pnorm 10000
+KSU 3
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk
 
 ## Output Options
 ## output <data> <path/outputname>

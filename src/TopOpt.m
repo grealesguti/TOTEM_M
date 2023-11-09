@@ -1,7 +1,7 @@
 classdef TopOpt
     %TO Summary of this class goes here
     %   Detailed explanation goes here
-    
+
     properties
         m
         n
@@ -30,12 +30,12 @@ classdef TopOpt
         Voltage_value
         Voltage_initial
     end
-    
+
     methods
         function obj = TopOpt(reader,mesh)
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
-            obj.maxiter = 75;
+            obj.maxiter = 50;
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             obj.n =length(obj.TOEL)+length(reader.TObcval);
             obj.xval=zeros(obj.n,1);
@@ -46,7 +46,7 @@ classdef TopOpt
                 mesh.elements_density(obj.TOEL)=ones(length(mesh.elements_density(obj.TOEL)),1)*reader.TopOpt_Initial_x;
                 obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
             end
-            
+
             for i=1:length(reader.TObcval)
                 obj.xval(length(obj.TOEL)+i)=(reader.TObcval(i)-reader.TObcminval(i))/(reader.TObcmaxval(1)-reader.TObcminval(1));
             end
@@ -82,14 +82,84 @@ classdef TopOpt
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function  runMMA(obj,reader,mesh)
             bcinit = BCInit(reader, mesh);
+            filtering = Filtering(reader,mesh);
             solver = Solver(mesh, bcinit);
-            solver.runNewtonRaphson(reader, mesh, bcinit);
-                for i = 1:length(reader.TObcval)
-                    if(strcmp(reader.TObctype,'Voltage'))
-                        obj.Voltage_initial=reader.TObcval(i);
+            
+            if strcmp(reader.solver,'NR')
+                    residual_norm=solver.runNewtonRaphson(reader, mesh, bcinit);
+                    odd_numbers = 1:2:length(solver.soldofs);
+                    Tdofs=solver.soldofs(odd_numbers);
+                    if residual_norm>10000  || not(isempty(Tdofs(Tdofs<0)))% divergence in NR catch
+                        warning('NR DIVERGED, changing to Arc-len!!!');
+                        for i=1:length(bcinit.dofs_free_)
+                            df=bcinit.dofs_free_(i);
+                            if mod(df, 2)==0
+                                solver.soldofs(df)=0.0;
+                            else 
+                                solver.soldofs(df)=0;
+                            end
+                        end
+                        funAL = @(t) solver.funArcLen(reader,bcinit,mesh,t);
+                        [ufree] = arc_length_Crisfield(funAL,solver.soldofs(bcinit.dofs_free_));
+                        solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                        if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                            % Extract the necessary variables
+                            [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                            Temperature_solution = solver.soldofs(1:2:end);
+                            solver.KUT=KThermalLoad;
+                            solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                            solver.SolveLinearSystemInParallel(reader.physics,bcinit)
+                        end
+                    end
+                elseif strcmp(reader.solver,'Arc-len')
+                        for i=1:length(solver.soldofs)/2
+                            if solver.soldofs(i*2-1)==0
+                                solver.soldofs(i*2-1)=str2double(reader.T0);
+                            elseif solver.soldofs(i*2)==0
+                                solver.soldofs(i*2)=0.01;
+                            end
+                        end
+                    funAL = @(t) solver.funArcLen(reader,bcinit,mesh,t);
+                    [ufree] = arc_length_Crisfield(funAL,solver.soldofs(bcinit.dofs_free_));
+                    solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                    if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                        % Extract the necessary variables
+                        [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                        Temperature_solution = solver.soldofs(1:2:end);
+                        solver.KUT=KThermalLoad;
+                        solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        solver.SolveLinearSystemInParallel(reader.physics,bcinit)
+                    end
+                else
+                    warning('No solver recognized, changing to Arc-len!!!');
+                        for i=1:length(solver.soldofs)/2
+                            if solver.soldofs(i*2-1)==0
+                                solver.soldofs(i*2-1)=str2double(reader.T0);
+                            end
+                            if solver.soldofs(i*2)==0
+                                solver.soldofs(i*2)=0.01;
+                            end
+                        end
+                    funAL = @(t) solver.funArcLen(reader,bcinit,mesh,t);
+                    [ufree] = arc_length_Crisfield(funAL,solver.soldofs(bcinit.dofs_free_));
+                    solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                    if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                        % Extract the necessary variables
+                        [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                        Temperature_solution = solver.soldofs(1:2:end);
+                        solver.KUT=KThermalLoad;
+                        solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        solver.SolveLinearSystemInParallel(reader.physics,bcinit)
                     end
                 end
-                TOO = TO_Objectives(reader,mesh,bcinit);
+
+
+            for i = 1:length(reader.TObcval)
+                if(strcmp(reader.TObctype,'Voltage'))
+                    obj.Voltage_initial=reader.TObcval(i);
+                end
+            end
+            TOO = TO_Objectives(reader,mesh,bcinit);
             TOO.CalculateObjective(reader,mesh,solver)
             TOC = TO_Constraints(reader,mesh,bcinit);
             TOC.CalculateConstraint(reader,mesh,solver);
@@ -99,7 +169,7 @@ classdef TopOpt
             folderName = fullfile(reader.rst_folder, append(reader.Rst_name,'_', currentDate));
             mkdir(folderName);
             post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
-            
+
             %% New derivatives
             TOO.CalculateObjective(reader,mesh,solver)
             TOC.CalculateConstraint(reader,mesh,solver);
@@ -116,10 +186,11 @@ classdef TopOpt
             kktnorm = 1000;
             lowv=obj.low;
             uppv=obj.upp;
+
             while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter || obj.outeriter<20
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
-                
+
                 [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,lowv,uppv] = ...
                     mmasub(obj.m,obj.n,obj.outeriter,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
                     obj.f0val,obj.df0dx,obj.fval,obj.dfdx,lowv,uppv,obj.a0,obj.a,obj.c,obj.d);
@@ -135,9 +206,9 @@ classdef TopOpt
                 for i=1:length(obj.TOEL)
                     mesh.elements_density(obj.TOEL(i))=xmma(i);
                 end
-                
-                %obj.FilteringDensitites()
-    
+
+                filtering.filter_densities(reader,mesh)
+
                 %% New NR starting point
                 % New Voltage drop
                 %obj.modifyNRStartingpoint()
@@ -145,22 +216,76 @@ classdef TopOpt
                 even_numbers = 2:2:length(solver.soldofs);
                 prevdofs_odd=solver.soldofs(odd_numbers);
                 prevdofs_even=solver.soldofs(even_numbers);
-                    
+
                 %bcinit1 = BCInit(reader, mesh);
                 solver = Solver(mesh, bcinit);
-                
+
                 for i=1:length(reader.TObcval)
                     nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
                     if(strcmp(reader.TObctype,'Voltage'))
-                        solver.soldofs(odd_numbers)=prevdofs_odd;
-                        solver.soldofs(even_numbers)=prevdofs_even*obj.Voltage_value/obj.Voltage_initial;
+                        %solver.soldofs(odd_numbers)=prevdofs_odd;
+                        %solver.soldofs(even_numbers)=prevdofs_even*obj.Voltage_value/obj.Voltage_initial;
                         solver.soldofs(nodes*2)=obj.Voltage_value;
                     end
                 end
-                
-    
+
+
                 %% New Solve
-                solver.runNewtonRaphson(reader, mesh, bcinit);
+                if strcmp(reader.solver,'NR')
+                    residual_norm=solver.runNewtonRaphson(reader, mesh, bcinit);
+                    Tdofs=solver.soldofs(odd_numbers);
+                    if residual_norm>10000  || not(isempty(Tdofs(Tdofs<0)))% divergence in NR catch
+                        warning('NR DIVERGED, changing to Arc-len!!!');
+                        solver = Solver(mesh, bcinit);
+        
+                        for i=1:length(reader.TObcval)
+                            nodes=mesh.retrieveNodalSelection(reader.TObcloc(i));
+                            if(strcmp(reader.TObctype,'Voltage'))
+                                solver.soldofs(odd_numbers)=prevdofs_odd;
+                                solver.soldofs(even_numbers)=prevdofs_even*obj.Voltage_value/obj.Voltage_initial;
+                                solver.soldofs(nodes*2)=obj.Voltage_value;
+                            end
+                        end
+                        %[ufree] = arc_length_Lam_Morley(funALM,bcinit.loadVector_(solver.soldofs(bcinit.dofs_free_)),solver.soldofs(bcinit.dofs_free_));
+                        funAL = @(t) solver.funArcLen(reader,bcinit,mesh,t);
+                        [ufree] = arc_length_Crisfield(funAL,solver.soldofs(bcinit.dofs_free_));
+                        solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                        if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                            % Extract the necessary variables
+                            [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                            Temperature_solution = solver.soldofs(1:2:end);
+                            solver.KUT=KThermalLoad;
+                            solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                            solver.SolveLinearSystemInParallel(reader.physics,bcinit)
+                        end
+                    end
+                elseif strcmp(reader.solver,'Arc-len')
+                    funAL = @(t) solver.funArcLen(reader,bcinit,mesh,t);
+                    [ufree] = arc_length_Crisfield(funAL,solver.soldofs(bcinit.dofs_free_));
+                    solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                    if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                        % Extract the necessary variables
+                        [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                        Temperature_solution = solver.soldofs(1:2:end);
+                        solver.KUT=KThermalLoad;
+                        solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        solver.SolveLinearSystemInParallel(reader.physics,bcinit)
+                    end
+                else
+                    warning('No solver recognized, changing to Arc-len!!!');
+                    funAL = @(t) solver.funArcLen(reader,bcinit,mesh,t);
+                    [ufree] = arc_length_Crisfield(funAL,solver.soldofs(bcinit.dofs_free_));
+                    solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                    if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                        % Extract the necessary variables
+                        [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                        Temperature_solution = solver.soldofs(1:2:end);
+                        solver.KUT=KThermalLoad;
+                        solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        solver.SolveLinearSystemInParallel(reader.physics,bcinit)
+                    end
+                end
+
                 post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
 
                 %% New objective, constraints and derivatives
@@ -169,7 +294,9 @@ classdef TopOpt
                 TOO.CalculateObjective(reader,mesh,solver)
                 TOC.CalculateConstraint(reader,mesh,solver);
 
-                f0valold=obj.f0val;
+                filtering.filter_sensitivities(reader,mesh,TOO,TOC)
+
+                %f0valold=obj.f0val;
                 obj.f0val = TOO.fval;
                 obj.df0dx = TOO.dfdx;
                 obj.fval = TOC.fval;
@@ -178,20 +305,20 @@ classdef TopOpt
                 obj.f0val_iter(obj.outeriter+1)= TOO.fval;
                 obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
                 if not(isempty(reader.TObcval))
-                   for bc=1:length(reader.TObcval)
+                    for bc=1:length(reader.TObcval)
                         obj.xbc_iter(obj.outeriter+1,bc)= xmma(length(obj.TOEL)+bc);
-                   end
+                    end
                 end
                 %obj.FilteringSensitivities()
-    
+
                 %% MMA parameters update
                 obj.xold2=obj.xold1;
                 obj.xold1=obj.xval;
                 obj.xval=xmma;
-    
+
                 %% write results
                 %postprocesing.save()
-    
+
 
                 kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
@@ -226,23 +353,7 @@ classdef TopOpt
 
             end
         end
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function TestSensitivities(obj,reader,mesh,solver)
-            objectives = Objectives();
-            list_of_functions={};
-            for i=1:length(list_of_functions)
-                list_of_functions(i);
-                obj.FiniteDifferences()
-            end
-
-            constraints = Constraints();
-            list_of_functions={};
-            for i=1:length(list_of_functions)
-                list_of_functions(i);
-                obj.FiniteDifferences()
-            end
-        end
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end
 

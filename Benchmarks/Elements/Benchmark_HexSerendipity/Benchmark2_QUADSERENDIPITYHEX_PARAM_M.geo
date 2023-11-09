@@ -113,3 +113,13 @@ Physical Surface("Zmin", 17) = {4};
 Physical Surface("Xmin", 18) = {3};
 //+
 Physical Surface("Xmax", 19) = {6};
+//+
+Physical Surface("Surface", 20) = {3};
+//+
+Physical Curve("Ymin_line", 21) = {9};
+//+
+Physical Curve("Zmax_line", 22) = {8};
+//+
+Physical Curve("Zmin_line", 23) = {4};
+//+
+Physical Curve("Ymax_line", 24) = {12};

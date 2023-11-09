@@ -2,12 +2,13 @@
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
 #mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
-mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Quad.inp Surface mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_QuadFine.inp Surface mm
 
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
 physics decoupledthermoelectromechanical
 solver NR
 InitialTemperature 298.15
+dimension 2D 
 
 ## Bi2Te3 Mechanical Properties: https://repository.bilkent.edu.tr/server/api/core/bitstreams/502cdf62-9b13-4faf-b245-8196af9e81ab/content
 ## Bi2Te3 Thermal Expansion: https://www.researchgate.net/publication/227109210_Thermal_expansion_of_bismuth_telluride
@@ -19,7 +20,7 @@ InitialTemperature 298.15
 ## Solder Electrical Properties: https://us.rs-online.com/m/d/8d9ef1f686bf70839a288bf4fd8e669e.pdf
 ## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
 ##
-material SemiconductorL
+material SemiconductorR
 Seebeck 0 0.0002171645
 Penalty_Seebeck 0 1
 ThermalConductivity 0 1.054963
@@ -33,7 +34,7 @@ YoungModulus 0 61.6E9
 Penalty_YoungModulus 0 5
 PoissonRatio 0 0.241
 
-material SemiconductorR
+material SemiconductorL
 Seebeck 0 -0.0001985263
 Penalty_Seebeck 0 1
 ThermalConductivity 0 1.305023
@@ -72,20 +73,20 @@ bc Voltage Ceramic 0.0 # Removing dofs for the ceramic volume
 bc FreeDofs_Voltage Contact_Ceramic 0.0
 bc Voltage Electrode_MinX 0.0625
 bc Voltage Electrode_MaxX 0.0
-bc Temperature Ceramic_Bottom 298
+bc Temperature Ceramic_Bottom 330
 bc Displacement_x Ceramic_Bottom 0
 bc Displacement_y Ceramic_Bottom 0
 bc Displacement_z Ceramic_Bottom 0
 bc heat_n Ceramic_Top 3000
-bc Pressure_y Ceramic_Top -0.9E6
+bc Pressure_y Ceramic_Top -0.9E3
 
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ceramic_Top TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
-TopOpt_bc Voltage Electrode_MinX 0.0125 0.0625 0.125
+TopOpt_bc Voltage Electrode_MinX 0.0125 0.0125 0.125
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
-TopOpt_Initial_x 1
+TopOpt_Initial_x 0.5
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
@@ -93,7 +94,7 @@ TopOpt_NR V proporcional
 TopOpt_Constraint Power 0.011
 TopOpt_Constraint Volume 1
 #TopOpt_Constraint Stress 20E6
-#TopOpt_Constraint Stress_Pnorm 10E6
+TopOpt_Constraint Stress_Pnorm 10E6
 
 ## Output Options
 ## output <data> <path/outputname>

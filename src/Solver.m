@@ -259,7 +259,7 @@ classdef Solver < handle
                 element_coordinates=zeros(3,number_of_nodes);
                 [dof_per_node] = mesh.retrieveelementdimension(etype);
                 Tee=zeros(1,number_of_nodes);
-                Uee=zeros(1,number_of_nodes*3);
+                Uee=zeros(1,number_of_nodes*dof_per_node);
                 element_dof_indexes=zeros(number_of_nodes*dof_per_node,1);
                 for i=1:number_of_nodes
                     for j=1:dof_per_node
@@ -635,18 +635,18 @@ classdef Solver < handle
                     residual_norm = normest(obj.Residual(dofs_free)); % Calculate the norm
                 
                     fprintf('### NR. Iteration %d residual %f\n', iter, residual_norm);
-                
+                    Tneg=0;
                     % Check if the change in residual is small
                     if abs(residual_norm) < threshold
                         fprintf('### NR. Convergence with residual change under: %f.\n',threshold);
                         break;
-                    elseif (abs(residual_norm)>1000000 || isnan(abs(residual_norm))) && dim==3
+                    elseif (abs(residual_norm)>1000000 || isnan(abs(residual_norm)) || Tneg==1) && dim==3
                         fprintf('### NR. Diverged with residual: %f.\n',residual_norm);
                         odd_numbers = 1:2:length(obj.soldofs);
                         fprintf('### Min Temp: %f.\n',min(obj.soldofs(odd_numbers)));
                         fprintf('### Max Temp: %f.\n',max(obj.soldofs(odd_numbers)));
                         break
-                    elseif (abs(residual_norm)>100000000 || isnan(abs(residual_norm))) && dim==2
+                    elseif (abs(residual_norm)>100000000 || isnan(abs(residual_norm)) || Tneg==1) && dim==2
                         fprintf('### NR. Diverged with residual: %f.\n',residual_norm);
                         odd_numbers = 1:2:length(obj.soldofs);
                         fprintf('### Min Temp: %f.\n',min(obj.soldofs(odd_numbers)));
@@ -665,7 +665,8 @@ classdef Solver < handle
             end
             if iter==obj.max_iterations
             % If we reach here, the Newton-Raphson method did not converge
-            error('Newton-Raphson did not converge: iteration limit');
+            warning('Newton-Raphson did not converge: iteration limit');
+            residual_norm=1E6;
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

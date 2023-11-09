@@ -418,7 +418,7 @@ classdef TO_Constraints < handle
             element_sensitivities=zeros(length(obj.TOEL),1);
             %KJa=-solver.KT;
             %% Derivative of KSU
-            Number_Of_M_Dofs = obj.Number_of_nodes*3;
+            Number_Of_M_Dofs = obj.Number_of_nodes*obj.dim;
             Number_Of_TV_Dofs = obj.Number_of_nodes*2;
             AdjU=zeros(Number_Of_M_Dofs,1);
             AdjTV=zeros(Number_Of_TV_Dofs,1);
@@ -447,16 +447,18 @@ classdef TO_Constraints < handle
             GaussfunctionTag_KUU=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KuDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_KUT=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KutDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_Rx=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            parfor ii=1:length(obj.TOEL)
+            for ii=1:length(obj.TOEL)
                 ElementTag=obj.TOEL(ii);
                 
                 element_nodes = mesh.data.ELEMENTS{ElementTag};
                 number_of_nodes=length(element_nodes);
-                orderdof_U=zeros(number_of_nodes*3,1);
+                orderdof_U=zeros(number_of_nodes*obj.dim,1);
                 for nd=1:length(element_nodes)
-                    orderdof_U(nd*3-2)=element_nodes(nd)*3-2;
-                    orderdof_U(nd*3-1)=element_nodes(nd)*3-1;
-                    orderdof_U(nd*3)=element_nodes(nd)*3;
+                    orderdof_U(nd*obj.dim-(obj.dim-1))=element_nodes(nd)*obj.dim-(obj.dim-1);
+                    orderdof_U(nd*obj.dim-(obj.dim-2))=element_nodes(nd)*obj.dim-(obj.dim-2);
+                    if obj.dim==3
+                    orderdof_U(nd*obj.dim)=element_nodes(nd)*obj.dim;
+                    end
                 end
                 Uee=solver.soldofs_mech(orderdof_U);
                 etype=mesh.data.ElementTypes{obj.TOEL(1)};
@@ -511,7 +513,7 @@ classdef TO_Constraints < handle
             LdT=zeros(total_number_of_nodes*1,1);
             Luel=zeros(total_number_of_elements,2);
 
-            parfor i = 1:total_number_of_elements
+            for i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -630,6 +632,10 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [LdU,LdT,Luel] = CalculateStressVM_Derivatives_MeshElements_Pnorm(obj,reader,mesh,solver,index_con)
+            meshelements=mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{meshelements(1)};
+            dim = mesh.retrieveelementdimension(etype); 
+            
             Sobj=reader.TopOpt_ConstraintValue(index_con);
             mesh_elements = obj.TOEL;
             total_number_of_elements = length(mesh_elements);
@@ -637,7 +643,7 @@ classdef TO_Constraints < handle
             Summation_Pnorm=0;
             [node_el, etype_element] = mesh.retrievemeshtype(reader);
 
-            LdU=zeros(total_number_of_nodes*3,1);
+            LdU=zeros(total_number_of_nodes*dim,1);
             LdT=zeros(total_number_of_nodes*1,1);
             Luel=zeros(total_number_of_elements,2);
 
@@ -660,20 +666,29 @@ classdef TO_Constraints < handle
                 element_material_index=mesh.elements_material(elementTag);
                 xx= mesh.elements_density(elementTag);
                 Number_of_Nodes = length(element_coordinates(1,:));
-                element_dof_indexes_M=zeros(number_of_nodes*3,1);
+                element_dof_indexes_M=zeros(number_of_nodes*dim,1);
 
+                
                 for nd=1:number_of_nodes
                     element_dof_indexes_TV(nd)=element_nodes(nd)*2-1;
                     element_dof_indexes_TV(number_of_nodes+nd)=element_nodes(nd)*2;
                     element_dof_indexes_T(nd)=element_nodes(nd);
-                    element_dof_indexes_M((nd-1)*3+1)=(element_nodes(nd)-1)*3+1;
-                    element_dof_indexes_M((nd-1)*3+2)=(element_nodes(nd)-1)*3+2;
-                    element_dof_indexes_M((nd-1)*3+3)=(element_nodes(nd)-1)*3+3;
+                    element_dof_indexes_M((nd-1)*dim+1)=(element_nodes(nd)-1)*dim+1;
+                    element_dof_indexes_M((nd-1)*dim+2)=(element_nodes(nd)-1)*dim+2;
+                    if dim==3
+                    element_dof_indexes_M((nd-1)*dim+3)=(element_nodes(nd)-1)*dim+3;
+                    end
                     element_coordinates(:,nd)=mesh.data.NODE{element_nodes(nd)};
                 end
                 Uee=solver.soldofs_mech(element_dof_indexes_M);
                 Tee= solver.soldofs(element_dof_indexes_TV(1:number_of_nodes))';
-                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype_element, 0, 0, 0);
+                if dim==2
+                    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, 0,0,0);
+                    element_coordinates=element_coordinates(1:2,:);
+                    N=N';
+                else
+                    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, 0,0,0);
+                end
 
                 JM = dShape' * element_coordinates';
                 DN = inv(JM) * dShape'; 
@@ -693,6 +708,31 @@ classdef TO_Constraints < handle
                 alphav=zeros(6,1);
                 alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];
 
+
+                if dim==2
+               alphav=zeros(3,1);
+               alphav(1:2,1)=[Dalphapx,Dalphapy];
+
+                C = DE / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
+                % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
+                % - nu, 0; 0, 0, (1 - 2 * nu) / 2]; % plane strain
+                dCx = DE_dx / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
+
+                Bi = zeros(3, 2);
+                B = zeros(3, Number_of_Nodes * 2);
+            
+                for bi = 1:Number_of_Nodes
+                    Bi(1, 1) = DN(1, bi);
+                    Bi(2, 2) = DN(2, bi);
+                    Bi(3, 1) = DN(2, bi);
+                    Bi(3, 2) = DN(1, bi);
+            
+                    B(:, (bi - 1) * 2 + 1 : bi * 2) = Bi;
+                end                
+            elseif dim==3
+                alphav=zeros(6,1);
+                alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];    
+
                 C = DE/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
                     0 0 0 0 0 (1-2*nu)/2];
@@ -700,19 +740,32 @@ classdef TO_Constraints < handle
                 dCx=DE_dx/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
                     0 0 0 0 0 (1-2*nu)/2];
-                % Preallocate memory for B-Operators
+
                 Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
-                for bi=1:Number_of_Nodes
-                    Bi(1,1) = DN(1,bi);
-                    Bi(2,2) = DN(2,bi);
-                    Bi(3,3) = DN(3,bi);
-                    Bi(4,:) = [DN(2,bi),DN(1,bi),0];
-                    Bi(5,:) = [0,DN(3,bi),DN(2,bi)];
-                    Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
-                    B(:,(bi-1)*3+1:(bi)*3)=Bi;
-                end
+                    for bi=1:Number_of_Nodes
+                        Bi(1,1) = DN(1,bi);
+                        Bi(2,2) = DN(2,bi); 
+                        Bi(3,3) = DN(3,bi);
+                        Bi(4,:) = [DN(2,bi),DN(1,bi),0];
+                        Bi(5,:) = [0,DN(3,bi),DN(2,bi)]; 
+                        Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
+                        B(:,(bi-1)*3+1:(bi)*3)=Bi;
+        
+                    end
+            end
                 
                 se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+                if dim ==2
+                sVM0=sqrt(se0(1)^2+se0(2)^2 ...
+                    -se0(1)*se0(2) ...
+                    +3*se0(3)^2);
+                Summation_Pnorm=Summation_Pnorm+(sVM0)^reader.KSUp;
+                %% Derivative of VM stress with each of the stress components
+                daVM=[  1/(2*sVM0)*(2*se0(1)-se0(2));...
+                        1/(2*sVM0)*(2*se0(2)-se0(1));...
+                        3/(sVM0)*se0(3)];
+
+                elseif dim==3
                 sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2 ...
                     -se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3) ...
                     +3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
@@ -724,6 +777,7 @@ classdef TO_Constraints < handle
                         3/(sVM0)*se0(4);...
                         3/(sVM0)*se0(5);...
                         3/(sVM0)*se0(6);];
+                end
                 %%%%%%%%%%%%%%
                 %% FIXME: for parfor the Li and Li2 is a solution, another way is storing all coefficients and adding after the parfor loop
                 %Ld_U(i,:)=sVM0^(reader.KSUp-1)*daVM'*C*B; % L for mech dofs, which multiplies dU/dx
@@ -741,7 +795,14 @@ classdef TO_Constraints < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[F_T,flag]=Integration_KutDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
                 flag=[];
+                dim = mesh.retrieveelementdimension(etype); 
+                if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                    element_coordinates=element_coordinates(1:2,:);
+                    N=N';
+                else
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                end
                 Number_of_Nodes = length(element_coordinates(1,:));
                 JM = dShape' * element_coordinates';
                 %Jacinv = inv(JM);
@@ -772,17 +833,48 @@ classdef TO_Constraints < handle
                     0 0 0 0 0 (1-2*nu)/2];                
                 detJ = det(JM);
             
+
+                if dim==2
+               alphav=zeros(3,1);
+               alphav(1:2,1)=[Dalpha_x,Dalpha_y];
+
+                % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
+                % - nu, 0; 0, 0, (1 - 2 * nu) / 2]; % plane strain
+                dCx = DE_dx / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
+
+                Bi = zeros(3, 2);
+                B = zeros(3, Number_of_Nodes * 2);
+            
+                for bi = 1:Number_of_Nodes
+                    Bi(1, 1) = DN(1, bi);
+                    Bi(2, 2) = DN(2, bi);
+                    Bi(3, 1) = DN(2, bi);
+                    Bi(3, 2) = DN(1, bi);
+            
+                    B(:, (bi - 1) * 2 + 1 : bi * 2) = Bi;
+                end                
+            elseif dim==3
+                alphav=zeros(6,1);
+                alphav(1:3,1)=[Dalpha_x,Dalpha_y,Dalpha_z];    
+
+
+
+                dCx=DE_dx/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];
+
                 Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
-                    for i=1:Number_of_Nodes
-                        Bi(1,1) = DN(1,i);
-                        Bi(2,2) = DN(2,i); 
-                        Bi(3,3) = DN(3,i);
-                        Bi(4,:) = [DN(2,i),DN(1,i),0];
-                        Bi(5,:) = [0,DN(3,i),DN(2,i)]; 
-                        Bi(6,:) = [DN(3,i),0,DN(1,i)];
-                        B(:,(i-1)*3+1:(i)*3)=Bi;
+                    for bi=1:Number_of_Nodes
+                        Bi(1,1) = DN(1,bi);
+                        Bi(2,2) = DN(2,bi); 
+                        Bi(3,3) = DN(3,bi);
+                        Bi(4,:) = [DN(2,bi),DN(1,bi),0];
+                        Bi(5,:) = [0,DN(3,bi),DN(2,bi)]; 
+                        Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
+                        B(:,(bi-1)*3+1:(bi)*3)=Bi;
         
                     end
+            end
                      %         B'*(dCx*alphav)*N'
                      F_T=detJ*(B'*(dCx*alphav)*N);
         
@@ -790,7 +882,14 @@ classdef TO_Constraints < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function[KUU,flag]=Integration_KuDerivative(~,natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx)
                 flag=[];
+                dim = mesh.retrieveelementdimension(etype); 
+                if dim==2
+                [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), 0);
+                    element_coordinates=element_coordinates(1:2,:);
+                    N=N';
+                else
                 [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                end
                 Number_of_Nodes = length(element_coordinates(1,:));
                 JM = dShape' * element_coordinates';
                 %Jacinv = inv(JM);
@@ -808,22 +907,49 @@ classdef TO_Constraints < handle
                 %[DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 [DE_dx]=CalculateMaterial_XDerivative(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
 
-                dCx = DE_dx./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
-                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
-                    0 0 0 0 0 (1-2*nu)/2];                
+              
                 detJ = det(JM);
             
+
+                if dim==2
+
+
+                % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
+                % - nu, 0; 0, 0, (1 - 2 * nu) / 2]; % plane strain
+                dCx = DE_dx / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
+
+                Bi = zeros(3, 2);
+                B = zeros(3, Number_of_Nodes * 2);
+            
+                for bi = 1:Number_of_Nodes
+                    Bi(1, 1) = DN(1, bi);
+                    Bi(2, 2) = DN(2, bi);
+                    Bi(3, 1) = DN(2, bi);
+                    Bi(3, 2) = DN(1, bi);
+            
+                    B(:, (bi - 1) * 2 + 1 : bi * 2) = Bi;
+                end                
+            elseif dim==3
+ 
+
+
+
+                dCx=DE_dx/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
+                    nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
+                    0 0 0 0 0 (1-2*nu)/2];
+
                 Bi=zeros(6,3);B=zeros(6,Number_of_Nodes*3);
-                    for i=1:Number_of_Nodes
-                        Bi(1,1) = DN(1,i);
-                        Bi(2,2) = DN(2,i); 
-                        Bi(3,3) = DN(3,i);
-                        Bi(4,:) = [DN(2,i),DN(1,i),0];
-                        Bi(5,:) = [0,DN(3,i),DN(2,i)]; 
-                        Bi(6,:) = [DN(3,i),0,DN(1,i)];
-                        B(:,(i-1)*3+1:(i)*3)=Bi;
+                    for bi=1:Number_of_Nodes
+                        Bi(1,1) = DN(1,bi);
+                        Bi(2,2) = DN(2,bi); 
+                        Bi(3,3) = DN(3,bi);
+                        Bi(4,:) = [DN(2,bi),DN(1,bi),0];
+                        Bi(5,:) = [0,DN(3,bi),DN(2,bi)]; 
+                        Bi(6,:) = [DN(3,bi),0,DN(1,bi)];
+                        B(:,(bi-1)*3+1:(bi)*3)=Bi;
         
                     end
+            end
                         
 
                 KUU=detJ*(B'*dCx*B);

@@ -5,6 +5,14 @@ Semiconductor_Height=1.2;
 Semiconductor_Width=1;
 Copper_bridge=0.2;
 electrode_width=0.1;
+
+element_copper=3;
+element_ceramic=5;
+element_semi_h=2;
+element_semi_w=2;
+element_bridge=5;
+
+
 SetFactory("OpenCASCADE");
 //+
 Rectangle(1) = {0, 0, 0, Semiconductor_Width, Semiconductor_Height, 0};
@@ -13,7 +21,7 @@ Extrude {0, Copper_Height, 0} {
   Curve{3}; 
 }
 //+
-Extrude {Copper_Height, 0, 0} {
+Extrude {Copper_bridge, 0, 0} {
   Curve{5}; 
 }
 //+
@@ -25,7 +33,7 @@ Extrude {0, -Semiconductor_Height, 0} {
   Curve{11}; 
 }
 //+
-Extrude {0, -Copper_bridge, 0} {
+Extrude {0, -Copper_Height, 0} {
   Curve{16}; Curve{1}; 
 }
 //+
@@ -45,15 +53,15 @@ Extrude {0, Ceramic_Height, 0} {
   Curve{7}; Curve{9}; Curve{12}; 
 }
 //+
-Transfinite Curve {2, 4, 14, 14, 15, 15} = 10 Using Progression 1;
+Transfinite Curve {2, 4, 14, 14, 15, 15} = element_semi_h+1 Using Progression 1;
 //+
-Transfinite Curve {20, 28, 21, 17, 18, 25, 13, 10, 5, 6, 6} = 3 Using Progression 1;
+Transfinite Curve {20, 28, 21, 17, 18, 25, 13, 10, 5, 6, 6} = element_copper+1 Using Progression 1;
 //+
-Transfinite Curve {32, 29, 30, 34, 34, 35, 35, 37, 37, 44, 44, 42, 42, 39, 40} = 4 Using Progression 1;
+Transfinite Curve {32, 29, 30, 34, 34, 35, 35, 37, 37, 44, 44, 42, 42, 39, 40} = element_ceramic+1 Using Progression 1;
 //+
-Transfinite Curve {41, 7, 3, 1, 22, 31, 36, 19, 19, 16, 11, 12, 12, 45, 45} = 8 Using Progression 1;
+Transfinite Curve {41, 7, 3, 1, 22, 31, 36, 19, 19, 16, 11, 12, 12, 45, 45} = element_semi_w+1 Using Progression 1;
 //+
-Transfinite Curve {43, 9, 9, 8, 8} = 2 Using Progression 1;
+Transfinite Curve {43, 9, 9, 8, 8} = element_bridge+1 Using Progression 1;
 //+
 Transfinite Surface {9};
 //+
@@ -108,3 +116,4 @@ Physical Curve("Electrode_MaxX", 54) = {25};
 Physical Curve("Contact_Ceramic", 55) = {27, 22, 19, 24, 12, 7, 9};
 //+
 Physical Surface("TO", 56) = {5, 1};
+

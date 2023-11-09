@@ -10,6 +10,7 @@ mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_He
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
 physics decoupledthermoelectromechanical
 solver NR
+#solver Arc-len
 InitialTemperature 298.15
 
 ## Bi2Te3 Mechanical Properties: https://repository.bilkent.edu.tr/server/api/core/bitstreams/502cdf62-9b13-4faf-b245-8196af9e81ab/content
@@ -90,21 +91,21 @@ bc Temperature bottom 323
 bc Displacement_x Ceramic_Bottom 0
 bc Displacement_y Ceramic_Bottom 0
 bc Displacement_z Ceramic_Bottom 0
-bc heat_n top 0
+bc heat_n top 1000
 bc Pressure_y top -0.9E6
 bc Displacement_z symmetry 0
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature top TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
-TopOpt_bc Voltage ElectrodeMinX 0.01 0.025  0.125
+TopOpt_bc Voltage ElectrodeMinX 0.01 0.025  0.1
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_Initial_x 1
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
-TopOpt_Constraint Power 0.011
+TopOpt_Constraint Power 0.025
 TopOpt_Constraint Volume 1
 #TopOpt_Constraint Stress 20E6
 TopOpt_Constraint Stress_Pnorm 10E6

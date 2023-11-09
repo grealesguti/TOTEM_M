@@ -1,6 +1,6 @@
 function [mat_x,Dmat_x] = CalculateMaterial_XDerivative(material,Th,x,p)
     TC=Th;
-    minmat=1e-9;
+    minmat=1e-6;
 
     mat=0;Dmat=0;pp=1;
     for i=1:length(material)

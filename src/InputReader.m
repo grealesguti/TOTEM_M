@@ -30,6 +30,11 @@ classdef InputReader < handle
         TopOpt_Initial_x
         KSUp
         Rst_name
+        NR_nloads
+        solver_threshold
+        solver
+        GI_order
+        Filter_Helmholtz_Density
     end
     
     methods
@@ -53,7 +58,11 @@ classdef InputReader < handle
             obj.meshFileName = 'defaultmesh.gmsh';
             obj.TopOpt_Initial_x=[];
             obj.Rst_name='Rst_';
-            
+            obj.NR_nloads=1;
+            obj.solver_threshold=1e-4;
+            obj.solver='NR';
+            obj.GI_order=3;
+            obj.Filter_Helmholtz_Density=1;
             while ~feof(inputFile)
                 line = fgetl(inputFile);
                 %%disp(line)
@@ -76,6 +85,9 @@ classdef InputReader < handle
                     case 'rst_folder'
                             obj.rst_folder = tokens{2};
                             fprintf('Save folder: %s \n', obj.rst_folder);
+                    case 'solver'
+                            obj.solver = tokens{2};
+                            fprintf('Change solver to: %s \n', obj.solver);
                     case 'InitialTemperature'
                             obj.T0 = tokens{2};
                             fprintf('InitialTemperature: %s \n', obj.T0);
