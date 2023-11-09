@@ -211,7 +211,10 @@ classdef Mesh < handle
             elseif etype == "T3D2" % 8-node second order quadrangle
                 shapeFunctions = elements.EvaluateLinearLineShapeFunctions(xi);
                 shapeFunctionDerivatives = elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
-           elseif etype == "C3D8" % Hexahedral 8 node element
+            elseif etype == "T3D3" % 8-node second order quadrangle
+                shapeFunctions = elements.EvaluateLinearLineShapeFunctions(xi);
+                shapeFunctionDerivatives = elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
+            elseif etype == "C3D8" % Hexahedral 8 node element
                 shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
                 shapeFunctionDerivatives = elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
             elseif etype == "C3D20" % Hexahedral 20 node element
@@ -308,6 +311,10 @@ classdef Mesh < handle
                     node_el = 2;
                     flag = 5;
                     naturalcoordinates=obj.elements.GetHexahedralNodeLocations();
+                elseif etype_element == "T3D3" % 8-node second-order quadrangle
+                    node_el = 3;
+                    flag = 6;
+                    naturalcoordinates=obj.elements.GetHexahedralNodeLocations();                    
                 else
                     flag = 0;
                     % Handle unsupported element types or return an error code
@@ -332,15 +339,17 @@ classdef Mesh < handle
         function [dim] = retrieveelementdimension(~,etype_element)
 
 
-                if etype_element == "CPS4" % 4-node quadrangle
-                    dim=2;
-                elseif etype_element == "T3D2" % 4-node quadrangle
+                if etype_element == "CPS4"      % DIM-2 4-node quadrangle
+                    dim=2;      
+                elseif etype_element == "T3D2"  % DIM-1 2-node line
                     dim=1;
-                elseif etype_element == "CPS8" % 8-node second-order quadrangle
+                elseif etype_element == "T3D3"  % DIM-1 3-node line
+                    dim=1;
+                elseif etype_element == "CPS8"  % DIM-2 8-node second-order quadrangle
                     dim=2;
-                elseif etype_element == "C3D8" % Hexahedral 8 node element
+                elseif etype_element == "C3D8"  % DIM-3 8-node Hexahedral 8 node element
                     dim=3;
-                elseif etype_element == "C3D20" % Hexahedral 20 node element
+                elseif etype_element == "C3D20" % DIM-3 20-node Hexahedral 20 node element
                     dim=3;
                 else
                     dim=-1;

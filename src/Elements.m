@@ -11,14 +11,7 @@ classdef Elements < handle
         
         % Destructor (MATLAB handles memory management, so no explicit destructor needed)
         
-        %% Evaluate shape functions for a linear triangular element with 4 nodes
-        function EvaluateLinearTriangularShapeFunctions(obj, xi, eta, shapeFunctions)
-            % Implement this method
-        end
-        function CalculateLinearTriangularShapeFunctionDerivatives(obj, xi, eta, shapeFunctiDerivatives)
-            % Implement this method
-        end
-        %% Evaluate shape functions for a linear line element with 2 nodes
+        %% DIM 1 - NODE 2 -Evaluate shape functions for a linear line element with 2 nodes
         function shapeFunctions = EvaluateLinearLineShapeFunctions(~, xi)
             % Define the shape functions as a 2x1 matrix
             shapeFunctions = zeros(2, 1);
@@ -35,66 +28,41 @@ classdef Elements < handle
             shapeFunctionDerivatives(1) = -0.5; % Derivative of N1 with respect to xi
             shapeFunctionDerivatives(2) = 0.5;  % Derivative of N2 with respect to xi
         end
-        %% Evaluate shape functions for a quadratic quadrilateral element with 8 nodes
-        function shapeFunctions = EvaluateQuadraticQuadrilateralShapeFunctions(~, xi, eta)
-            % Define the shape functions as an 8x1 matrix
-            shapeFunctions = zeros(8, 1);
-            
-            % Compute the shape functions for a quadratic quadrilateral element
-            shapeFunctions(1) = 0.25 * (xi - 1) * (eta - 1) * xi * eta; % N1
-            shapeFunctions(2) = -0.5 * (xi - 1) * (xi + 1) * (eta - 1) * eta; % N2
-            shapeFunctions(3) = 0.25 * (xi + 1) * (eta - 1) * xi * eta; % N3
-            shapeFunctions(4) = -0.5 * (xi + 1) * (xi - 1) * (eta + 1) * eta; % N4
-            shapeFunctions(5) = 0.25 * (xi - 1) * (eta + 1) * xi * eta; % N5
-            shapeFunctions(6) = -0.5 * (xi - 1) * (xi + 1) * (eta + 1) * eta; % N6
-            shapeFunctions(7) = 0.25 * (xi + 1) * (eta + 1) * xi * eta; % N7
-            shapeFunctions(8) = -0.5 * (xi + 1) * (xi - 1) * (eta - 1) * eta; % N8
+        %% DIM 1 - NODE 3 -Evaluate shape functions for a quadratic line element with 3 nodes
+        function shapeFunctions = EvaluateQuadraticLineShapeFunctions(~, xi)
+
+            % Define the shape functions as a 3x1 matrix
+            shapeFunctions = zeros(3, 1);
+        
+            % Compute the shape functions for a quadratic line element
+            shapeFunctions(1) = 0.5 * xi * (xi - 1); % N1
+            shapeFunctions(2) = 1 - xi^2;             % N3
+            shapeFunctions(3) = 0.5 * xi * (xi + 1); % N2            
         end
-        function shapeFunctionDerivatives = EvaluateQuadraticQuadrilateralShapeFunctionDerivatives(~, xi, eta)
-            % Ensure the shapeFunctionDerivatives matrix is of the correct size (8 nodes x 2 derivatives)
-            shapeFunctionDerivatives = zeros(8, 2);
+        function shapeFunctionDerivatives = EvaluateQuadraticLineShapeFunctionDerivatives(~, xi)
+            % Ensure the shapeFunctionDerivatives matrix is of the correct size (3 nodes x 1 derivative)
+            shapeFunctionDerivatives = zeros(3, 1);
         
-            % Define the derivatives of shape functions for a quadratic quadrilateral element
-            shapeFunctionDerivatives(1, 1) = 0.25 * (2 * xi - 1) * (eta - 1); % dN1/dxi
-            shapeFunctionDerivatives(1, 2) = 0.25 * (xi - 1) * (2 * eta - 1); % dN1/deta
-        
-            shapeFunctionDerivatives(2, 1) = -0.5 * (xi + 1) * (eta - 1); % dN2/dxi
-            shapeFunctionDerivatives(2, 2) = -0.5 * (xi - 1) * (2 * eta - 1); % dN2/deta
-        
-            shapeFunctionDerivatives(3, 1) = 0.25 * (2 * xi + 1) * (eta - 1); % dN3/dxi
-            shapeFunctionDerivatives(3, 2) = 0.25 * (xi + 1) * (2 * eta - 1); % dN3/deta
-        
-            shapeFunctionDerivatives(4, 1) = -0.5 * (2 * xi + 1) * (eta + 1); % dN4/dxi
-            shapeFunctionDerivatives(4, 2) = -0.5 * (xi + 1) * (2 * eta + 1); % dN4/deta
-        
-            shapeFunctionDerivatives(5, 1) = 0.25 * (2 * xi - 1) * (eta + 1); % dN5/dxi
-            shapeFunctionDerivatives(5, 2) = 0.25 * (xi - 1) * (2 * eta + 1); % dN5/deta
-        
-            shapeFunctionDerivatives(6, 1) = -0.5 * (xi - 1) * (eta + 1); % dN6/dxi
-            shapeFunctionDerivatives(6, 2) = -0.5 * (xi + 1) * (2 * eta + 1); % dN6/deta
-        
-            shapeFunctionDerivatives(7, 1) = 0.25 * (2 * xi + 1) * (eta + 1); % dN7/dxi
-            shapeFunctionDerivatives(7, 2) = 0.25 * (xi + 1) * (2 * eta + 1); % dN7/deta
-        
-            shapeFunctionDerivatives(8, 1) = -0.5 * (2 * xi + 1) * (eta - 1); % dN8/dxi
-            shapeFunctionDerivatives(8, 2) = -0.5 * (xi - 1) * (2 * eta - 1); % dN8/deta
+            % Define the derivatives of shape functions for a quadratic line element
+            shapeFunctionDerivatives(1) = xi - 0.5; % dN1/dxi
+            shapeFunctionDerivatives(2) = -2 * xi;  % dN3/dxi
+            shapeFunctionDerivatives(3) = xi + 0.5; % dN2/dxi
         end
-        function nodes = GetQuadraticQuadNodeLocations(~)
-            % Define the coordinates of the 8 nodes for a quadratic quad element
+        function nodes = GetQuadraticLineNodeLocations(~)
+            % Define the coordinates of the 3 nodes for a quadratic line element
             nodes = [
-                -1, -1;
-                 0, -1;
-                 1, -1;
-                 1,  0;
-                 1,  1;
-                 0,  1;
-                -1,  1;
-                -1,  0;
+                -1;
+                 0;
+                 1;
             ];
         end
-
-        
-        %% Evaluate shape functions for a linear quadrilateral element with 4 nodes
+        %% DIM 2 - NODE 3 - Evaluate shape functions for a linear triangular element with 4 nodes
+        function EvaluateLinearTriangularShapeFunctions(obj, xi, eta, shapeFunctions)
+            % Implement this method
+        end
+        function CalculateLinearTriangularShapeFunctionDerivatives(obj, xi, eta, shapeFunctiDerivatives)
+            % Implement this method
+        end        %% DIM 2 - NODE 4 -Evaluate shape functions for a linear quadrilateral element with 4 nodes
         function shapeFunctions = EvaluateLinearQuadrilateralShapeFunctions(~,xi, eta)
             % Define the shape functions as a 4x1 matrix
             shapeFunctions = zeros(4, 1);
@@ -131,59 +99,72 @@ classdef Elements < handle
                 -1,  1;
             ];
         end
-        %% Evaluate shape functions for a quadratic quadrilateral element with 8 nodes
+        %% DIM 2 - NODE 8 - Evaluate shape functions for a quadratic quadrilateral element with 8 nodes
+        % data from https://www.meil.pw.edu.pl/zwmik/content/download/50088/264514/file/FEM_1_9_8node_2D.pdf
         function shapeFunctions=EvaluateQuadraticQuadrilateralShapeFunctions(~, xi, eta)
             % Ensure the shapeFunctions vector is of the correct size (8 nodes)
             shapeFunctions = zeros(8, 1);
      
             % Shape functions for the four corner nodes
-            shapeFunctions(1) = 0.25 * (1 - xi) * (1 - eta) * (- xi - eta - 1);
-            shapeFunctions(2) = 0.25 * (1 + xi) * (1 - eta) * (+ xi - eta - 1);
-            shapeFunctions(3) = 0.25 * (1 + xi) * (1 + eta) * (+ xi + eta - 1);
-            shapeFunctions(4) = 0.25 * (1 - xi) * (1 + eta) * (- xi + eta - 1);
+            shapeFunctions(1) = -0.25 * (1 - xi) * (1 - eta) * (1 + xi + eta);
+            shapeFunctions(2) = -0.25 * (1 + xi) * (1 - eta) * (1 - xi + eta);
+            shapeFunctions(3) = -0.25 * (1 + xi) * (1 + eta) * (1 - xi - eta);
+            shapeFunctions(4) = -0.25 * (1 - xi) * (1 + eta) * (1 + xi - eta);
         
             % Shape functions for the four mid-side nodes
-            shapeFunctions(5) = 0.5 * (1 - xi) * (1 + xi) * (1 - eta);
-            shapeFunctions(6) = 0.5 * (1 + xi) * (1 + eta) * (1 - eta);
-            shapeFunctions(7) = 0.5 * (1 - xi) * (1 + xi) * (1 + eta);
-            shapeFunctions(8) = 0.5 * (1 - xi) * (1 - eta) * (1 - eta);
+            shapeFunctions(5) = 0.5 * (1 - xi*xi)   * (1 - eta);
+            shapeFunctions(6) = 0.5 * (1 + xi)      * (1 - eta*eta);
+            shapeFunctions(7) = 0.5 * (1 - xi*xi)   * (1 + eta);
+            shapeFunctions(8) = 0.5 * (1 - xi)      * (1 - eta*eta);
         end
         function shapeFunctionDerivatives=CalculateQuadraticQuadrilateralShapeFunctionDerivatives(~, xi, eta)
             % Ensure the shapeFunctionDerivatives matrix is of the correct size (8 nodes x 2 derivatives)
             shapeFunctionDerivatives = zeros(8, 2);
-              
-            shapeFunctionDerivatives(1, 1) = -0.25 * (-1 + eta) * (2*xi + eta);  % dN1/dxi
-            shapeFunctionDerivatives(1, 2) = -0.25 * (-1 +xi) * (xi + 2*eta);   % dN1/deta
 
-            shapeFunctionDerivatives(2, 1) = 0.25 * (-1 + eta) * (eta - 2*xi);   % dN2/dxi
-            shapeFunctionDerivatives(2, 2) = 0.25 * (1 + xi) * (2*eta - xi);   % dN2/deta
+            shapeFunctionDerivatives(1,1) = -0.25 * ((-1) * (1 - eta) * (1 + xi + eta) + (1 - xi) * (1 - eta) * (+1));
+            shapeFunctionDerivatives(2,1) = -0.25 * ((+1) * (1 - eta) * (1 - xi + eta) + (1 + xi) * (1 - eta) * (-1));
+            shapeFunctionDerivatives(3,1) = -0.25 * ((+1) * (1 + eta) * (1 - xi - eta) + (1 + xi) * (1 + eta) * (-1));
+            shapeFunctionDerivatives(4,1) = -0.25 * ((-1) * (1 + eta) * (1 + xi - eta) + (1 - xi) * (1 + eta) * (+1));
+           
+            shapeFunctionDerivatives(1,2) = -0.25 * ((1 - xi) * (-1) * (1 + xi + eta) + (1 - xi) * (1 - eta) * (+1));
+            shapeFunctionDerivatives(2,2) = -0.25 * ((1 + xi) * (-1) * (1 - xi + eta) + (1 + xi) * (1 - eta) * (+1));
+            shapeFunctionDerivatives(3,2) = -0.25 * ((1 + xi) * (+1) * (1 - xi - eta) + (1 + xi) * (1 + eta) * (-1));
+            shapeFunctionDerivatives(4,2) = -0.25 * ((1 - xi) * (+1) * (1 + xi - eta) + (1 - xi) * (1 + eta) * (-1));
 
-            shapeFunctionDerivatives(3, 1) = 0.25 * (1 + eta) * (2*xi + eta);   % dN3/dxi
-            shapeFunctionDerivatives(3, 2) = 0.25 * (1 + xi) * (xi + 2*eta);    % dN3/deta
+            % Shape functions for the four mid-side nodes
+            shapeFunctionDerivatives(5,1) = 0.5 * (1 - 2*xi)   * (1 - eta);
+            shapeFunctionDerivatives(6,1) = 0.5 * (+1)      * (1 - eta*eta);
+            shapeFunctionDerivatives(7,1) = 0.5 * (1 - 2*xi)   * (1 + eta);
+            shapeFunctionDerivatives(8,1) = 0.5 * (-1)      * (1 - eta*eta);
 
-            shapeFunctionDerivatives(4, 1) = -0.25 * (1 + eta) * (eta - 2*xi);  % dN4/dxi
-            shapeFunctionDerivatives(4, 2) = -0.25 * (-1 + xi) * (2*eta -xi);    % dN4/deta
+            % Shape functions for the four mid-side nodes
+            shapeFunctionDerivatives(5,2) = 0.5 * (1 - xi*xi)   * (-1);
+            shapeFunctionDerivatives(6,2) = 0.5 * (1 + xi)      * (1 - 2*eta);
+            shapeFunctionDerivatives(7,2) = 0.5 * (1 - xi*xi)   * (+1);
+            shapeFunctionDerivatives(8,2) = 0.5 * (1 - xi)      * (1 - 2*eta);
 
-            shapeFunctionDerivatives(5, 1) = xi * (-1 + eta);  % dN5/dxi
-            shapeFunctionDerivatives(5, 2) = 0.5 * (1 + xi) * (-1 + xi);    % dN5/deta
-
-            shapeFunctionDerivatives(6, 1) = -0.5 * (1 + eta) * (-1 + eta);   % dN6/dxi
-            shapeFunctionDerivatives(6, 2) = -eta * (1 + xi);    % dN6/deta
-
-            shapeFunctionDerivatives(7, 1) = -xi * (1 + eta);    % dN7/dxi
-            shapeFunctionDerivatives(7, 2) = -0.5 * (1 + xi) * (-1 - xi);   % dN7/deta
-            
-            shapeFunctionDerivatives(8, 1) = 0.5 * (1 + eta) * (-1 + eta);   % dN8/dxi
-            shapeFunctionDerivatives(8, 2) = eta * (-1 + xi);   % dN8/deta
         end
-        %% Evaluate shape functions for a linear tetrahedral element with 4 nodes
+        function nodes = GetQuadraticQuadNodeLocations(~)
+            % Define the coordinates of the 8 nodes for a quadratic quad element
+            nodes = [
+                 -1, -1;
+                 +1, -1;
+                 +1, +1;
+                 -1, +1;
+                  0, -1;
+                 +1,  0;
+                  0, +1;
+                 -1,  0;
+            ];
+        end
+        %% DIM 3 - NODE 4 - Evaluate shape functions for a linear tetrahedral element with 4 nodes
         function EvaluateLinearTetrahedraShapeFunctions(obj, xi, eta, zeta, shapeFunctions)
             % Implement this method
         end
         function CalculateLinearTetrahedraShapeFunctionDerivatives(obj, xi, eta, zeta, shapeFunctionDerivatives)
             % Implement this method
         end
-        %% Evaluate shape functions for a linear hexahedral element with 4 nodes
+        %% DIM 3 - NODE 8 - Evaluate shape functions for a linear hexahedral element with 4 nodes
         function nodes =  GetHexahedralNodeLocations(~)
             % Define the coordinates of the 8 nodes
             nodes = [
@@ -249,7 +230,7 @@ classdef Elements < handle
             shapeFunctionDerivatives(8, 2) = 0.125 * (1 - xi) * (1 + zeta);   % dN8/deta
             shapeFunctionDerivatives(8, 3) = 0.125 * (1 - xi) * (1 + eta);   % dN8/dzeta
         end
-        %% Evaluate shape functions for a hexahedral serendipity element with 20 nodes
+        %% DIM 3 - NODE 20 - Evaluate shape functions for a hexahedral serendipity element with 20 nodes
         function nodes = GetSerendipityQuadHexahedralNodeLocations(~)
             % Define the coordinates of the 20 nodes
             nodes = [

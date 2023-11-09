@@ -19,10 +19,14 @@ classdef ThermoelectricBenchmarks < handle
         function obj = ThermoelectricBenchmarks()
             close all;
             %THERMOELECTRICBENCHMARKS Construct an instance of this class
-            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_LinearUncoupledSeebeck.txt";
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_LinearUncoupledSeebeck.txt"; % Hex DIM-3 nodes-8
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_NonLinCouplSEffect.txt";
-            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt";
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt"; % Hex DIM-3 nodes-20 
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_Quad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt"; % Quad DIM-2 nodes-4
+            Benchmark_Perez_Aparicio_NonLinCouplSEffect_Quad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_QuadQuad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt"; % Quad DIM-2 nodes-8
+            Benchmark_Perez_Aparicio_NonLinCouplSEffect_QuadQuad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
 
             obj.Benchmarks={
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear;
@@ -30,7 +34,7 @@ classdef ThermoelectricBenchmarks < handle
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity;
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity};
 
-            obj.BenchmarksFunctions=[1,2,1,2];
+            obj.BenchmarksFunctions=[1,2,1,2,1,2];
 
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
             %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);

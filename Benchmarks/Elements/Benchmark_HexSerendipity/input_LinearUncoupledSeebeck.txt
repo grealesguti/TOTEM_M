@@ -11,8 +11,8 @@ InitialTemperature 273.15
 ## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
 ##
 material Volume
-Seebeck 2 1.802E-4 +3.861E-7 -9.582E-10
-ThermalConductivity 2 1.758 -5.29E-3 4.134E-5 
+Seebeck 1 8.2121E-05 3.5980E-07
+ThermalConductivity 1 2.9176 -0.0043
 ElectricalConductivity 2 1.028E+5 -5.369E2 1.824
 ThermalExpansionCoefficient_x 0 0.0
 ThermalExpansionCoefficient_y 0 0.001
@@ -20,15 +20,15 @@ ThermalExpansionCoefficient_z 0 0.0
 YoungModulus 0 100000000
 PoissonRatio 0 0.33
 
-
 ## Boundary Conditions: bc <boundaryname> <surfacename> <value>
 bc Voltage Ymax 0.0
 bc Temperature Ymin 273.15
-#bc Temperature Ymax 298.15
-bc heat_n Ymax 10000
+bc Temperature Ymax 298.15
 bc Displacement_y Ymin 0
 bc Displacement_x Volume 0
 bc Displacement_z Volume 0
+#bc heat_n Ymax 10000
+
 
 ## Output Options
 ## output <data> <path/outputname>
