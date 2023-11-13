@@ -30,9 +30,10 @@ function qth = CalculateTotalCurrentDensity_nodes(reader,mesh,solver)
                 Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
                 Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
-                
-                [De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                [Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ElectricalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ElectricalConductivity')];
+                [De,Dde]=CalculateMaterialProperties(Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_Seebeck'),reader.getmaterialproperty(element_material_index,'Tmax_Seebeck')];
+                [Da,Dda]=CalculateMaterialProperties(Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 je = -De * DN * Vee' - Da * De * DN * Tee';
                 qth(:,element_nodes(j))=je;
         end

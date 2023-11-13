@@ -81,10 +81,21 @@ classdef TopOpt
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function  runMMA(obj,reader,mesh)
+            close all
             bcinit = BCInit(reader, mesh);
-            filtering = Filtering(reader,mesh);
+                if reader.Filter>0
+                    filtering = Filtering(reader,mesh);
+                end
             solver = Solver(mesh, bcinit);
-            
+
+            % Specify the source file and destination folder
+            sourceFile = reader.filename;
+            destinationFolder = append(reader.rst_folder,'input.txt');
+            copyfile(sourceFile, destinationFolder);
+            sourceFile = reader.meshFileName;
+            destinationFolder = append(reader.rst_folder,'mesh.inp');
+            copyfile(sourceFile, destinationFolder);
+
             if strcmp(reader.solver,'NR')
                     residual_norm=solver.runNewtonRaphson(reader, mesh, bcinit);
                     odd_numbers = 1:2:length(solver.soldofs);
@@ -169,7 +180,9 @@ classdef TopOpt
             folderName = fullfile(reader.rst_folder, append(reader.Rst_name,'_', currentDate));
             mkdir(folderName);
             post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
-
+            if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                post.VTK_x_U(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+            end
             %% New derivatives
             TOO.CalculateObjective(reader,mesh,solver)
             TOC.CalculateConstraint(reader,mesh,solver);
@@ -206,8 +219,9 @@ classdef TopOpt
                 for i=1:length(obj.TOEL)
                     mesh.elements_density(obj.TOEL(i))=xmma(i);
                 end
-
-                filtering.filter_densities(reader,mesh)
+                if reader.Filter>0
+                    filtering.filter_densities(reader,mesh)
+                end
 
                 %% New NR starting point
                 % New Voltage drop
@@ -287,15 +301,17 @@ classdef TopOpt
                 end
 
                 post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
-
-                %% New objective, constraints and derivatives
+                if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                    post.VTK_x_U(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+                end
+            %% New objective, constraints and derivatives
                 TOC = TO_Constraints(reader,mesh,bcinit);
                 TOO = TO_Objectives(reader,mesh,bcinit);
                 TOO.CalculateObjective(reader,mesh,solver)
                 TOC.CalculateConstraint(reader,mesh,solver);
-
-                filtering.filter_sensitivities(reader,mesh,TOO,TOC)
-
+                if reader.Filter>0
+                    filtering.filter_sensitivities(reader,mesh,TOO,TOC)
+                end
                 %f0valold=obj.f0val;
                 obj.f0val = TOO.fval;
                 obj.df0dx = TOO.dfdx;
@@ -322,8 +338,11 @@ classdef TopOpt
 
                 kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
-                saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
-                post.SaveIterCSV(append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
+                %saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
+                saveas(1, append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.png']), 'png')
+                %post.SaveIterCSV(append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
+                %saveas(1, append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']), 'png')
+                post.SaveIterCSV(append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_','.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

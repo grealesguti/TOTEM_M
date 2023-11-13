@@ -161,7 +161,7 @@ switch upper(dataType)
                 ncells=(length(cells(:,1)));
                 nodepercell=int2str(length(cells(1,:)));
                 nodepercellint=length(cells(1,:));
-                if nodepercellint>8
+                if nodepercellint>=8
                     nodepercell=8;cells=cells(:,1:8);
                     cell_type=12;celltypecol=zeros(ncells,1);celltypecol(:,1)=cell_type;
                 elseif nodepercellint==4

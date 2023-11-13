@@ -60,8 +60,8 @@ for i = 1:total_number_of_elements
     Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
     DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
     nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
-
-    [DE,DdE]=CalculateMaterialProperties(DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
+    [DE,DdE]=CalculateMaterialProperties(DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
 
 

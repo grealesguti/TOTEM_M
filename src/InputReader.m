@@ -35,6 +35,7 @@ classdef InputReader < handle
         solver
         GI_order
         Filter_Helmholtz_Density
+        Filter
     end
     
     methods
@@ -43,6 +44,9 @@ classdef InputReader < handle
             obj.TopOpt_Objective ='';
             obj.readFile();
             obj.addPenaltyKeys();
+            obj.addTmaterialminlimits();
+            obj.addTmaterialmaxlimits();
+
             %fprintf('Read Input: ' +filename+  '\n');
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -61,8 +65,8 @@ classdef InputReader < handle
             obj.NR_nloads=1;
             obj.solver_threshold=1e-4;
             obj.solver='NR';
-            obj.GI_order=3;
-            obj.Filter_Helmholtz_Density=1;
+            obj.GI_order=4;
+            obj.Filter=0;
             while ~feof(inputFile)
                 line = fgetl(inputFile);
                 %%disp(line)
@@ -91,6 +95,14 @@ classdef InputReader < handle
                     case 'InitialTemperature'
                             obj.T0 = tokens{2};
                             fprintf('InitialTemperature: %s \n', obj.T0);
+                    case 'Filter'
+                        if strcmp(tokens{2},'Helmholtz')
+                            obj.Filter = 1;
+                            fprintf('HelmholtzFiltering');
+                        elseif strcmp(tokens{2},'Helmholtz_Dirichlet')
+                            obj.Filter = 2;
+                            fprintf('HelmholtzFiltering');
+                        end
                     case 'TopOpt_Objective'
                             obj.TopOpt_Objective = tokens{2};
                             obj.TopOpt_ObjectiveSelection = tokens{3};
@@ -150,6 +162,9 @@ classdef InputReader < handle
                                     propertyValue=zeros(1+propertyPol,1);
                                     for i = 3:(3+propertyPol)
                                         propertyValue(i-2)=str2double(propertyTokens{i});
+                                    end
+                                    if propertyPol>0
+                                        
                                     end
                                     materialProperties(propertyName) = propertyValue;
                                 else
@@ -237,6 +252,78 @@ classdef InputReader < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function addTmaterialminlimits(obj)
+            % Loop through each materialProperties map
+            for i = 1:numel(obj.MaterialProperties)
+                material = obj.MaterialProperties{i};
+                newMaterial = containers.Map();  % Create a new map for modified properties
 
+                % Loop through each key-value pair in the current material
+                keys = material.keys;
+                for j = 1:numel(keys)
+                    key = keys{j};
+
+                    % Check if the key does not start with 'Penalty_'
+                    if ~startsWith(key, 'Tmin_')
+                    % Check if the key does not start with 'Penalty_'
+                        other=0;
+                        penalkey=append('Tmin_',key);
+                        for k = 1:numel(keys)
+                            other_key=keys{k};
+                            if strcmp(other_key,penalkey)
+                                other=1;
+                            end
+                        end
+                        % Create a new key with 'Penalty_' prefix
+                        if other==0
+                            newKey = ['Tmin_', key];
+                            % Assign a value of 1 to the new key
+                            newMaterial(newKey) = 150;
+                        end
+                    end
+                end
+
+                % Update the materialProperties map with the modified properties
+                obj.MaterialProperties{i} = [material; newMaterial];
+            end
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function addTmaterialmaxlimits(obj)
+            % Loop through each materialProperties map
+            for i = 1:numel(obj.MaterialProperties)
+                material = obj.MaterialProperties{i};
+                newMaterial = containers.Map();  % Create a new map for modified properties
+
+                % Loop through each key-value pair in the current material
+                keys = material.keys;
+                for j = 1:numel(keys)
+                    key = keys{j};
+
+                    % Check if the key does not start with 'Penalty_'
+                    if ~startsWith(key, 'Tmax_')
+                    % Check if the key does not start with 'Penalty_'
+                        other=0;
+                        penalkey=append('Tmax_',key);
+                        for k = 1:numel(keys)
+                            other_key=keys{k};
+                            if strcmp(other_key,penalkey)
+                                other=1;
+                            end
+                        end
+                        % Create a new key with 'Penalty_' prefix
+                        if other==0
+                            newKey = ['Tmax_', key];
+                            % Assign a value of 1 to the new key
+                            newMaterial(newKey) = 1000;
+                        end
+                    end
+                end
+
+                % Update the materialProperties map with the modified properties
+                obj.MaterialProperties{i} = [material; newMaterial];
+            end
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end

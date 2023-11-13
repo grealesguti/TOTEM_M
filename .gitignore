@@ -2,4 +2,5 @@
 *.vtk
 *test.m
 *Results
+TECTO/Results_old
 testingdataandfunctions

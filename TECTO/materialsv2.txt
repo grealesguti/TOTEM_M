@@ -1,0 +1,39 @@
+material SemiconductorL p+
+Seebeck 6 0.00395834903396082	-8.21630720605980e-05	7.00050369895092e-07	-3.08848680215330e-09	7.47186213529937e-12	-9.39776393793923e-15	4.80084055509273e-18
+Tmin_Seebeck 0 177.1991
+Tmax_Seebeck 0 478.2327
+Penalty_Seebeck 0 1
+ThermalConductivity 6 -76.4090144833890 1.23171579111705 -0.00763637603912498 2.45386965957159e-05 -4.36034353965703e-08 4.09158764594079e-11 -1.58786740461536e-14 
+Tmin_ThermalConductivity 0 235
+Tmax_ThermalConductivity 0 605
+Penalty_ThermalConductivity 0 3
+ElectricalConductivity 6 -27262198.1036887	588247.262563445	-4995.92247646927	21.9539864563205	-0.0530483608943581	6.70138046534569e-05	-3.46165354997548e-08
+Tmin_ElectricalConductivity 0 173.4654
+Tmax_ElectricalConductivity 0 451.5688
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
+PoissonRatio 0 0.241
+
+material SemiconductorR n-
+Seebeck 6 -0.0252504406925858	0.000379205802844593	-2.36503167119014e-06	7.81338702959586e-09	-1.44379050326911e-11	1.41527648059317e-14	-5.74827455850273e-18
+Penalty_Seebeck 0 1
+Tmin_Seebeck 0 292.8206 
+Tmax_Seebeck 0 529.4214
+ThermalConductivity 6 -76.4090144833890 1.23171579111705 -0.00763637603912498 2.45386965957159e-05 -4.36034353965703e-08 4.09158764594079e-11 -1.58786740461536e-14 
+Tmin_ThermalConductivity 0 235 
+Tmax_ThermalConductivity 0 605
+Penalty_ThermalConductivity 0 3
+ElectricalConductivity  6 -33142409.8065182	474861.066485116	-2767.98850810862	8.47610452706777	-0.0144082956458677	1.28958078355127e-05	-4.74693289736698e-09
+Tmin_ElectricalConductivity 0 289.1785
+Tmax_ElectricalConductivity 0 618.6265
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 3
+PoissonRatio 0 0.241

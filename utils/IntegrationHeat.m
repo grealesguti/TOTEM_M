@@ -11,7 +11,8 @@ function Qth = IntegrationHeat(natural_coordinates, element_coordinates, Tee, Ve
                 Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 %[De]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 %[Da]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ThermalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ThermalConductivity')];
+                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
                 Qth=detJ*(-Dk*DN*Tee);
 end
 

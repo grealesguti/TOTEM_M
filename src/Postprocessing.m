@@ -56,14 +56,16 @@ classdef Postprocessing < handle
             % Append the date and '.vtk' extension to the filepath
             dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
             outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
-
+            
             Ux=zeros(obj.total_number_of_nodes,1);
             Uy=zeros(obj.total_number_of_nodes,1);
             Uz=zeros(obj.total_number_of_nodes,1);
             for i=1:obj.total_number_of_nodes
-                Ux(i) = solver.soldofs_mech((i-1)*3+1);
-                Uy(i) = solver.soldofs_mech((i-1)*3+2);
-                Uz(i) = solver.soldofs_mech((i-1)*3+3);
+                Ux(i) = solver.soldofs_mech((i-1)*obj.dim+1);
+                Uy(i) = solver.soldofs_mech((i-1)*obj.dim+2);
+                if obj.dim==3
+                    Uz(i) = solver.soldofs_mech((i-1)*obj.dim+obj.dim);
+                end
             end
     
             vtkwrite( outputFilePath, ...
@@ -172,6 +174,34 @@ classdef Postprocessing < handle
                 'CELLS',obj.element_node_idxs, ...
                 'CELL_DATA',xx(obj.mesh_elements)',...
                 'data','POINT_DATA',[Tn';Vn']','TV','Test',[],'precision',5)        
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_x_U(obj,mesh,solver,filepath)
+            % Append the date and '.vtk' extension to the filepath
+            outputFilePath = filepath;         
+            
+            xx = mesh.elements_density;
+
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
+            
+            Ux=zeros(obj.total_number_of_nodes,1);
+            Uy=zeros(obj.total_number_of_nodes,1);
+            Uz=zeros(obj.total_number_of_nodes,1);
+            for i=1:obj.total_number_of_nodes
+                Ux(i) = solver.soldofs_mech((i-1)*obj.dim+1);
+                Uy(i) = solver.soldofs_mech((i-1)*obj.dim+2);
+                if obj.dim==3
+                    Uz(i) = solver.soldofs_mech((i-1)*obj.dim+obj.dim);
+                end
+            end
+    
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'CELL_DATA',xx(obj.mesh_elements)',...
+                'data','POINT_DATA',[Ux';Uy';Uz']','U','Test',[],'precision',5)             
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_matidx_TV(obj,mesh,solver,filepath)
@@ -391,7 +421,7 @@ classdef Postprocessing < handle
             % Set the background color of the figure to white
             set(gcf, 'Color', 'white')
             plot(sorted_Un_loc, sorted_Un, '-o')  % Use 'o' for markers
-            ylabel('Temperature [K]')
+            ylabel('Displacement [m]')
             xlabel('Location [m]')
 
         end

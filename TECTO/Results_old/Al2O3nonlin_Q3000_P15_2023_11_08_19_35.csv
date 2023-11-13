@@ -1,0 +1,2 @@
+Iteration,AverageTemperature,Power_value,Power_right_value,Volume_value,Volume_right_value,Stress_Pnorm_value,Stress_Pnorm_right_value,Voltage_value,Voltage_right_value
+1,298.975691404218,0.00380019899518036,15.0570029849277,-0.255778166809643,0.744221833190357,-0.681754795995749,3182452.04004251,0.349999996097642,0.0518749995609847

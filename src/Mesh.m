@@ -212,8 +212,8 @@ classdef Mesh < handle
                 shapeFunctions = elements.EvaluateLinearLineShapeFunctions(xi);
                 shapeFunctionDerivatives = elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
             elseif etype == "T3D3" % 8-node second order quadrangle
-                shapeFunctions = elements.EvaluateLinearLineShapeFunctions(xi);
-                shapeFunctionDerivatives = elements.EvaluateLinearLineShapeFunctionDerivatives(xi);
+                shapeFunctions = elements.EvaluateQuadraticLineShapeFunctions(xi);
+                shapeFunctionDerivatives = elements.EvaluateQuadraticLineShapeFunctionDerivatives(xi);
             elseif etype == "C3D8" % Hexahedral 8 node element
                 shapeFunctions = elements.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta);
                 shapeFunctionDerivatives = elements.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta);
@@ -356,6 +356,27 @@ classdef Mesh < handle
                 end
                           
         end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [dim] = retrieveelementnumberofnodes(~,etype_element)
+
+
+                if etype_element == "CPS4"      % DIM-2 4-node quadrangle
+                    dim=4;      
+                elseif etype_element == "T3D2"  % DIM-1 2-node line
+                    dim=2;
+                elseif etype_element == "T3D3"  % DIM-1 3-node line
+                    dim=3;
+                elseif etype_element == "CPS8"  % DIM-2 8-node second-order quadrangle
+                    dim=8;
+                elseif etype_element == "C3D8"  % DIM-3 8-node Hexahedral 8 node element
+                    dim=8;
+                elseif etype_element == "C3D20" % DIM-3 20-node Hexahedral 20 node element
+                    dim=20;
+                else
+                    dim=-1;
+                end
+                          
+        end        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [Elements_volume]=CalculateAllElementVolume(obj,reader)
             mesh_elements = obj.retrieveElementalSelection(reader.MeshEntityName);

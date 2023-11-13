@@ -19,6 +19,10 @@ classdef Filtering < handle
         TOEL
         nele_total
         m
+        Lin_number_of_nodes
+        etype
+        mu
+        beta
     end
 
     methods
@@ -30,18 +34,22 @@ classdef Filtering < handle
             obj.nele_total =length(mesh.data.ELEMENTS);
             obj.nele_TO=length(obj.TOEL);
             if mesh.dim==2
-                obj.nnv=4*4;
-                obj.nd=4;
+                obj.etype="CPS4";
             elseif mesh.dim==3
-                obj.nnv=8*8;
-                obj.nd=8;
+                obj.etype="C3D8";
             end
+            [obj.nd] = mesh.retrieveelementnumberofnodes(obj.etype);
+            obj.nnv=obj.nd^2;
             obj.nnod=length(mesh.data.NODE);
 
             Hnf=zeros(length(mesh.data.NODE),1);
-            for jj=1:length(obj.TOEL)
+            obj.Lin_number_of_nodes=obj.retrieveelementnumberofnodes(obj.etype);
+
+
+            for jj=1:length(obj.TOEL) % if quadratic elements only the first linear ones!!!, depends on element type
                 nodes_element=mesh.data.ELEMENTS(obj.TOEL(jj));
                 nodes=nodes_element{1};
+                nodes=nodes(1:obj.Lin_number_of_nodes);
                 Hnf(nodes,1)=1;
             end
             obj.TOdofs=find(Hnf==1);
@@ -49,6 +57,8 @@ classdef Filtering < handle
             obj.Newman=0;
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.Helmholtz_PDE_Initialization(reader,mesh)
+            obj.mu=0.5;
+            obj.beta=28;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function Helmholtz_PDE_Initialization(obj,reader,mesh)
@@ -73,9 +83,11 @@ classdef Filtering < handle
             no_TOEL_index=mesh_element_index-mesh_TOEL_index;
             noTOEL=find(no_TOEL_index==1); 
 
-            for jj=1:length(obj.TOEL)
+              
+
+            parfor jj=1:length(obj.TOEL)
                 elementTag=obj.TOEL(jj);
-                [Ke,Te,element_dof_indexes]= obj.GaussIntegration_H(mesh.dim,  reader.GI_order, elementTag, mesh, mesh.data.ElementTypes{elementTag},GaussfunctionTag) ;
+                [Ke,Te,element_dof_indexes]= obj.GaussIntegration_H(mesh.dim,  reader.GI_order, elementTag, mesh, obj.etype,GaussfunctionTag) ;
                 KJvnz(:,jj)=reshape(Ke,obj.nnv,1);
                 KJvc(:,jj)=reshape(repmat(element_dof_indexes',obj.nd,1),obj.nnv,1);
                 KJvr(:,jj)=reshape(repmat(element_dof_indexes,obj.nd,1)',obj.nnv,1);
@@ -144,9 +156,9 @@ classdef Filtering < handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %%%%% Ininitalization of elemental integration variables %%%%%
             element_nodes = mesh.data.ELEMENTS{elementTag};
-            number_of_nodes = length(element_nodes);
+            number_of_nodes = obj.Lin_number_of_nodes;
             element_coordinates=zeros(3,number_of_nodes);
-            element_dof_indexes=element_nodes;
+            element_dof_indexes=element_nodes(1:number_of_nodes);
             for i=1:number_of_nodes
                 element_coordinates(:,i)=mesh.data.NODE{element_nodes(i)};
             end
@@ -255,7 +267,7 @@ classdef Filtering < handle
             for jj=1:length(obj.TOEL)
                 ii=obj.TOEL(jj);
                 nodes_element=mesh.data.ELEMENTS{ii};
-                rhoallii=rhoall(nodes_element);
+                rhoallii=rhoall(nodes_element(1:obj.Lin_number_of_nodes));
                 if mesh.dim==2
                     [N, dShape] = mesh.selectShapeFunctionsAndDerivatives("CPS4", 0, 0, 0);
                 elseif mesh.dim==3
@@ -266,24 +278,71 @@ classdef Filtering < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function filter_densities(obj,reader,mesh)
-            if reader.Filter_Helmholtz_Density==1 
+            if reader.Filter>0
+            % Helmholtz
                         xx=mesh.elements_density(obj.TOEL);
                         mesh.elements_density(obj.TOEL)=obj.Helmholtz_xx(mesh,xx);
+            end
+            
+            if reader.Filter==2
+            % Heaviside
+                        for i =1:length(obj.TOEL)
+                            el_index=obj.TOEL(i);
+                            xe= mesh.elements_density(el_index);
+                            mesh.elements_density(el_index)=(tanh(obj.beta*obj.mu)+tanh(obj.beta*(xe-obj.mu)))/(tanh(obj.beta*obj.mu)+tanh(obj.beta*(1-obj.mu)));
+                        end
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function filter_sensitivities(obj,reader,mesh,TOO,TOC)
-            if reader.Filter_Helmholtz_Density==1  
+            if reader.Filter==1
                  xx=TOO.dfdx(1:length(obj.TOEL))';
                  TOO.dfdx(1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
+
+
+                 % Constraints Helmholtz
                  for j=1:obj.m
                         xx=TOC.dfdx(j,1:length(obj.TOEL));
                         TOC.dfdx(j,1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
                  end
             end
+
+            if reader.Filter==2
+                     for i =1:length(obj.TOEL)
+                            xe = TOO.dfdx(i);
+                            TOO.dfdx(i)=-(obj.beta * (tanh(obj.beta * (obj.mu - xe))^2 - 1)) / (2 * tanh(obj.beta * obj.mu));
+                     end
+                 % Constraints Heaviside
+                 for j=1:obj.m
+                     for i =1:length(obj.TOEL)
+                            xe = TOC.dfdx(j,i);
+                            TOC.dfdx(j,i)=-(obj.beta * (tanh(obj.beta * (obj.mu - xe))^2 - 1)) / (2 * tanh(obj.beta * obj.mu));
+                     end
+                 end       
+            end
         end        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [nodes] = retrieveelementnumberofnodes(~,etype_element)
 
+
+                if etype_element == "CPS4"      % DIM-2 4-node quadrangle
+                    nodes=4;      
+                elseif etype_element == "T3D2"  % DIM-1 2-node line
+                    nodes=2;
+                elseif etype_element == "T3D3"  % DIM-1 3-node line
+                    nodes=2;
+                elseif etype_element == "CPS8"  % DIM-2 8-node second-order quadrangle
+                    nodes=4;
+                elseif etype_element == "C3D8"  % DIM-3 8-node Hexahedral 8 node element
+                    nodes=8;
+                elseif etype_element == "C3D20" % DIM-3 20-node Hexahedral 20 node element
+                    nodes=8;
+                else
+                    nodes=-1;
+                end
+                          
+        end       
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     end
 end

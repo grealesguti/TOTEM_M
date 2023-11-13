@@ -21,9 +21,11 @@ classdef ThermoelectricBenchmarks < handle
             %THERMOELECTRICBENCHMARKS Construct an instance of this class
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_LinearUncoupledSeebeck.txt"; % Hex DIM-3 nodes-8
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexLinear = "Benchmarks/Elements/Benchmark_HexLinear/input_NonLinCouplSEffect.txt";
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear_Q = "Benchmarks/Elements/Benchmark_HexLinear/input_LinearUncoupledSeebeck_Q.txt";
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt"; % Hex DIM-3 nodes-20 
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
-            Benchmark_Perez_Aparicio_LinUncoupSEffect_Quad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt"; % Quad DIM-2 nodes-4
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity_Q = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck_Q.txt"; 
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_Quad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck_2D.txt"; % Quad DIM-2 nodes-4
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_Quad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
             Benchmark_Perez_Aparicio_LinUncoupSEffect_QuadQuad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt"; % Quad DIM-2 nodes-8
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_QuadQuad = "Benchmarks/Elements/Benchmark_HexSerendipity/input_NonLinCouplSEffect.txt";
@@ -31,10 +33,13 @@ classdef ThermoelectricBenchmarks < handle
             obj.Benchmarks={
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear;
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexLinear;
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear_Q;
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity;
-            Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity};
+            Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity;
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity_Q;
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_Quad};
 
-            obj.BenchmarksFunctions=[1,2,1,2,1,2];
+            obj.BenchmarksFunctions=[1,2,3,1,2,3,1];
 
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
             %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
@@ -60,7 +65,8 @@ classdef ThermoelectricBenchmarks < handle
                 elseif(obj.BenchmarksFunctions(i)==2)
                     Perez_Aparicio_CoupledSeebeck(obj,obj.Benchmarks{i},i)
                 elseif(obj.BenchmarksFunctions(i)==3)
-                    Perez_Aparicio_CoupledPeltier(obj,obj.Benchmarks{i},i)
+                    Perez_Aparicio_LinearUncoupledSeebeck_Q(obj,obj.Benchmarks{i},i)
+                    %Perez_Aparicio_CoupledPeltier(obj,obj.Benchmarks{i},i)
                 end
             end        
         end
@@ -120,6 +126,34 @@ classdef ThermoelectricBenchmarks < handle
                 hold on
                 UFEM = postprocessing.Benchmark_U_PLOT_axis(index,solver,2);
                 plot(xv,Ux)
+
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [xv,Tx,Vx,Ux] = Perez_Aparicio_LinearUncoupledSeebeck_Q(~,filename,index)
+
+                reader = InputReader(filename);
+                fprintf('Initialized InputReader with filename: %s\n', filename);
+                mesh = Mesh(reader);
+                fprintf('Initialized Mesh\n');
+                bcinit = BCInit(reader, mesh);
+                fprintf('Initialized Loads\n');
+                solver = Solver(mesh, bcinit);
+                solver.runNewtonRaphson(reader, mesh, bcinit);
+                fprintf('Postprocessing\n');
+                postprocessing = Postprocessing();
+                postprocessing.initVTK(reader,mesh);
+
+                figure(index)
+                hold on
+                subplot(1, 3,1);
+                hold on
+                TFEM = postprocessing.Benchmark_T_PLOT_axis(index,solver,2);
+                subplot(1, 3,2);
+                hold on
+                VFEM = postprocessing.Benchmark_V_PLOT_axis(index,solver,2);
+                subplot(1, 3,3);
+                hold on
+                UFEM = postprocessing.Benchmark_U_PLOT_axis(index,solver,2);
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

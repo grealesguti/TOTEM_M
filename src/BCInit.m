@@ -208,17 +208,8 @@ classdef BCInit < handle
             dim = mesh.retrieveelementdimension(etype);
             % Extract natural coordinates
             if dim==2
-                xi = 0;
-                eta = 0;
-                if size(natcoords, 1) >= 2 && size(natcoords, 2) >= 1
-                    xi = natcoords(1);  % Extracts the first element (a)
-                    eta = natcoords(2); % Extracts the second element (b)
-                else
-                    % Handle the case when natcoords doesn't have the expected dimensions.
-                    fprintf('Wrong natural coordinates dimension.\n');
-                    % You may want to print an error message or take appropriate action.
-                    return;
-                end
+                xi = natcoords(1);  % Extracts the first element (a)
+                eta = natcoords(2); % Extracts the second element (b)
             
                 % Calculate shape functions and their derivatives
                 [shapeFunctions,shapeFunctionDerivatives]=mesh.selectShapeFunctionsAndDerivatives(etype, xi, eta, -1);
@@ -359,7 +350,7 @@ classdef BCInit < handle
                     etype=mesh.data.ElementTypes{elementindexVector(1)};
                     dimint = mesh.retrieveelementdimension(etype);
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dimint, 3, element, value, mesh);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dimint, inputReader.GI_order, element, value, mesh);
                     %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
 
                         % Loop through elements for this worker
@@ -406,7 +397,7 @@ classdef BCInit < handle
                     etype=mesh.data.ElementTypes{elementindexVector(1)};
                     dim = mesh.retrieveelementdimension(etype);
                     % Create a function handle for gaussIntegrationBC and CteSurfBC
-                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dim, 3, element, value, mesh);
+                    gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(dim, inputReader.GI_order, element, value, mesh);
                     %gaussIntegrationBCFun = @(element) obj.gaussIntegrationBC(2, 3, element, value);
                     % Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
                     direction=0;

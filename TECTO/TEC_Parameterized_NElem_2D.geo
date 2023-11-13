@@ -6,10 +6,10 @@ Semiconductor_Width=1;
 Copper_bridge=0.2;
 electrode_width=0.1;
 
-element_copper=3;
+element_copper=5;
 element_ceramic=5;
-element_semi_h=2;
-element_semi_w=2;
+element_semi_h=40;
+element_semi_w=40;
 element_bridge=5;
 
 
@@ -117,3 +117,5 @@ Physical Curve("Contact_Ceramic", 55) = {27, 22, 19, 24, 12, 7, 9};
 //+
 Physical Surface("TO", 56) = {5, 1};
 
+//+
+Physical Curve("Lateral_Force_L", 57) = {40};

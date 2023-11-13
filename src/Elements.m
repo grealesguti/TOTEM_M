@@ -132,16 +132,16 @@ classdef Elements < handle
             shapeFunctionDerivatives(4,2) = -0.25 * ((1 - xi) * (+1) * (1 + xi - eta) + (1 - xi) * (1 + eta) * (-1));
 
             % Shape functions for the four mid-side nodes
-            shapeFunctionDerivatives(5,1) = 0.5 * (1 - 2*xi)   * (1 - eta);
+            shapeFunctionDerivatives(5,1) = 0.5 * (- 2*xi)   * (1 - eta);
             shapeFunctionDerivatives(6,1) = 0.5 * (+1)      * (1 - eta*eta);
-            shapeFunctionDerivatives(7,1) = 0.5 * (1 - 2*xi)   * (1 + eta);
+            shapeFunctionDerivatives(7,1) = 0.5 * (- 2*xi)   * (1 + eta);
             shapeFunctionDerivatives(8,1) = 0.5 * (-1)      * (1 - eta*eta);
 
             % Shape functions for the four mid-side nodes
             shapeFunctionDerivatives(5,2) = 0.5 * (1 - xi*xi)   * (-1);
-            shapeFunctionDerivatives(6,2) = 0.5 * (1 + xi)      * (1 - 2*eta);
+            shapeFunctionDerivatives(6,2) = 0.5 * (1 + xi)      * (- 2*eta);
             shapeFunctionDerivatives(7,2) = 0.5 * (1 - xi*xi)   * (+1);
-            shapeFunctionDerivatives(8,2) = 0.5 * (1 - xi)      * (1 - 2*eta);
+            shapeFunctionDerivatives(8,2) = 0.5 * (1 - xi)      * (- 2*eta);
 
         end
         function nodes = GetQuadraticQuadNodeLocations(~)

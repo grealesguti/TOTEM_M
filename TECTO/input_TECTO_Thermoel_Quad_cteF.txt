@@ -1,0 +1,117 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_QuadQuad.inp Surface mm
+
+rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
+physics decoupledthermoelectromechanical
+solver NR
+InitialTemperature 298.15
+dimension 2D 
+
+## Bi2Te3 Mechanical Properties: https://repository.bilkent.edu.tr/server/api/core/bitstreams/502cdf62-9b13-4faf-b245-8196af9e81ab/content
+## Bi2Te3 Thermal Expansion: https://www.researchgate.net/publication/227109210_Thermal_expansion_of_bismuth_telluride
+## Bi2Te3 Thermal Expansion: https://www.physics.purdue.edu/quantum/files/XChen_expansion_apl11.pdf
+## Bi2Te3 Thermoelectric Properties: https://link.springer.com/article/10.1007/s11664-015-3898-y
+## Copper Mechanical Properties: https://www.mit.edu/~6.777/matprops/copper.htm
+## Solder Mechanical Properties: https://www.metallurgy.nist.gov/solder/clech/Sn-Ag-Cu_Other.htm#Young , https://www.jstage.jst.go.jp/article/matertrans/46/6/46_6_1271/_pdf , https://www.electronics-cooling.com/2006/08/thermal-conductivity-of-solders/
+## Copper Electrical Properties: 
+## Solder Electrical Properties: https://us.rs-online.com/m/d/8d9ef1f686bf70839a288bf4fd8e669e.pdf
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
+##
+material SemiconductorR 
+Seebeck 6 0.00395834903396082 -8.21630720605980e-05 7.00050369895092e-07 -3.08848680215330e-09 7.47186213529937e-12 -9.39776393793923e-15 4.80084055509273e-18
+Tmin_Seebeck 0 177.1991
+Tmax_Seebeck 0 478.2327
+Penalty_Seebeck 0 1
+ThermalConductivity 6 -76.4090144833890 1.23171579111705 -0.00763637603912498 2.45386965957159e-05 -4.36034353965703e-08 4.09158764594079e-11 -1.58786740461536e-14 
+Tmin_ThermalConductivity 0 235
+Tmax_ThermalConductivity 0 605
+Penalty_ThermalConductivity 0 3
+ElectricalConductivity 6 -27262198.1036887 588247.262563445 -4995.92247646927 21.9539864563205 -0.0530483608943581 6.70138046534569e-05 -3.46165354997548e-08
+Tmin_ElectricalConductivity 0 173.4654
+Tmax_ElectricalConductivity 0 451.5688
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 5
+PoissonRatio 0 0.241
+
+#L needs to be n- (negative seebeck) with positive deltaV
+material SemiconductorL
+Seebeck 6 -0.0252504406925858 0.000379205802844593 -2.36503167119014e-06 7.81338702959586e-09 -1.44379050326911e-11 1.41527648059317e-14 -5.74827455850273e-18
+Penalty_Seebeck 0 1
+Tmin_Seebeck 0 292.8206 
+Tmax_Seebeck 0 529.4214
+ThermalConductivity 6 -76.4090144833890 1.23171579111705 -0.00763637603912498 2.45386965957159e-05 -4.36034353965703e-08 4.09158764594079e-11 -1.58786740461536e-14 
+Tmin_ThermalConductivity 0 235 
+Tmax_ThermalConductivity 0 605
+Penalty_ThermalConductivity 0 3
+ElectricalConductivity  6 -33142409.8065182	474861.066485116 -2767.98850810862	8.47610452706777 -0.0144082956458677 1.28958078355127e-05 -4.74693289736698e-09
+Tmin_ElectricalConductivity 0 289.1785
+Tmax_ElectricalConductivity 0 618.6265
+Penalty_ElectricalConductivity 0 3
+ThermalExpansionCoefficient_x 0 15E-6
+ThermalExpansionCoefficient_y 0 15E-6
+ThermalExpansionCoefficient_z 0 15E-6
+YoungModulus 0 61.6E9
+Penalty_YoungModulus 0 5
+PoissonRatio 0 0.241
+
+material Copper
+Seebeck 0 0
+ThermalConductivity 0 385
+ElectricalConductivity 0 59880239.52095808
+ThermalExpansionCoefficient_x 0 17E-6
+ThermalExpansionCoefficient_y 0 17E-6
+ThermalExpansionCoefficient_z 0 17E-6
+YoungModulus 0 130E9
+PoissonRatio 0 0.34
+
+material Ceramic # Al2O3
+Seebeck 0 0
+ThermalConductivity 0 50
+ElectricalConductivity 0 1
+ThermalExpansionCoefficient_x 0 19.5E-6
+ThermalExpansionCoefficient_y 0 19.5E-6
+ThermalExpansionCoefficient_z 0 19.5E-6
+YoungModulus 0 300E9
+PoissonRatio 0 0.21
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage Ceramic 0.0 # Removing dofs for the ceramic volume
+bc FreeDofs_Voltage Contact_Ceramic 0.0
+bc Voltage Electrode_MinX 0.0625
+bc Voltage Electrode_MaxX 0.0
+bc Temperature Ceramic_Bottom 350
+bc Displacement_x Ceramic_Bottom 0
+bc Displacement_y Ceramic_Bottom 0
+bc Displacement_z Ceramic_Bottom 0
+bc heat_n Ceramic_Top 5000
+#bc Pressure_y Ceramic_Top -1E6
+#bc Pressure_x Ceramic_Top +1E8
+bc Displacement_y Ceramic_Top +0.000
+
+## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
+TopOpt_Objective AverageTemperature Ceramic_Top TO
+Filter Helmholtz
+
+## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
+TopOpt_bc Voltage Electrode_MinX 0.005 0.01 0.06
+## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_Initial_x 0.5
+## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
+TopOpt_NR T previous  
+TopOpt_NR V proporcional
+## Topopoly Optimization Constraints
+TopOpt_Constraint Power 15
+TopOpt_Constraint Volume 1
+#TopOpt_Constraint Stress 20E6
+TopOpt_Constraint Stress_Pnorm 10E6
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk

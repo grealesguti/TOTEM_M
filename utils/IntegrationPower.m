@@ -17,10 +17,16 @@ function Powe = IntegrationPower(natural_coordinates, element_coordinates, Tee, 
                 Th = N * Tee';
 
                 Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
+                Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
-                
-                [De]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                [Da]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+
+
+                Dep = reader.getmaterialproperty(element_material_index,'ElectricalConductivity');
+                Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
+                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ElectricalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ElectricalConductivity')];
+                [De]=CalculateMaterialProperties(Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_Seebeck'),reader.getmaterialproperty(element_material_index,'Tmax_Seebeck')];
+                [Da]=CalculateMaterialProperties(Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
                 
                 je=-De*DN*Vee'-Da*De*DN*Tee';
