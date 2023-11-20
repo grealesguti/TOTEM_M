@@ -3,6 +3,7 @@
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
 #mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
 mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_10el.inp Volume mm
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex_last.inp Volume mm
 
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
 physics decoupledthermoelectromechanical
@@ -101,14 +102,16 @@ bc Temperature Ceramic_Bottom 350
 bc Displacement_x Ceramic_Bottom 0
 bc Displacement_y Ceramic_Bottom 0
 bc Displacement_z Ceramic_Bottom 0
-bc heat_n Ceramic_Top 6000
+bc heat_n Ceramic_Top 5000
 #bc Pressure_y Ceramic_Top -1E6
 #bc Pressure_x Ceramic_Top +1E8
 bc Displacement_y top +0.000
+bc Displacement_z Symmetry 0
+
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature top TO
-#Filter Helmholtz
+Filter Helmholtz
 
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage ElectrodeMinX 0.01 0.01 0.06

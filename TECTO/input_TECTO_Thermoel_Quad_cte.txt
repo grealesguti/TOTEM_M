@@ -97,7 +97,7 @@ bc Displacement_y Ceramic_Top +0.000
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ceramic_Top TO
-Filter Helmholtz
+#Filter Helmholtz
 
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage Electrode_MinX 0.005 0.01 0.06

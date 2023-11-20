@@ -12,7 +12,7 @@ sigmaVM0=zeros(total_number_of_elements,1);
 
 initialdofs = solver.soldofs;
 
-for i = 1:total_number_of_elements
+parfor i = 1:total_number_of_elements
 
     % Recover each element tag
     elementTag = mesh_elements(i);

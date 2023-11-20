@@ -210,3 +210,5 @@ Physical Curve("VoltageR_2D", 246) = {95};
 Physical Curve("TopCeramic_2D", 247) = {173, 176, 181};
 //+
 Physical Curve("BottomCeramic_2D", 248) = {194, 191, 200, 207};
+//+
+Physical Surface("Symmetry", 249) = {114, 32, 37, 42, 82, 77, 14, 19, 24, 107, 110, 27, 9, 6, 120, 123, 63, 52, 47, 127, 132, 57};

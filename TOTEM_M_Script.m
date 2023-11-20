@@ -25,32 +25,32 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
         %reader = InputReader("Benchmarks/Elements/Benchmark_HexSerendipity/input_LinearUncoupledSeebeck.txt");
         powval=15;
         qinval=5000;
-        filepath="TECTO/input_TECTO_Thermoel_Quad_cte_th.txt";      
-        reader = InputReader(filepath);
-        reader.Rst_name=append('Al2O3_nonlin_Q_',num2str(qinval),'_P',num2str(powval));
-        %reader.bcval(9)=qinval;
-        %reader.TopOpt_ConstraintValue(1)=powval;
-        mesh = Mesh(reader);
-        TO = TopOpt(reader,mesh);
-        TO.runMMA(reader,mesh)
-
-        filepath="TECTO/input_TECTO_Thermoel_Quad_cte.txt";      
-        reader = InputReader(filepath);
-        reader.Rst_name=append('Al2O3_nonlin_0topU_Q_',num2str(qinval),'_P',num2str(powval));
-        %reader.bcval(9)=qinval;
-        %reader.TopOpt_ConstraintValue(1)=powval;
-        mesh = Mesh(reader);
-        TO = TopOpt(reader,mesh);
-        TO.runMMA(reader,mesh)
-
-        filepath="TECTO/input_TECTO_Thermoel_Serend_cte.txt";   
-        reader = InputReader(filepath);
-        reader.Rst_name=append('Al2O3_nonlin_0topU_HF_3D_Q_',num2str(qinval),'_P',num2str(powval));
-        %reader.bcval(10)=qinval;
-        %reader.TopOpt_ConstraintValue(1)=powval;
-        mesh = Mesh(reader);
-        TO = TopOpt(reader,mesh);
-        TO.runMMA(reader,mesh)
+%         filepath="TECTO/input_TECTO_Thermoel_Quad_cte_th.txt";      
+%         reader = InputReader(filepath);
+%         reader.Rst_name=append('Al2O3_nonlin_Q_',num2str(qinval),'_P',num2str(powval));
+%         %reader.bcval(9)=qinval;
+%         %reader.TopOpt_ConstraintValue(1)=powval;
+%         mesh = Mesh(reader);
+%         TO = TopOpt(reader,mesh);
+%         TO.runMMA(reader,mesh)
+% 
+%         filepath="TECTO/input_TECTO_Thermoel_Quad_cte.txt";      
+%         reader = InputReader(filepath);
+%         reader.Rst_name=append('Al2O3_nonlin_0topU_Q_',num2str(qinval),'_P',num2str(powval));
+%         %reader.bcval(9)=qinval;
+%         %reader.TopOpt_ConstraintValue(1)=powval;
+%         mesh = Mesh(reader);
+%         TO = TopOpt(reader,mesh);
+%         TO.runMMA(reader,mesh)
+% 
+%         filepath="TECTO/input_TECTO_Thermoel_Serend_cte.txt";   
+%         reader = InputReader(filepath);
+%         reader.Rst_name=append('Al2O3_nonlin_0topU_HF_3D_Q_',num2str(qinval),'_P',num2str(powval));
+%         %reader.bcval(10)=qinval;
+%         %reader.TopOpt_ConstraintValue(1)=powval;
+%         mesh = Mesh(reader);
+%         TO = TopOpt(reader,mesh);
+%         TO.runMMA(reader,mesh)
 
         filepath="TECTO/input_TECTO_Thermoel_Serend_cte.txt";   
         reader = InputReader(filepath);

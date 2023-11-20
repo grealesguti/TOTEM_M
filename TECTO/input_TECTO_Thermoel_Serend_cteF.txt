@@ -102,6 +102,7 @@ bc Displacement_x Ceramic_Bottom 0
 bc Displacement_y Ceramic_Bottom 0
 bc Displacement_z Ceramic_Bottom 0
 bc heat_n Ceramic_Top 5000
+bc Displacement_z Symmetry 0
 #bc Pressure_y Ceramic_Top -1E6
 #bc Pressure_x Ceramic_Top +1E8
 bc Displacement_y top +0.000

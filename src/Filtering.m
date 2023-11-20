@@ -28,7 +28,8 @@ classdef Filtering < handle
     methods
         function obj = Filtering(reader,mesh)
             obj.TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-            r=mesh.Element_size*3;
+            
+            r=max([mesh.Element_size*3,0.00011]);
             obj.rd=( r/2/sqrt(3) )^2;
             obj.nele=length( mesh.retrieveElementalSelection(reader.MeshEntityName));
             obj.nele_total =length(mesh.data.ELEMENTS);
@@ -83,8 +84,6 @@ classdef Filtering < handle
             no_TOEL_index=mesh_element_index-mesh_TOEL_index;
             noTOEL=find(no_TOEL_index==1); 
 
-              
-
             parfor jj=1:length(obj.TOEL)
                 elementTag=obj.TOEL(jj);
                 [Ke,Te,element_dof_indexes]= obj.GaussIntegration_H(mesh.dim,  reader.GI_order, elementTag, mesh, obj.etype,GaussfunctionTag) ;
@@ -108,8 +107,10 @@ classdef Filtering < handle
             T=sparse(Tvrr,Tvcr,Tvnzr,obj.nnod,obj.nele_total);
 
             obj.Tt=T(obj.TOdofs,obj.TOEL);
-            obj.Kf=(Kfs31);
-            obj.L = distributed(ichol(Kfs31,struct('michol','on')));
+            obj.Kf=distributed(Kfs31);
+            %obj.L = distributed(ichol(Kfs31,struct('michol','on')));
+            obj.L = distributed(chol(Kfs31, 'lower'));
+
             KEF=Kfs3(obj.TOdofs,obj.Hn1);
             TEt=T(obj.TOdofs,noTOEL);
             obj.rho0=+Kfs31\(TEt*ones(length(noTOEL),1)-KEF*ones(length(obj.Hn1),1));
@@ -123,6 +124,7 @@ classdef Filtering < handle
                             N=N';
                         else
                             [N, dShape] = mesh.selectShapeFunctionsAndDerivatives(etype, natural_coordinates(1), natural_coordinates(2), natural_coordinates(3));
+                        
                         end        
                         JM = dShape' * element_coordinates';
                         detJ=det(JM);
@@ -272,6 +274,7 @@ classdef Filtering < handle
                     [N, dShape] = mesh.selectShapeFunctionsAndDerivatives("CPS4", 0, 0, 0);
                 elseif mesh.dim==3
                     [N, dShape] = mesh.selectShapeFunctionsAndDerivatives("C3D8", 0, 0, 0);
+                    N=N';
                 end
                 xx(jj)=N'*rhoallii;
             end

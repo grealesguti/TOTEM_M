@@ -231,7 +231,8 @@ classdef TO_Constraints < handle
             LP_dU=LP_dU/Pobj;
 
             %% Power sensitivity
-            ADJP(obj.freedofs)=(solver.KT(obj.freedofs,obj.freedofs))'\LP_dU(obj.freedofs);
+            ADJP(obj.freedofs)=distributed(solver.KT(obj.freedofs,obj.freedofs))'\distributed(LP_dU(obj.freedofs));
+
             etype=mesh.data.ElementTypes{obj.TOEL(1)};
             dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);

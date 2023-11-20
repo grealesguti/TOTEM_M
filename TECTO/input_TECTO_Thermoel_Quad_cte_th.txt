@@ -5,7 +5,7 @@
 mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_QuadQuad.inp Surface mm
 
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
-#physics decoupledthermoelectromechanical
+physics decoupledthermoelectromechanical
 solver NR
 InitialTemperature 298.15
 dimension 2D 
@@ -97,7 +97,7 @@ bc Displacement_y Ceramic_Top +0.000
 
 ## Topopoly Optimization Objective: TopOpt_Objective <ObjectiveName> <SurfaceName> <DesignElements>
 TopOpt_Objective AverageTemperature Ceramic_Top TO
-Filter Helmholtz
+#Filter Helmholtz
 
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage Electrode_MinX 0.005 0.01 0.06
@@ -110,7 +110,7 @@ TopOpt_NR V proporcional
 TopOpt_Constraint Power 15
 TopOpt_Constraint Volume 1
 #TopOpt_Constraint Stress 20E6
-TopOpt_Constraint Stress_Pnorm 10E6
+#TopOpt_Constraint Stress_Pnorm 10E6
 
 ## Output Options
 ## output <data> <path/outputname>
