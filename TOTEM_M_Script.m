@@ -52,9 +52,11 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
 %         TO = TopOpt(reader,mesh);
 %         TO.runMMA(reader,mesh)
 
-        filepath="TECTO/input_TECTO_Thermoel_Serend_cte.txt";   
+        filepath="TECTO/input_TECTO_Thermoel_Serend_240124.txt";   
+        %filepath="TECTO/input_TECTO_Thermoel_Quad_cteF_Rnd.txt";   
         reader = InputReader(filepath);
-        reader.Rst_name=append('Al2O3_nonlin_0topU_3D_Q_',num2str(qinval),'_P',num2str(powval));
+        reader.Rst_name=append('test','Al2O3_nonlin_0topU_3D_Q_',num2str(qinval),'_P',num2str(powval));
+
         %reader.bcval(10)=qinval;
         %reader.TopOpt_ConstraintValue(1)=powval;
         mesh = Mesh(reader);
@@ -94,7 +96,32 @@ inputfilename = "Benchmarks/Elements/Benchmark1_HexLinear/input_Benchmark1_LINEA
         %postprocessing.VTK_TV(solver,'test.vtk')
         %filter.filter_sensitivities(reader,mesh,TOO,TOC)
 
-        qmin=6000;qinval=qmin;qn=3;qinstep=(40000-qmin)/qn;
+qinvals = [3000, 10000, 20000]; % Replace with your desired values
+powvals = [0.015*scale, 0.05*scale, 0.1*scale]; % Replace with your desired values
+
+qn = numel(qinvals);
+initial_folder = reader.rst_folder;
+
+for i = 1:qn
+    qinval = qinvals(i);
+    
+        powval = powvals(i);
+
+        reader.bcval(9) = qinval;
+        reader.TopOpt_ConstraintValue(1) = powval;
+        mesh = Mesh(reader);
+        bcinit = BCInit(reader, mesh);
+
+        close all
+        reader.Rst_name = append('Al2O3_nonlin_0topdispl_Q_', num2str(qinval), '_P', num2str(powval));
+        %reader.Rst_name = append('Q', num2str(qinval), '_P', num2str(powval));
+        TO = TopOpt(reader, mesh);
+
+        TO.runMMA(reader, mesh)
+end
+
+
+        qmin=3000;qinval=qmin;qn=3;qinstep=(40000-qmin)/qn;
         scale=1000;
         pmin=0.015*scale;powval=pmin;pn=3;powstep=(0.1*scale-pmin)/pn;
         initial_folder=reader.rst_folder;

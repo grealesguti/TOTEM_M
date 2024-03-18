@@ -518,7 +518,7 @@ classdef TO_Constraints < handle
             LdT=zeros(total_number_of_nodes*1,1);
             Luel=zeros(total_number_of_elements,2);
 
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -659,7 +659,7 @@ classdef TO_Constraints < handle
             %Ld_U=zeros(total_number_of_elements,number_of_nodes*3*number_of_nodes*3);
             %Ld_U_dofs=zeros(total_number_of_elements,number_of_nodes*3);
 
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -787,8 +787,20 @@ classdef TO_Constraints < handle
                 %% FIXME: for parfor the Li and Li2 is a solution, another way is storing all coefficients and adding after the parfor loop
                 %Ld_U(i,:)=sVM0^(reader.KSUp-1)*daVM'*C*B; % L for mech dofs, which multiplies dU/dx
                 element_multiplier=sVM0^(reader.KSUp-1)*daVM';
-                LdU(element_dof_indexes_M)=LdU(element_dof_indexes_M)+(element_multiplier*C*B)';
-                LdT(element_dof_indexes_T)=LdT(element_dof_indexes_T)-(element_multiplier*C*alphav*N)';
+                %%
+                Li_M=zeros(number_of_nodes*dim,dim*total_number_of_nodes);
+                for ll=1:length(element_dof_indexes_M) % transformation matrix for parfor loop
+                    Li_M(ll,element_dof_indexes_M(ll))=1;
+                end
+
+                Li_T=zeros(number_of_nodes,total_number_of_nodes);
+                for ll=1:number_of_nodes  % transformation matrix for parfor loop
+                    Li_T(ll,element_nodes(ll))=1;
+                end
+
+                %%
+                LdU=LdU+(element_multiplier*C*B*Li_M)';
+                LdT=LdT-(element_multiplier*C*alphav*N*Li_T)';
                 Luel(i,:)=[element_multiplier*dCx*B*Uee',element_multiplier*(-dCx*alphav*N)*(Tee-str2double(reader.T0))'];  % L for mech and T dofs, which multiplies [U;(T-Tref)]
             end
             %Pnorm=(Summation_Pnorm/total_number_of_elements)^(1/reader.KSUp);

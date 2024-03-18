@@ -35,6 +35,8 @@ classdef Mesh < handle
                     error('Could not open the file.');
                 end
                 
+                
+                
                 obj.data = struct();
                 currentSection = '';
                 elementtypes = {};    % Loop through the lines in the file
@@ -193,6 +195,8 @@ classdef Mesh < handle
                 end
                 % Close the file
                 fclose(fid);
+
+                obj.CheckElementJacobian(inputReader)
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Add getter and setter methods here
@@ -401,6 +405,43 @@ classdef Mesh < handle
                 end
             end
         end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function [] = CheckElementJacobian(obj, reader)
+            mesh_elements = obj.retrieveElementalSelection(reader.MeshEntityName);
+            etype = obj.data.ElementTypes{mesh_elements(1)};
+            obj.dim = obj.retrieveelementdimension(etype);
+
+
+            for i = 1:length(mesh_elements)
+                element_Tag = mesh_elements(i);
+                element_nodes = obj.data.ELEMENTS{element_Tag};
+                number_of_nodes = length(element_nodes);
+                element_coordinates=zeros(3,number_of_nodes);
+                for j=1:number_of_nodes
+                        element_coordinates(:,j)=obj.data.NODE{element_nodes(j)};
+                end
+                if obj.dim==2
+                    element_coordinates=element_coordinates(1:2,:);
+                end
+                [N, dShape] = obj.selectShapeFunctionsAndDerivatives(etype, 0, 0, 0);                    
+                   
+              % Calculate Jacobian
+                JM = dShape' * element_coordinates';
+        
+                % Calculate Jacobian determinant
+                detJ = det(JM);
+        
+                % Check Jacobian determinant
+                if detJ < 0
+                    error('Jacobian determinant is less than 1e-5 for element %d.', element_Tag);
+                end
+
+            end
+        
+ 
+            end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end

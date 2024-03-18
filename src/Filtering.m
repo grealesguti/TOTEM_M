@@ -23,6 +23,7 @@ classdef Filtering < handle
         etype
         mu
         beta
+        xe_range
     end
 
     methods
@@ -59,7 +60,8 @@ classdef Filtering < handle
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.Helmholtz_PDE_Initialization(reader,mesh)
             obj.mu=0.5;
-            obj.beta=28;
+            obj.beta=8;
+            obj.xe_range=zeros(length(obj.TOEL)-1,1);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function Helmholtz_PDE_Initialization(obj,reader,mesh)
@@ -279,6 +281,26 @@ classdef Filtering < handle
                 xx(jj)=N'*rhoallii;
             end
         end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function xx=Helmholtz_dxx(obj,mesh,xx0)
+            B=obj.Tt*xx0';
+            xx=zeros(length(xx0),1);
+            [rhofnd0,fl,rr,it] = pcg(obj.Kf,B,1e-9,100,obj.L,obj.L');
+            rhoall=ones(obj.nnod,1);
+            rhoall(obj.TOdofs)=rhofnd0;%+obj.rho0;
+            for jj=1:length(obj.TOEL)
+                ii=obj.TOEL(jj);
+                nodes_element=mesh.data.ELEMENTS{ii};
+                rhoallii=rhoall(nodes_element(1:obj.Lin_number_of_nodes));
+                if mesh.dim==2
+                    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives("CPS4", 0, 0, 0);
+                elseif mesh.dim==3
+                    [N, dShape] = mesh.selectShapeFunctionsAndDerivatives("C3D8", 0, 0, 0);
+                    N=N';
+                end
+                xx(jj)=N'*rhoallii;
+            end
+        end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function filter_densities(obj,reader,mesh)
             if reader.Filter>0
@@ -292,7 +314,24 @@ classdef Filtering < handle
                         for i =1:length(obj.TOEL)
                             el_index=obj.TOEL(i);
                             xe= mesh.elements_density(el_index);
-                            mesh.elements_density(el_index)=(tanh(obj.beta*obj.mu)+tanh(obj.beta*(xe-obj.mu)))/(tanh(obj.beta*obj.mu)+tanh(obj.beta*(1-obj.mu)));
+                            obj.xe_range(i)=xe;
+                            new_xe=( tanh(obj.beta*obj.mu)+tanh(obj.beta*(obj.xe_range(i)-obj.mu)) )/( tanh(obj.beta*obj.mu)+tanh(obj.beta*(1-obj.mu)) );
+                            mesh.elements_density(el_index)=new_xe;
+                        end
+            end
+
+            if reader.Filter==3
+            % Heaviside
+                        for i =1:length(obj.TOEL)
+                            el_index=obj.TOEL(i);
+                            xe= mesh.elements_density(el_index);
+                            if xe<obj.mu
+                                obj.xe_range(i)=xe;
+                                mesh.elements_density(el_index)=obj.mu*(exp(-obj.beta*(1-xe/obj.mu))-(1-xe/obj.mu)*exp(-obj.beta));
+                            else
+                                obj.xe_range(i)=xe;
+                                mesh.elements_density(el_index)=(1-obj.mu)*(1-exp(-obj.beta*(xe-obj.mu)/(1*-obj.mu))+(xe-obj.mu)*exp(-obj.beta)/(1-obj.mu))+obj.mu;
+                            end
                         end
             end
         end
@@ -301,7 +340,6 @@ classdef Filtering < handle
             if reader.Filter==1
                  xx=TOO.dfdx(1:length(obj.TOEL))';
                  TOO.dfdx(1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
-
 
                  % Constraints Helmholtz
                  for j=1:obj.m
@@ -312,17 +350,43 @@ classdef Filtering < handle
 
             if reader.Filter==2
                      for i =1:length(obj.TOEL)
-                            xe = TOO.dfdx(i);
-                            TOO.dfdx(i)=-(obj.beta * (tanh(obj.beta * (obj.mu - xe))^2 - 1)) / (2 * tanh(obj.beta * obj.mu));
+                            %dxe=-(obj.beta * (tanh(obj.beta * (obj.mu - obj.xe_range(i)))^2 - 1)) / (2 * tanh(obj.beta * obj.mu));
+                            dxe=(obj.beta*(tanh(obj.beta*(obj.mu - obj.xe_range(i)))^2 - 1))/(tanh(obj.beta*(obj.mu - 1)) - tanh(obj.beta*obj.mu));
+                            TOO.dfdx(i)=TOO.dfdx(i)*dxe;
                      end
                  % Constraints Heaviside
                  for j=1:obj.m
                      for i =1:length(obj.TOEL)
-                            xe = TOC.dfdx(j,i);
-                            TOC.dfdx(j,i)=-(obj.beta * (tanh(obj.beta * (obj.mu - xe))^2 - 1)) / (2 * tanh(obj.beta * obj.mu));
+                            %dxe=( tanh(obj.beta*obj.mu)+tanh(obj.beta*(obj.xe_range(i)-obj.mu)) )/( tanh(obj.beta*obj.mu)+tanh(obj.beta*(1-obj.mu)) );
+                            dxe=(obj.beta*(tanh(obj.beta*(obj.mu - obj.xe_range(i)))^2 - 1))/(tanh(obj.beta*(obj.mu - 1)) - tanh(obj.beta*obj.mu));
+                            TOC.dfdx(j,i)=TOC.dfdx(j,i)*dxe;
                      end
                  end       
             end
+
+            if reader.Filter==3
+            % Heaviside
+                     for i =1:length(obj.TOEL)
+                            if obj.xe_range(i)<obj.mu
+                                xde=obj.beta*exp(-obj.beta*(1-obj.xe_range(i)/obj.mu))+exp(-obj.beta);
+                            else
+                                xde=obj.beta*exp(-obj.beta*(1-obj.xe_range(i)/obj.mu)/(1-obj.mu))+exp(-obj.beta);
+                            end
+                            TOO.dfdx(i)=TOO.dfdx(i)*xde;
+                     end
+                 % Constraints Heaviside
+                 for j=1:obj.m
+                     for i =1:length(obj.TOEL)
+                            if obj.xe_range(i)<obj.mu
+                                xde=obj.beta*exp(-obj.beta*(1-obj.xe_range(i)/obj.mu))+exp(-obj.beta);
+                            else
+                                xde=obj.beta*exp(-obj.beta*(1-obj.xe_range(i)/obj.mu)/(1-obj.mu))+exp(-obj.beta);
+                            end
+                            TOC.dfdx(j,i)=TOC.dfdx(j,i)*xde;
+                     end
+                 end       
+            end
+
         end        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [nodes] = retrieveelementnumberofnodes(~,etype_element)

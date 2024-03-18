@@ -54,9 +54,9 @@ classdef Postprocessing < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_U(obj,solver,filepath)
             % Append the date and '.vtk' extension to the filepath
-            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
-            outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
-            
+            %dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            %outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
+            outputFilePath=filepath;
             Ux=zeros(obj.total_number_of_nodes,1);
             Uy=zeros(obj.total_number_of_nodes,1);
             Uz=zeros(obj.total_number_of_nodes,1);
@@ -183,8 +183,8 @@ classdef Postprocessing < handle
             xx = mesh.elements_density;
 
             % Append the date and '.vtk' extension to the filepath
-            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
-            outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
+            %dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            %outputFilePath = append(filepath, '_U_', dateStr, '.vtk');         
             
             Ux=zeros(obj.total_number_of_nodes,1);
             Uy=zeros(obj.total_number_of_nodes,1);

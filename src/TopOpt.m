@@ -35,7 +35,7 @@ classdef TopOpt
         function obj = TopOpt(reader,mesh)
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
-            obj.maxiter = 50;
+            obj.maxiter = 150;
             obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             obj.n =length(obj.TOEL)+length(reader.TObcval);
             obj.xval=zeros(obj.n,1);
@@ -60,7 +60,7 @@ classdef TopOpt
             obj.fval=zeros(obj.m,1);
             obj.low     = 0.3;
             obj.upp     = 0.7;
-            obj.c       = ones(obj.m,1)*1000;
+            obj.c       = ones(obj.m,1)*20000;
             obj.d       = ones(obj.m,1);
             obj.a0      = 1;
             obj.a       = zeros(obj.m,1);
@@ -179,9 +179,9 @@ classdef TopOpt
             currentDate = datestr(now, 'yyyy_mm_dd_HH_MM');
             folderName = fullfile(reader.rst_folder, append(reader.Rst_name,'_', currentDate));
             mkdir(folderName);
-            post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+            post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, '_TVMMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
             if strcmp(reader.physics,'decoupledthermoelectromechanical')
-                post.VTK_x_U(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+                post.VTK_x_U(mesh,solver,append([folderName,'/',reader.Rst_name, '_UMMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
             end
             %% New derivatives
             TOO.CalculateObjective(reader,mesh,solver)
@@ -300,9 +300,9 @@ classdef TopOpt
                     end
                 end
 
-                post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+                post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, '_TVMMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
                 if strcmp(reader.physics,'decoupledthermoelectromechanical')
-                    post.VTK_x_U(mesh,solver,append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
+                    post.VTK_x_U(mesh,solver,append([folderName,'/',reader.Rst_name, '_UMMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
                 end
             %% New objective, constraints and derivatives
                 TOC = TO_Constraints(reader,mesh,bcinit);

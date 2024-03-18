@@ -65,7 +65,7 @@ classdef InputReader < handle
             obj.NR_nloads=1;
             obj.solver_threshold=1e-4;
             obj.solver='NR';
-            obj.GI_order=4;
+            obj.GI_order=3;
             obj.Filter=0;
             while ~feof(inputFile)
                 line = fgetl(inputFile);
@@ -125,7 +125,8 @@ classdef InputReader < handle
                             obj.TObcminval =[obj.TObcminval, minvalue];
                             obj.TObcval =[obj.TObcval, value];
                             obj.TObcmaxval =[obj.TObcmaxval, maxvalue];
-                            fprintf('New TopOpt_bc entity: %s %s\n', boundaryName);                    case 'MMA_MaxIter'
+                            fprintf('New TopOpt_bc entity: %s %s\n', boundaryName);                    
+                    case 'MMA_MaxIter'
                             obj.MMA_MaxIter = tokens{2};
                             fprintf('New MMA_MaxIter: %s %s\n', obj.MMA_MaxIter);
                     case 'output'
