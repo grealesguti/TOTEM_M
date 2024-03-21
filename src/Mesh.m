@@ -34,9 +34,8 @@ classdef Mesh < handle
                 if fid == -1
                     error('Could not open the file.');
                 end
-                
-                
-                
+               
+
                 obj.data = struct();
                 currentSection = '';
                 elementtypes = {};    % Loop through the lines in the file
@@ -45,148 +44,157 @@ classdef Mesh < handle
                 numberofelements=1;
                 nsetID=0;
                 elsetID=0;
-               while ~feof(fid)
-                    line = fgetl(fid);
-                    
-                    %disp(line)        
-                    % Check if the line is a section heading and if there are commas
-                    if startsWith(line, '*')
-                        if contains(line, ',')
-                            % If there are commas, split it at the comma
-                            tokens = strsplit(line, ',');
-                            %disp(tokens)
-                            currentSection = tokens{1};
-                        else
-                            currentSection=line;
-                        end
-                        disp("Current Section:")
-                        disp(currentSection)
-                        % Extract and store the section name
-                        if (currentSection=="*ELEMENT")
-                           %disp("Element Type:")
-                           elementtype=tokens{2};
-                           elementtype = strrep(elementtype, ' ', ''); % Remove spaces using strrep
-                           elementtype=elementtype(6:end); % Remove "type="
-                           %disp(elementtype)
-                        elseif (currentSection=="*ELSET")
-                           disp("Selection Name:")
-                           selectionname=tokens{2};
-                           selectionname=selectionname(7:end); % Remove "ELSET="
-                           disp(selectionname)  
-                           elsetID=elsetID+1;
-                           elsetArray = []; % Example existing array
-                           elementselectionnames{elsetID}=selectionname;
-                        elseif (currentSection=="*NSET")
-                           disp("Selection Name:")
-                           selectionname=tokens{2};
-                           selectionname=selectionname(6:end); % Remove "NSET="
-                           disp(selectionname)      
-                           nsetID = nsetID+1;
-                           nsetArray = []; % Example existing array
-                           nodalselectionnames{nsetID}=selectionname;
-                        end
-                        continue
-                    end
-                    % Parse data based on the current section
-                    switch currentSection
-                    case '*NODE'
-                            %disp("node")
-                        % Split the line and parse node data
-                        nodeInfo = str2double(strsplit(line, ', '));
-                        nodeID = nodeInfo(1);
-                        nodeCoords = nodeInfo(2:end);
+
+                line = fgetl(fid);
+                if line=="/batch"
+                    obj.readAnsysmesh(fid,inputReader)
+                else
+
+                    while ~feof(fid)
+                        line = fgetl(fid);
                         
-                        % Store node data in the struct
-                        if ~isfield(obj.data, 'NODE')
-                            obj.data.NODE = cell(1, 1);
-                        end
-                            if strcmp(inputReader.Units,'mm')
-                                nodeCoords=nodeCoords/1000;
+                        %disp(line)        
+                        % Check if the line is a section heading and if there are commas
+                        if startsWith(line, '*')
+                            if contains(line, ',')
+                                % If there are commas, split it at the comma
+                                tokens = strsplit(line, ',');
+                                %disp(tokens)
+                                currentSection = tokens{1};
+                            else
+                                currentSection=line;
                             end
-                            obj.data.NODE{nodeID} = nodeCoords;
-                        
-                        case '*ELEMENT'
-                                % Read the element data
-                                if(elementtype=="T3D2") 
-                                    elementInfo = sscanf(line, '%d, %d, %d');
-                                    elementData = elementInfo(2:3);
-                                    elementIdx=elementInfo(1);
-                                    elementtypes{elementIdx}=elementtype;
-                                    numberofelements=numberofelements+1;
-                                elseif(elementtype=="T3D3")
-                                    elementInfo = sscanf(line, '%d, %d, %d, %d');
-                                    elementData = elementInfo(2:4);
-                                    elementIdx=elementInfo(1);
-                                    elementtypes{elementIdx}=elementtype;
-                                    numberofelements=numberofelements+1;
-                                elseif(elementtype=="CPS4")
-                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d');
-                                    elementData = elementInfo(2:5);
-                                    elementIdx=elementInfo(1);
-                                    elementtypes{elementIdx}=elementtype;
-                                    numberofelements=numberofelements+1;
-                                elseif(elementtype=="C3D8")
-                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
-                                    elementData = elementInfo(2:9);
-                                    elementIdx=elementInfo(1);
-                                    elementtypes{elementIdx}=elementtype;
-                                    numberofelements=numberofelements+1;
-                                elseif(elementtype=="CPS8")
-                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
-                                    elementData = elementInfo(2:9);
-                                    elementIdx=elementInfo(1);
-                                    elementtypes{elementIdx}=elementtype;
-                                    numberofelements=numberofelements+1;        
-                                elseif(elementtype=="C3D20")
-                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,');
-                                    line = fgetl(fid);
-                                    elementInfo1 = sscanf(line, '%d, %d, %d, %d, %d');
-                                    elementData(1:15) = elementInfo(2:16);
-                                    elementData(16:20)= elementInfo1(1:5);
-                                    elementIdx=elementInfo(1);
-                                    elementtypes{elementIdx}=elementtype;
-                                    numberofelements=numberofelements+1;     
-                                else
-                                    % Print a warning when an unknown element type is encountered
-                                    warning('Unknown element type: %s', elementtype);
+                            disp("Current Section:")
+                            disp(currentSection)
+                            % Extract and store the section name
+                            if (currentSection=="*ELEMENT")
+                               %disp("Element Type:")
+                               elementtype=tokens{2};
+                               elementtype = strrep(elementtype, ' ', ''); % Remove spaces using strrep
+                               elementtype=elementtype(6:end); % Remove "type="
+                               %disp(elementtype)
+                            elseif (currentSection=="*ELSET")
+                               disp("Selection Name:")
+                               selectionname=tokens{2};
+                               selectionname=selectionname(7:end); % Remove "ELSET="
+                               disp(selectionname)  
+                               elsetID=elsetID+1;
+                               elsetArray = []; % Example existing array
+                               elementselectionnames{elsetID}=selectionname;
+                            elseif (currentSection=="*NSET")
+                               disp("Selection Name:")
+                               selectionname=tokens{2};
+                               selectionname=selectionname(6:end); % Remove "NSET="
+                               disp(selectionname)      
+                               nsetID = nsetID+1;
+                               nsetArray = []; % Example existing array
+                               nodalselectionnames{nsetID}=selectionname;
+                            end
+                            continue
+                        end
+                        % Parse data based on the current section
+                        switch currentSection
+                        case '*NODE'
+                                %disp("node")
+                            % Split the line and parse node data
+                            nodeInfo = str2double(strsplit(line, ', '));
+                            nodeID = nodeInfo(1);
+                            nodeCoords = nodeInfo(2:end);
+                            
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'NODE')
+                                obj.data.NODE = cell(1, 1);
+                            end
+                                if strcmp(inputReader.Units,'mm')
+                                    nodeCoords=nodeCoords/1000;
                                 end
-            
-                                % Store element data in the struct
-                                if ~isfield(obj.data, 'ELEMENTS')
-                                    obj.data.ELEMENTS = {};
+                                obj.data.NODE{nodeID} = nodeCoords;
+                            
+                            case '*ELEMENT'
+                                    % Read the element data
+                                    if(elementtype=="T3D2") 
+                                        elementInfo = sscanf(line, '%d, %d, %d');
+                                        elementData = elementInfo(2:3);
+                                        elementIdx=elementInfo(1);
+                                        elementtypes{elementIdx}=elementtype;
+                                        numberofelements=numberofelements+1;
+                                    elseif(elementtype=="T3D3")
+                                        elementInfo = sscanf(line, '%d, %d, %d, %d');
+                                        elementData = elementInfo(2:4);
+                                        elementIdx=elementInfo(1);
+                                        elementtypes{elementIdx}=elementtype;
+                                        numberofelements=numberofelements+1;
+                                    elseif(elementtype=="CPS4")
+                                        elementInfo = sscanf(line, '%d, %d, %d, %d, %d');
+                                        elementData = elementInfo(2:5);
+                                        elementIdx=elementInfo(1);
+                                        elementtypes{elementIdx}=elementtype;
+                                        numberofelements=numberofelements+1;
+                                    elseif(elementtype=="C3D8")
+                                        elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                        elementData = elementInfo(2:9);
+                                        elementIdx=elementInfo(1);
+                                        elementtypes{elementIdx}=elementtype;
+                                        numberofelements=numberofelements+1;
+                                    elseif(elementtype=="CPS8")
+                                        elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                        elementData = elementInfo(2:9);
+                                        elementIdx=elementInfo(1);
+                                        elementtypes{elementIdx}=elementtype;
+                                        numberofelements=numberofelements+1;        
+                                    elseif(elementtype=="C3D20")
+                                        elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,');
+                                        line = fgetl(fid);
+                                        elementInfo1 = sscanf(line, '%d, %d, %d, %d, %d');
+                                        elementData(1:15) = elementInfo(2:16);
+                                        elementData(16:20)= elementInfo1(1:5);
+                                        elementIdx=elementInfo(1);
+                                        elementtypes{elementIdx}=elementtype;
+                                        numberofelements=numberofelements+1;     
+                                    else
+                                        % Print a warning when an unknown element type is encountered
+                                        warning('Unknown element type: %s', elementtype);
+                                    end
+                
+                                    % Store element data in the struct
+                                    if ~isfield(obj.data, 'ELEMENTS')
+                                        obj.data.ELEMENTS = {};
+                                    end
+                                    
+                                    obj.data.ELEMENTS{elementIdx} = elementData;
+                            case '*ELSET'
+                                % Parse and store ELSET data
+                                elsetInfo = str2double(strsplit(line, ', '));
+                                elsetInfoWithoutNaN = elsetInfo(~isnan(elsetInfo));
+                                elsetArray = [elsetArray,elsetInfoWithoutNaN];
+                                % Store node data in the struct
+                                if ~isfield(obj.data, 'ELSET')
+                                    obj.data.ELSET = cell(1, 1);
                                 end
                                 
-                                obj.data.ELEMENTS{elementIdx} = elementData;
-                        case '*ELSET'
-                            % Parse and store ELSET data
-                            elsetInfo = str2double(strsplit(line, ', '));
-                            elsetInfoWithoutNaN = elsetInfo(~isnan(elsetInfo));
-                            elsetArray = [elsetArray,elsetInfoWithoutNaN];
-                            % Store node data in the struct
-                            if ~isfield(obj.data, 'ELSET')
-                                obj.data.ELSET = cell(1, 1);
-                            end
-                            
-                            obj.data.ELSET{elsetID} = elsetArray;
-                            
-                        case '*NSET'  
-                            % Parse and store NSET data
-                            nsetInfo = str2double(strsplit(line, ', '));
-                            nsetInfoWithoutNaN = nsetInfo(~isnan(nsetInfo));
-                            nsetArray = [nsetArray,nsetInfoWithoutNaN];
-                            %disp(nsetID);
-                            % Store node data in the struct
-                            if ~isfield(obj.data, 'NSET')
-                                obj.data.NSET = cell(1, 1);
-                            end
-                            obj.data.NSET{nsetID} = nsetArray;        
+                                obj.data.ELSET{elsetID} = elsetArray;
+                                
+                            case '*NSET'  
+                                % Parse and store NSET data
+                                nsetInfo = str2double(strsplit(line, ', '));
+                                nsetInfoWithoutNaN = nsetInfo(~isnan(nsetInfo));
+                                nsetArray = [nsetArray,nsetInfoWithoutNaN];
+                                %disp(nsetID);
+                                % Store node data in the struct
+                                if ~isfield(obj.data, 'NSET')
+                                    obj.data.NSET = cell(1, 1);
+                                end
+                                obj.data.NSET{nsetID} = nsetArray;        
+                        end
                     end
-                end
-            
+
                 obj.data.ElementSelectionNames=elementselectionnames;
                 obj.data.NodalSelectionNames=nodalselectionnames;
                 obj.data.ElementTypes=elementtypes;
                 obj.Elements_volume = obj.CalculateAllElementVolume(inputReader);
+
+                end
+
 
                 if obj.dim==2
                     obj.Element_size=sqrt(min(obj.Elements_volume));
@@ -441,7 +449,441 @@ classdef Mesh < handle
  
             end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          
 
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function []=readPatranNastran()
+                obj.data = struct();
+                currentSection = '';
+                elementtypes = {};    % Loop through the lines in the file
+                elementselectionnames = {};
+                nodalselectionnames = {};
+                numberofelements=1;
+                nsetID=0;
+                elsetID=0;
+               while ~feof(fid)
+                    line = fgetl(fid);
+                    
+                    %disp(line)        
+                    % Check if the line is a section heading and if there are commas
+                    if startsWith(line, '*')
+                        if contains(line, ',')
+                            % If there are commas, split it at the comma
+                            tokens = strsplit(line, ',');
+                            %disp(tokens)
+                            currentSection = tokens{1};
+                        else
+                            currentSection=line;
+                        end
+                        disp("Current Section:")
+                        disp(currentSection)
+                        % Extract and store the section name
+                        if (currentSection=="*ELEMENT")
+                           %disp("Element Type:")
+                           elementtype=tokens{2};
+                           elementtype = strrep(elementtype, ' ', ''); % Remove spaces using strrep
+                           elementtype=elementtype(6:end); % Remove "type="
+                           %disp(elementtype)
+                        elseif (currentSection=="*ELSET")
+                           disp("Selection Name:")
+                           selectionname=tokens{2};
+                           selectionname=selectionname(7:end); % Remove "ELSET="
+                           disp(selectionname)  
+                           elsetID=elsetID+1;
+                           elsetArray = []; % Example existing array
+                           elementselectionnames{elsetID}=selectionname;
+                        elseif (currentSection=="*NSET")
+                           disp("Selection Name:")
+                           selectionname=tokens{2};
+                           selectionname=selectionname(6:end); % Remove "NSET="
+                           disp(selectionname)      
+                           nsetID = nsetID+1;
+                           nsetArray = []; % Example existing array
+                           nodalselectionnames{nsetID}=selectionname;
+                        end
+                        continue
+                    end
+                    % Parse data based on the current section
+                    switch currentSection
+                    case '*NODE'
+                            %disp("node")
+                        % Split the line and parse node data
+                        nodeInfo = str2double(strsplit(line, ', '));
+                        nodeID = nodeInfo(1);
+                        nodeCoords = nodeInfo(2:end);
+                        
+                        % Store node data in the struct
+                        if ~isfield(obj.data, 'NODE')
+                            obj.data.NODE = cell(1, 1);
+                        end
+                            if strcmp(inputReader.Units,'mm')
+                                nodeCoords=nodeCoords/1000;
+                            end
+                            obj.data.NODE{nodeID} = nodeCoords;
+                        
+                        case '*ELEMENT'
+                                % Read the element data
+                                if(elementtype=="T3D2") 
+                                    elementInfo = sscanf(line, '%d, %d, %d');
+                                    elementData = elementInfo(2:3);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                elseif(elementtype=="T3D3")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d');
+                                    elementData = elementInfo(2:4);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                elseif(elementtype=="CPS4")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:5);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                elseif(elementtype=="C3D8")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:9);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;
+                                elseif(elementtype=="CPS8")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:9);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;        
+                                elseif(elementtype=="C3D20")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,');
+                                    line = fgetl(fid);
+                                    elementInfo1 = sscanf(line, '%d, %d, %d, %d, %d');
+                                    elementData(1:15) = elementInfo(2:16);
+                                    elementData(16:20)= elementInfo1(1:5);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;     
+                                else
+                                    % Print a warning when an unknown element type is encountered
+                                    warning('Unknown element type: %s', elementtype);
+                                end
+            
+                                % Store element data in the struct
+                                if ~isfield(obj.data, 'ELEMENTS')
+                                    obj.data.ELEMENTS = {};
+                                end
+                                
+                                obj.data.ELEMENTS{elementIdx} = elementData;
+                        case '*ELSET'
+                            % Parse and store ELSET data
+                            elsetInfo = str2double(strsplit(line, ', '));
+                            elsetInfoWithoutNaN = elsetInfo(~isnan(elsetInfo));
+                            elsetArray = [elsetArray,elsetInfoWithoutNaN];
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'ELSET')
+                                obj.data.ELSET = cell(1, 1);
+                            end
+                            
+                            obj.data.ELSET{elsetID} = elsetArray;
+                            
+                        case '*NSET'  
+                            % Parse and store NSET data
+                            nsetInfo = str2double(strsplit(line, ', '));
+                            nsetInfoWithoutNaN = nsetInfo(~isnan(nsetInfo));
+                            nsetArray = [nsetArray,nsetInfoWithoutNaN];
+                            %disp(nsetID);
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'NSET')
+                                obj.data.NSET = cell(1, 1);
+                            end
+                            obj.data.NSET{nsetID} = nsetArray;        
+                    end
+                end
+        end
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function elementtype=AnsysElType(~,etypeansys)
+
+                                    if etypeansys == "226"
+                                        elementtype="C3D20";
+                                    elseif etypeansys == "152"
+                                        elementtype="CPS8";
+                                    end
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function []=readAnsysmesh(obj,fid,inputReader)
+                obj.data = struct();
+                currentSection = '';
+                elementtypes = {};    % Loop through the lines in the file
+                elementselectionnames = {};
+                nodalselectionnames = {};
+                numberofelements=0;
+                nsetID=0;
+                elsetID=1;
+                elsetArray0 = []; % Example existing array
+
+               while ~feof(fid)
+                    line = fgetl(fid);
+                    
+                    %disp(line)        
+                    % Check if the line is a section heading and if there are commas
+                    if startsWith(line, 'CMBLOCK')
+                        if contains(line, ',')
+                            % If there are commas, split it at the comma
+                            tokens = strsplit(line, ',');
+                            %disp(tokens)
+                            currentSection = tokens{3};
+                        else
+                            currentSection=line;
+                        end
+                        disp("Current Section:")
+                        disp(currentSection)
+                        % Extract and store the section name
+                        if (currentSection=="ELEM")
+                               disp("Selection Name:")
+                               selectionname=tokens{2};
+                               %selectionname=selectionname(7:end); % Remove "ELSET="
+                               disp(selectionname)  
+                               elsetID=elsetID+1;
+                               elsetArray = []; % Example existing array
+                               elementselectionnames{elsetID}=strrep(selectionname, ' ', '');
+                           line = fgetl(fid); % pass one line (info)
+
+                        elseif (currentSection=="NODE")
+                           disp("Selection Name:")
+                           selectionname=tokens{2};
+                           %selectionname=selectionname(7:end); % Remove "ELSET="
+                           disp(selectionname)  
+                           nsetID=nsetID+1;
+                           nsetArray = []; % Example existing array
+                           nodalselectionnames{nsetID}=strrep(selectionname, ' ', '');
+                           line = fgetl(fid); % pass one line (info)
+                        
+                        end
+                        continue
+                    elseif startsWith(line, '/com')
+                        if contains(line, ',')
+                            % If there are commas, split it at the comma
+                            tokens = strsplit(line, ',');
+                            %disp(tokens)
+                            if contains(tokens{2}, 'Nodes for the whole assembly')
+                                line = fgetl(fid);
+                                tokens1 = strsplit(line, ',');
+                                currentSection = tokens1{1}; % nblock
+                                line = fgetl(fid);
+
+                            elseif contains(tokens{2}, 'Elements for Body')
+                                line = fgetl(fid);
+                                tokens2 = strsplit(line, ',');
+                                etypeansys= tokens2{3};
+                                etypeansys=strrep(etypeansys, ' ', '');
+                                elementtype=obj.AnsysElType(etypeansys);                                
+                                line = fgetl(fid);
+                                tokens1 = strsplit(line, ',');
+                                currentSection = tokens1{1}; % eblock  
+                                % store body names as they are used for the
+                                % materials!!!
+                                elementselectionnames{1}="All";   
+                                elsetID=elsetID+1;
+                                elsetArray = []; % Example existing array
+                                elementselectionnames{elsetID}=strrep("Body"+int2str(elsetID-1), ' ', '');                                
+                                line = fgetl(fid); % pass one line (info)
+                            elseif contains(tokens{2}, 'Create') % name selections
+                                line = fgetl(fid);
+                                tokens1 = strsplit(line, ',');
+                                if contains(tokens1{1}, 'et')
+                                    tokens2 = strsplit(tokens{2}, '"');
+                                    currentSection = "CMBLOCKbc"; % bc name    
+                                    disp("Selection Name:")
+                                    selectionname=tokens2{2};
+                                    line = fgetl(fid); % pass one line (info)
+                                    etypeansys= tokens1{3};
+                                    etypeansys=strrep(etypeansys, ' ', '');
+                                    elementtype=obj.AnsysElType(etypeansys);
+                                   elsetID=elsetID+1;
+                                   elsetArray = []; % Example existing array
+                                   elementselectionnames{elsetID}=strrep(selectionname, ' ', '');
+
+                                line = fgetl(fid); % pass one line (info)
+                                elseif contains(tokens1{3}, 'NODE')
+                                   disp("Selection Name:")
+                                   selectionname=tokens1{2};
+                                   %selectionname=selectionname(7:end); % Remove "ELSET="
+                                   disp(selectionname)  
+                                   nsetID=nsetID+1;
+                                   nsetArray = []; % Example existing array
+                                   nodalselectionnames{nsetID}=strrep(selectionname, ' ', '');
+                                   line = fgetl(fid); % pass one line (info)
+                                end
+
+                            end
+                        else
+                            currentSection=line;
+                        end
+                        disp("Current Section:")
+                        disp(currentSection)
+                         % This I need to get from the element index definition!!! after the first one is read!!
+
+                        continue   
+                    end
+                    % Parse data based on the current section
+                    switch currentSection
+                    case 'nblock'
+                            %disp("node")
+                        % Split the line and parse node data
+                        nodeInfo = str2double(strsplit(line, ' '));
+                        nodeInfo = nodeInfo(~isnan(nodeInfo));
+                        if nodeInfo(1)==-1
+                            currentSection="";
+                            continue
+                        end
+                        nodeID = nodeInfo(1);
+                        nodeCoords = nodeInfo(2:end);
+                        
+                        % Store node data in the struct
+                        if ~isfield(obj.data, 'NODE')
+                            obj.data.NODE = cell(1, 1);
+                        end
+                            if strcmp(inputReader.Units,'mm')
+                                nodeCoords=nodeCoords/1000;
+                            end
+                            obj.data.NODE{nodeID} = nodeCoords;
+                        
+                        case 'eblock'
+
+                            % Break case at the end of the reading section
+                            Info = str2double(strsplit(line, ' '));
+                            Info = Info(~isnan(Info));
+                            if Info(1)==-1
+                                currentSection="";
+                                continue
+                            end
+
+                                % Read the element data
+                                if(elementtype=="CPS8")
+                                    elementInfo = sscanf(line, '%d, %d, %d, %d, %d, %d, %d, %d, %d');
+                                    elementData = elementInfo(2:9);
+                                    elementIdx=elementInfo(11);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;        
+                                elseif(elementtype=="C3D20")
+                                    elementInfo = sscanf(line, '%i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i');                                
+                                    line = fgetl(fid);
+                                    elementInfo1 = sscanf(line, '%i %i %i %i %i %i %i %i %i %i %i %i');
+                                    elementData(1:8) = elementInfo(12:19);
+                                    elementData(9:20)= elementInfo1(1:12);
+                                    elementIdx=elementInfo(11);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;     
+                                else
+                                    % Print a warning when an unknown element type is encountered
+                                    warning('Unknown element type: %s', elementtype);
+                                end
+            
+                                % Store element data in the struct
+                                if ~isfield(obj.data, 'ELEMENTS')
+                                    obj.data.ELEMENTS = {};
+                                end
+                            % store body names as they are used for the
+                            % material properties, like ELSET!!!
+                            obj.data.ELEMENTS{elementIdx} = elementData;
+
+                                elsetInfoWithoutNaN = elementIdx;
+                                elsetArray0 = [elsetArray0,elsetInfoWithoutNaN];
+                                % Store node data in the struct
+                                if ~isfield(obj.data, 'ELSET')
+                                    obj.data.ELSET = cell(1, 1);
+                                end
+                                
+                                obj.data.ELSET{1} = elsetArray0;            
+                                elsetInfoWithoutNaN = elementIdx;
+                                elsetArray = [elsetArray,elsetInfoWithoutNaN];
+
+                                obj.data.ELSET{elsetID} = elsetArray;                                             
+                        case 'ELEM'
+                            % Parse and store ELSET data
+                            elsetInfo = str2double(strsplit(line, ' '));
+                            elsetInfoWithoutNaN = elsetInfo(~isnan(elsetInfo));
+                            elsetArray = [elsetArray,elsetInfoWithoutNaN];
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'ELSET')
+                                obj.data.ELSET = cell(1, 1);
+                            end
+
+                            if isempty(elsetArray)
+                                currentSection="";
+                                continue
+                            end
+                            
+                            obj.data.ELSET{elsetID} = elsetArray;
+
+                        case 'CMBLOCKbc'
+
+                            % Break case at the end of the reading section
+                            Info = str2double(strsplit(line, ' '));
+                            Info = Info(~isnan(Info));
+                            if isempty(Info)
+                                currentSection="";
+                                continue
+                            elseif Info(1)==-1
+                                currentSection="";
+                                continue
+                            end
+
+                                % Read the element data
+                                if(elementtype=="CPS8")
+                                    elementInfo = sscanf(line, '%i %i %i %i %i %i %i %i %i %i %i %i %i');
+                                    elementData = elementInfo(6:13);
+                                    elementIdx=elementInfo(1);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;        
+                                elseif(elementtype=="C3D20")
+                                    elementInfo = sscanf(line, '%i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i');                                
+                                    line = fgetl(fid);
+                                    elementInfo1 = sscanf(line, '%i %i %i %i %i %i %i %i %i %i %i %i');
+                                    elementData(1:15) = elementInfo(2:16);
+                                    elementData(16:20)= elementInfo1(1:5);
+                                    elementIdx=elementInfo(11);
+                                    elementtypes{elementIdx}=elementtype;
+                                    numberofelements=numberofelements+1;     
+                                else
+                                    % Print a warning when an unknown element type is encountered
+                                    warning('Unknown element type: %s', elementtype);
+                                end
+                                obj.data.ELEMENTS{elementIdx} = elementData;
+
+                                elsetInfoWithoutNaN = elementIdx;
+                                elsetArray = [elsetArray,elsetInfoWithoutNaN];
+                                % Store node data in the struct
+                                if ~isfield(obj.data, 'ELSET')
+                                    obj.data.ELSET = cell(1, 1);
+                                end
+                                
+                                obj.data.ELSET{elsetID} = elsetArray;
+                        case 'NODE'  
+                            % Parse and store NSET data
+                            nsetInfo = str2double(strsplit(line, ' '));
+                            nsetInfoWithoutNaN = nsetInfo(~isnan(nsetInfo));
+                            nsetArray = [nsetArray,nsetInfoWithoutNaN];
+                            %disp(nsetID);
+                            % Store node data in the struct
+                            if ~isfield(obj.data, 'NSET')
+                                obj.data.NSET = cell(1, 1);
+                            end
+
+                            if isempty(nsetArray)
+                                currentSection="";
+                                continue
+                            end
+                            obj.data.NSET{nsetID} = nsetArray;        
+                    end
+                end
+
+                obj.data.ElementSelectionNames=elementselectionnames;
+                obj.data.NodalSelectionNames=nodalselectionnames;
+                obj.data.ElementTypes=elementtypes;
+                obj.Elements_volume = obj.CalculateAllElementVolume(inputReader);
+
+               end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end

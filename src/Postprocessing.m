@@ -52,6 +52,22 @@ classdef Postprocessing < handle
                 'CELLS',obj.element_node_idxs,[],'precision',5)        
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function VTK_Mesh_xx(obj,filepath,mesh)
+            % Append the date and '.vtk' extension to the filepath
+            dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');
+            outputFilePath = append(filepath, '_Mesh_', dateStr, '.vtk');         
+       
+            xx = mesh.elements_density;
+
+            printxx=xx(obj.mesh_elements)' ;
+            vtkwrite( outputFilePath, ...
+                'unstructured_grid',obj.coordinates(1,:),obj.coordinates(2,:),obj.coordinates(3,:),...
+                'CELLS',obj.element_node_idxs, ...
+                'CELL_DATA',printxx',...
+                'data',[],'precision',5)      
+
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function VTK_U(obj,solver,filepath)
             % Append the date and '.vtk' extension to the filepath
             %dateStr = datestr(now, 'yyyy-mm-dd_HH-MM');

@@ -109,8 +109,14 @@ classdef InputReader < handle
                             obj.TopOpt_DesignElements = tokens{4};
                             fprintf('New TopOpt_Objective entity: %s %s\n', obj.TopOpt_Objective);
                     case 'TopOpt_Initial_x'
-                            obj.TopOpt_Initial_x(1) = str2double(tokens{2});
-                            fprintf('New TopOpt_Initial_x entity: %s %s\n', obj.TopOpt_Objective);                            
+                            if ~isnan(str2double(tokens{2}))
+                                obj.TopOpt_Initial_x(1) = str2double(tokens{2});
+                                fprintf('New TopOpt_Initial_x entity: %s %s\n', obj.TopOpt_Objective);
+                            else
+                                % Handle the case where the token is not a valid double
+                                obj.TopOpt_Initial_x = tokens{2};
+                                fprintf('Warning: %s is not a valid double, read input vtk\n', obj.TopOpt_Initial_x(1));
+                            end                                                  
                     case 'TopOpt_bc'
                             boundaryName = tokens{2};
                             surfaceName = tokens{3};
@@ -144,40 +150,42 @@ classdef InputReader < handle
                             fprintf('Physics: %s\n', obj.physics);
                         end
                     case 'material'
-                        if numel(tokens) < 2
-                            warning('Invalid material section.');
-                        else
-                            volumeName = tokens{2};
-                            materialProperties = containers.Map();
-                            
-                            while ~feof(inputFile)
-                                line = fgetl(inputFile);
-                                if isempty(line) || strncmp(line, '##', 2)
-                                    break;
-                                end
-                                
-                                propertyTokens = strsplit(line);
-                                if numel(propertyTokens) >= 2
-                                    propertyName = propertyTokens{1};
-                                    propertyPol = str2double(propertyTokens{2});
-                                    propertyValue=zeros(1+propertyPol,1);
-                                    for i = 3:(3+propertyPol)
-                                        propertyValue(i-2)=str2double(propertyTokens{i});
-                                    end
-                                    if propertyPol>0
-                                        
-                                    end
-                                    materialProperties(propertyName) = propertyValue;
-                                else
-                                    warning('Invalid property format.');
-                                    %fprintf('Line Content: %s\n', line);
-                                end
+                    if numel(tokens) < 2
+                        warning('Invalid material section.');
+                    else
+                        volumeName = tokens{2};
+                        materialProperties = containers.Map();
+                        
+                        while ~feof(inputFile)
+                            line = fgetl(inputFile);
+                            if isempty(line) || strncmp(line, '##', 2)
+                                break;
                             end
                             
-                            % Store material properties in MaterialProperties cell array
-                            obj.MaterialProperties{end+1} = materialProperties;
-                            obj.MaterialVolumes{end+1} = volumeName;
+                            propertyTokens = strsplit(line);
+                            if numel(propertyTokens) >= 2
+                                propertyName = propertyTokens{1};
+                                propertyPol = str2double(propertyTokens{2});
+                                propertyValue = zeros(1 + propertyPol, 1);
+                                for i = 3 : (3 + propertyPol)
+                                    propertyValue(i - 2) = str2double(propertyTokens{i});
+                                end
+                                
+                                % Check if all values are numerical
+                                if ~any(isnan(propertyValue))
+                                    materialProperties(propertyName) = propertyValue;
+                                else
+                                    warning('Non-numerical values detected in property.');
+                                end
+                            else
+                                warning('Invalid property format.');
+                            end
                         end
+                        
+                        % Store material properties in MaterialProperties cell array
+                        obj.MaterialProperties{end + 1} = materialProperties;
+                        obj.MaterialVolumes{end + 1} = volumeName;
+                    end
                     case 'bc'
                         if numel(tokens) < 4
                             warning('Invalid boundary condition format.');

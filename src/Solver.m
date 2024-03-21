@@ -418,6 +418,15 @@ classdef Solver < handle
                 % Construct the elemental Jacobian matrix and Residues
                 KJ = [K11, K12; K21, K22];
                 R = [RT(:, 1); RV(:, 1)];
+
+                % Check if there are any NaN values
+                %if any(isnan(KJ))
+                %    % Raise a warning
+                %    warning('Array KJ contains NaN values.');
+                %elseif any(isnan(R))
+                %    % Raise a warning
+                %    warning('Array R contains NaN values.');                    
+                %end
             
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

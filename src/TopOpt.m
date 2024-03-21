@@ -42,8 +42,12 @@ classdef TopOpt
             if isempty(reader.TopOpt_Initial_x)
                 reader.TopOpt_Initial_x=1;
                 obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
-            else
+            elseif (isnumeric(reader.TopOpt_Initial_x))
                 mesh.elements_density(obj.TOEL)=ones(length(mesh.elements_density(obj.TOEL)),1)*reader.TopOpt_Initial_x;
+                obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
+            else
+                xx_init = obj.ReadVTKxx(reader.TopOpt_Initial_x);
+                mesh.elements_density(obj.TOEL)=xx_init;
                 obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
             end
 
@@ -372,7 +376,18 @@ classdef TopOpt
 
             end
         end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function  xx=ReadVTKxx(~,filename)
+            A=regexp(fileread((filename)),'\n','split');
+            An=find(startsWith(A,'CELL_DATA')==1);
+            B=strtrim(strsplit(char(A(startsWith(A,'CELL_DATA')==1)),' '));
+            Nxxdata=str2double(char(B(2)));
+            xx=zeros(Nxxdata,1);
+            for i=1:Nxxdata
+                xx(i)=str2double(char(A(An+2+i)));
+            end
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end
 
