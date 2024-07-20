@@ -212,3 +212,31 @@ Physical Curve("TopCeramic_2D", 247) = {173, 176, 181};
 Physical Curve("BottomCeramic_2D", 248) = {194, 191, 200, 207};
 //+
 Physical Surface("Symmetry", 249) = {114, 32, 37, 42, 82, 77, 14, 19, 24, 107, 110, 27, 9, 6, 120, 123, 63, 52, 47, 127, 132, 57};
+//+//+
+Extrude {0.2, 0, 0} {
+  Surface{119}; 
+}
+//+
+Recursive Delete {
+  Volume{16}; 
+}
+//+
+Recursive Delete {
+  Curve{135}; Volume{17}; 
+}
+//+
+Recursive Delete {
+  Volume{19}; 
+}
+//+
+Recursive Delete {
+  Volume{18}; 
+}
+//+
+Extrude {-0.1, 0, 0} {
+  Surface{108}; Surface{25}; 
+}
+//+
+Extrude {0.1, 0, 0} {
+  Surface{116}; Surface{36}; 
+}

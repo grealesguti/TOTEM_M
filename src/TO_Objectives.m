@@ -17,7 +17,12 @@ classdef TO_Objectives < handle
     methods
         function obj = TO_Objectives(reader,mesh,bcinit)
             % Initialize mesh TO parameters
-            obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            if reader.TopOpt_DesignElements==""
+                obj.TOEL=[];
+            else
+                obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            end
+            %obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             obj.n =length(obj.TOEL)+length(reader.TObcval);
             objective_nodes=mesh.retrieveNodalSelection(reader.TopOpt_ObjectiveSelection);
             obj.objective_dofs=(objective_nodes-1)*2+1;
@@ -197,7 +202,11 @@ classdef TO_Objectives < handle
             B=distributed((LAdj(obj.freedofs)));
             AdjT(obj.freedofs)=A\B;
             % Calculate material derivatives
-            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            if isempty(obj.TOEL) % FIXME: in cases we only use voltage optim, no densities
+               etype="C3D20";
+            else
+                etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            end
             dim = mesh.retrieveelementdimension(etype); 
             for ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);

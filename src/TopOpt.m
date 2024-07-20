@@ -29,14 +29,19 @@ classdef TopOpt
         xbc_iter
         Voltage_value
         Voltage_initial
+        onlyvol
     end
 
     methods
         function obj = TopOpt(reader,mesh)
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
-            obj.maxiter = 150;
-            obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            obj.maxiter = 50;
+            if reader.TopOpt_DesignElements==""
+                obj.TOEL=[];
+            else
+                obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            end
             obj.n =length(obj.TOEL)+length(reader.TObcval);
             obj.xval=zeros(obj.n,1);
             if isempty(reader.TopOpt_Initial_x)
@@ -45,9 +50,11 @@ classdef TopOpt
             elseif (isnumeric(reader.TopOpt_Initial_x))
                 mesh.elements_density(obj.TOEL)=ones(length(mesh.elements_density(obj.TOEL)),1)*reader.TopOpt_Initial_x;
                 obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
+            elseif reader.TopOpt_DesignElements==""
+                xx_init=[];
             else
-                xx_init = obj.ReadVTKxx(reader.TopOpt_Initial_x);
-                mesh.elements_density(obj.TOEL)=xx_init;
+                %xx_init = obj.ReadVTKxx(reader.TopOpt_Initial_x);
+                %mesh.elements_density(obj.TOEL)=xx_init;
                 obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
             end
 
@@ -84,7 +91,7 @@ classdef TopOpt
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function  runMMA(obj,reader,mesh)
+        function  obj=runMMA(obj,reader,mesh)
             close all
             bcinit = BCInit(reader, mesh);
                 if reader.Filter>0
@@ -196,6 +203,7 @@ classdef TopOpt
             obj.dfdx = TOC.dfdx;
             obj.f0val_iter(obj.outeriter+1)= TOO.fval;
             obj.fval_iter(obj.outeriter+1,:)= TOC.fval;
+
             if not(isempty(reader.TObcval))
                 obj.xbc_iter(obj.outeriter+1,length(reader.TObcval))= max(obj.xold1(length(obj.TOEL)+1:length(obj.xold1)),[0]);
             end
@@ -204,13 +212,21 @@ classdef TopOpt
             lowv=obj.low;
             uppv=obj.upp;
 
-            while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter || obj.outeriter<20
+            while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
-
+                if obj.onlyvol==1
+                    obj.df0dx(1:end-1)=0;
+                    obj.dfdx(:,1:end-1)=0;
+                end
                 [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,lowv,uppv] = ...
                     mmasub(obj.m,obj.n,obj.outeriter,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
                     obj.f0val,obj.df0dx,obj.fval,obj.dfdx,lowv,uppv,obj.a0,obj.a,obj.c,obj.d);
+
+                if obj.onlyvol==1
+                    xmma(1:end-1)=obj.xold1(1:end-1);
+                end                
+                
                 %% Filter densities
                 for i = 1:length(reader.TObcval)
                     if(strcmp(reader.TObctype,'Voltage'))

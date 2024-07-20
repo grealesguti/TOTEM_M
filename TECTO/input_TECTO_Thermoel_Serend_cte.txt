@@ -2,7 +2,10 @@
 
 ## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
 #mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex.inp Volume mm
-mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_10el.inp Volume mm
+#mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Serendipity_Gmsh_10el.inp Volume mm
+mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_2401v2.inp Volume mm
+
+
 #mesh_file C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/TEC_Parameterized_NElem_Hex_last.inp Volume mm
 
 rst_folder C:/Archive/Programming/MATLAB/TOTEM_M/TECTO/Results/
@@ -82,9 +85,10 @@ ThermalExpansionCoefficient_z 0 19.5E-6
 YoungModulus 0 300E9
 PoissonRatio 0 0.21
 
+## SAC https://arraysolders.com/wp-content/uploads/2023/06/TDS-for-Sac305.pdf
 material Solder
 Seebeck 0 0
-ThermalConductivity 0 385
+ThermalConductivity 0 50
 ElectricalConductivity 0 59880239.52095808
 ThermalExpansionCoefficient_x 0 17E-6
 ThermalExpansionCoefficient_y 0 17E-6
@@ -102,7 +106,7 @@ bc Temperature Ceramic_Bottom 350
 bc Displacement_x Ceramic_Bottom 0
 bc Displacement_y Ceramic_Bottom 0
 bc Displacement_z Ceramic_Bottom 0
-bc heat_n Ceramic_Top 5000
+bc heat_n Ceramic_Top 3000
 #bc Pressure_y Ceramic_Top -1E6
 #bc Pressure_x Ceramic_Top +1E8
 bc Displacement_y top +0.000
@@ -121,7 +125,7 @@ TopOpt_Initial_x 0.5
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
 ## Topopoly Optimization Constraints
-TopOpt_Constraint Power 0.015
+TopOpt_Constraint Power 0.03
 TopOpt_Constraint Volume 1
 #TopOpt_Constraint Stress 20E6
 TopOpt_Constraint Stress_Pnorm 10E6

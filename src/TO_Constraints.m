@@ -26,7 +26,12 @@ classdef TO_Constraints < handle
             obj.dim = mesh.retrieveelementdimension(etype); 
             m=length(reader.TopOpt_ConstraintName);
             obj.fval=zeros(m,1);
-            obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            if reader.TopOpt_DesignElements==""
+                obj.TOEL=[];
+            else
+                obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+            end            
+            %obj.TOEL=mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             n =length(obj.TOEL)+length(reader.TObcval);
             obj.dfdx=zeros(m,n);
             % Initialize mesh TO parameters
@@ -200,7 +205,11 @@ classdef TO_Constraints < handle
             ADJP=zeros(obj.Number_of_dofs,1);
             dofs_per_node = 2;
             number_of_TO_elements = length(obj.TOEL);
-            nodes_per_element = length(mesh.data.ELEMENTS{obj.TOEL(1)});
+            if isempty(obj.TOEL)
+                nodes_per_element=20;
+            else
+                nodes_per_element = length(mesh.data.ELEMENTS{obj.TOEL(1)});
+            end
             LP_dU_element=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
             LP_dU_element_dofs=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
             LP_U_element=zeros(number_of_TO_elements,1);
@@ -209,7 +218,12 @@ classdef TO_Constraints < handle
             Pobj = reader.TopOpt_ConstraintValue(dfdx_index);
 
             %% Derivatives to Vf
-            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+
+            if isempty(obj.TOEL) % FIXME: in cases we only use voltage optim, no densities
+               etype="C3D20";
+            else
+                etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            end           % etype=mesh.data.ElementTypes{obj.TOEL(1)};
             dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor  ii=1:length(obj.TOEL)
@@ -232,8 +246,11 @@ classdef TO_Constraints < handle
 
             %% Power sensitivity
             ADJP(obj.freedofs)=distributed(solver.KT(obj.freedofs,obj.freedofs))'\distributed(LP_dU(obj.freedofs));
-
-            etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            if isempty(obj.TOEL) % FIXME: in cases we only use voltage optim, no densities
+               etype="C3D20";
+            else
+                etype=mesh.data.ElementTypes{obj.TOEL(1)};
+            end           % etype=mesh.data.ElementTypes{obj.TOEL(1)};
             dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             parfor ii=1:length(obj.TOEL)
@@ -395,7 +412,11 @@ classdef TO_Constraints < handle
         function fvalue=fval_Volume(obj,reader,mesh,solver,dfdx_index)
             Vpobj = reader.TopOpt_ConstraintValue(dfdx_index);
             Vx=obj.Elements_volume/(Vpobj*obj.V_TOT);
-            fvalue=(Vx'*mesh.elements_density(obj.TOEL)')-1;
+            if isempty(obj.TOEL)
+                fvalue=-1;
+            else
+                fvalue=(Vx'*mesh.elements_density(obj.TOEL)')-1;
+            end
             obj.fval(dfdx_index)=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

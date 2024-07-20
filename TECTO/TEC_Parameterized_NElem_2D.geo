@@ -94,6 +94,8 @@ Transfinite Surface {12};
 Transfinite Surface {13};
 //+
 Transfinite Surface {8};
+
+
 //+
 Physical Surface("Copper", 46) = {9, 7, 6, 8, 4, 3, 2};
 //+
@@ -104,6 +106,8 @@ Physical Surface("SemiconductorR", 48) = {5};
 Physical Surface("Ceramic", 49) = {14, 15, 16, 12, 13, 10, 11};
 //+
 Physical Surface("Surface", 50) = {11, 10, 7, 9, 1, 2, 14, 15, 3, 4, 16, 5, 6, 12, 13, 8};
+
+
 //+
 Physical Curve("Ceramic_Top", 51) = {41, 43, 45};
 //+
@@ -117,5 +121,3 @@ Physical Curve("Contact_Ceramic", 55) = {27, 22, 19, 24, 12, 7, 9};
 //+
 Physical Surface("TO", 56) = {5, 1};
 
-//+
-Physical Curve("Lateral_Force_L", 57) = {40};

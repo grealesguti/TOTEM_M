@@ -102,7 +102,7 @@ TopOpt_Objective AverageTemperature Ceramic_Top TO
 ## Topopoly Optimization Extra Variable (bc): TopOpt_Variable <bctype> <SurfaceName> <minval> <initialval> <maxval> 
 TopOpt_bc Voltage Electrode_MinX 0.005 0.01 0.06
 ## Topopoly Optimization Intial densities: TopOpt_Initial_x <value(0,1](if<0, random values )>
-TopOpt_Initial_x 0.5
+TopOpt_Initial_x 1
 ## Topopoly Optimization NR start point: TopOpt_Initial_x <value(0,1](if<0, random values )>
 TopOpt_NR T previous  
 TopOpt_NR V proporcional
