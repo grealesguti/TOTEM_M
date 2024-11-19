@@ -24,6 +24,9 @@ classdef Filtering < handle
         mu
         beta
         xe_range
+        post
+        it
+        folderName
     end
 
     methods
@@ -60,8 +63,13 @@ classdef Filtering < handle
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.Helmholtz_PDE_Initialization(reader,mesh)
             obj.mu=0.5;
-            obj.beta=8;
+            obj.beta=30;
             obj.xe_range=zeros(length(obj.TOEL)-1,1);
+            obj.post = Postprocessing();
+            obj.it=0;
+            obj.folderName='';
+
+
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function Helmholtz_PDE_Initialization(obj,reader,mesh)
@@ -308,8 +316,10 @@ classdef Filtering < handle
                         xx=mesh.elements_density(obj.TOEL);
                         mesh.elements_density(obj.TOEL)=obj.Helmholtz_xx(mesh,xx);
             end
-            
-            if reader.Filter==2
+
+            obj.post.initVTK(reader,mesh);
+            if reader.Filter==2 ||reader.Filter==-2
+                    obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Helmholtz_','_',num2str(obj.it)]),mesh)
             % Heaviside
                         for i =1:length(obj.TOEL)
                             el_index=obj.TOEL(i);
@@ -318,9 +328,11 @@ classdef Filtering < handle
                             new_xe=( tanh(obj.beta*obj.mu)+tanh(obj.beta*(obj.xe_range(i)-obj.mu)) )/( tanh(obj.beta*obj.mu)+tanh(obj.beta*(1-obj.mu)) );
                             mesh.elements_density(el_index)=new_xe;
                         end
+                    %obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Heaviside_','_',num2str(obj.it)]),mesh)
             end
 
-            if reader.Filter==3
+            if reader.Filter==3 ||reader.Filter==-3
+                    obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Helmholtz_','_',num2str(obj.it)]),mesh)
             % Heaviside
                         for i =1:length(obj.TOEL)
                             el_index=obj.TOEL(i);
@@ -333,22 +345,14 @@ classdef Filtering < handle
                                 mesh.elements_density(el_index)=(1-obj.mu)*(1-exp(-obj.beta*(xe-obj.mu)/(1*-obj.mu))+(xe-obj.mu)*exp(-obj.beta)/(1-obj.mu))+obj.mu;
                             end
                         end
+                    %obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Heaviside_','_',num2str(obj.it)]),mesh)
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function filter_sensitivities(obj,reader,mesh,TOO,TOC)
-            if reader.Filter==1
-                 xx=TOO.dfdx(1:length(obj.TOEL))';
-                 TOO.dfdx(1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
 
-                 % Constraints Helmholtz
-                 for j=1:obj.m
-                        xx=TOC.dfdx(j,1:length(obj.TOEL));
-                        TOC.dfdx(j,1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
-                 end
-            end
-
-            if reader.Filter==2
+            if reader.Filter==2||reader.Filter==-2
+                
                      for i =1:length(obj.TOEL)
                             %dxe=-(obj.beta * (tanh(obj.beta * (obj.mu - obj.xe_range(i)))^2 - 1)) / (2 * tanh(obj.beta * obj.mu));
                             dxe=(obj.beta*(tanh(obj.beta*(obj.mu - obj.xe_range(i)))^2 - 1))/(tanh(obj.beta*(obj.mu - 1)) - tanh(obj.beta*obj.mu));
@@ -364,7 +368,7 @@ classdef Filtering < handle
                  end       
             end
 
-            if reader.Filter==3
+            if reader.Filter==3||reader.Filter==-3
             % Heaviside
                      for i =1:length(obj.TOEL)
                             if obj.xe_range(i)<obj.mu
@@ -385,6 +389,17 @@ classdef Filtering < handle
                             TOC.dfdx(j,i)=TOC.dfdx(j,i)*xde;
                      end
                  end       
+            end
+
+            if reader.Filter>0
+                 xx=TOO.dfdx(1:length(obj.TOEL))';
+                 TOO.dfdx(1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
+
+                 % Constraints Helmholtz
+                 for j=1:obj.m
+                        xx=TOC.dfdx(j,1:length(obj.TOEL));
+                        TOC.dfdx(j,1:length(obj.TOEL))=obj.Helmholtz_xx(mesh,xx);
+                 end
             end
 
         end        

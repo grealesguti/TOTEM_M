@@ -27,7 +27,7 @@
 %
 function [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,low,upp] = ...
 mmasub(m,n,iter,xval,xmin,xmax,xold1,xold2, ...
-f0val,df0dx,fval,dfdx,low,upp,a0,a,c,d);
+f0val,df0dx,fval,dfdx,low,upp,a0,a,c,d,move,asyincr,asydecr,asyinit);
 %
 %    This function mmasub performs one MMA-iteration, aimed at
 %    solving the nonlinear programming problem:
@@ -85,11 +85,22 @@ f0val,df0dx,fval,dfdx,low,upp,a0,a,c,d);
 %epsimin = sqrt(m+n)*10^(-9);
 epsimin = 10^(-7);
 raa0 = 0.00001;
-move = 0.5;
+%move = 0.5;
 albefa = 0.3;
-asyinit = 0.5;
-asyincr = 1.3;
-asydecr = 0.7;
+%asyinit = 0.5;
+%asyincr = 1.3;
+%asydecr = 0.7;
+eeen = ones(n,1);
+eeem = ones(m,1);
+zeron = zeros(n,1);
+
+epsimin = 10^(-7);
+raa0 = 0.00001;
+%move = 0.01;
+albefa = 0.3;
+%asyinit = 0.5;
+%asyincr = 1.01;
+%asydecr = 0.91;
 eeen = ones(n,1);
 eeem = ones(m,1);
 zeron = zeros(n,1);

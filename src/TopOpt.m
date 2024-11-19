@@ -30,13 +30,20 @@ classdef TopOpt
         Voltage_value
         Voltage_initial
         onlyvol
+        mma_move
+        mma_incr
+        mma_decr
+        mma_init
+        Hev_update
+        Hev_max
+        Hev_init
     end
 
     methods
         function obj = TopOpt(reader,mesh)
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
-            obj.maxiter = 50;
+            obj.maxiter = 100;
             if reader.TopOpt_DesignElements==""
                 obj.TOEL=[];
             else
@@ -52,6 +59,19 @@ classdef TopOpt
                 obj.xval(1:length(obj.TOEL))=mesh.elements_density(obj.TOEL);
             elseif reader.TopOpt_DesignElements==""
                 xx_init=[];
+            elseif isstring(reader.TopOpt_Initial_x) || ischar(reader.TopOpt_Initial_x)
+                if contains(reader.TopOpt_Initial_x, '_2filter')
+                    disp('The string contains "_2filter".');
+                    % Perform actions for strings containing '_2filter'
+                    xin=read_vtk_cell_data(reader.TopOpt_Initial_x);
+                    xin(xin>0.95)=1;
+                    xin(xin<0.95)=0.0001;
+                    mesh.elements_density = xin;
+                else
+                    disp('The string does not contain "_2filter".');
+                    % Perform other actions
+                    mesh.elements_density = read_vtk_cell_data(reader.TopOpt_Initial_x);
+                end
             else
                 %xx_init = obj.ReadVTKxx(reader.TopOpt_Initial_x);
                 %mesh.elements_density(obj.TOEL)=xx_init;
@@ -88,6 +108,13 @@ classdef TopOpt
                     dofs_TO(j*2)=1;
                 end
             end
+            obj.mma_move=0.5;
+            obj.mma_incr=1.3;
+            obj.mma_decr=0.7;
+            obj.mma_init=0.5;
+            obj.Hev_update = 8;
+            obj.Hev_max=100;
+            obj.Hev_init=1;
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -96,6 +123,7 @@ classdef TopOpt
             bcinit = BCInit(reader, mesh);
                 if reader.Filter>0
                     filtering = Filtering(reader,mesh);
+                    filtering.beta=obj.Hev_init;
                 end
             solver = Solver(mesh, bcinit);
 
@@ -189,6 +217,7 @@ classdef TopOpt
             post.initVTK(reader,mesh);
             currentDate = datestr(now, 'yyyy_mm_dd_HH_MM');
             folderName = fullfile(reader.rst_folder, append(reader.Rst_name,'_', currentDate));
+            filtering.folderName=folderName;
             mkdir(folderName);
             post.VTK_x_TV(mesh,solver,append([folderName,'/',reader.Rst_name, '_TVMMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']))
             if strcmp(reader.physics,'decoupledthermoelectromechanical')
@@ -221,7 +250,8 @@ classdef TopOpt
                 end
                 [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,lowv,uppv] = ...
                     mmasub(obj.m,obj.n,obj.outeriter,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
-                    obj.f0val,obj.df0dx,obj.fval,obj.dfdx,lowv,uppv,obj.a0,obj.a,obj.c,obj.d);
+                    obj.f0val,obj.df0dx,obj.fval,obj.dfdx,lowv,uppv,obj.a0,obj.a,obj.c,obj.d,...
+                    obj.mma_move,obj.mma_incr,obj.mma_decr,obj.mma_init);
 
                 if obj.onlyvol==1
                     xmma(1:end-1)=obj.xold1(1:end-1);
@@ -237,9 +267,16 @@ classdef TopOpt
                 end
                 %mesh_1 = Mesh(reader);
                 for i=1:length(obj.TOEL)
+                    filtering.it=obj.outeriter;
                     mesh.elements_density(obj.TOEL(i))=xmma(i);
                 end
                 if reader.Filter>0
+                    if mod(obj.outeriter, obj.Hev_update) == 0
+                        filtering.beta = filtering.beta * 2;
+                        if filtering.beta> obj.Hev_max
+                            filtering.beta=obj.Hev_max;
+                        end
+                    end
                     filtering.filter_densities(reader,mesh)
                 end
 

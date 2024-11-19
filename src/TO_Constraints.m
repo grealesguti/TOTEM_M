@@ -818,7 +818,6 @@ classdef TO_Constraints < handle
                 for ll=1:number_of_nodes  % transformation matrix for parfor loop
                     Li_T(ll,element_nodes(ll))=1;
                 end
-
                 %%
                 LdU=LdU+(element_multiplier*C*B*Li_M)';
                 LdT=LdT-(element_multiplier*C*alphav*N*Li_T)';

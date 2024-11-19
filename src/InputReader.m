@@ -223,6 +223,21 @@ classdef InputReader < handle
                 disp(['Key "', propertyName, '" not found in the map.']);
             end
         end
+
+        % Function to display all material properties for a given index
+        function displayMaterialProperties(obj, index)
+            material = obj.MaterialProperties{index};  % Get the specified material map
+            
+            % Get all keys and values
+            keysList = keys(material);
+            valuesList = values(material);
+            
+            % Display the keys and their corresponding values
+            fprintf('Material Properties for index %d:\n', index);
+            for i = 1:length(keysList)
+                fprintf('  %s: %s\n', keysList{i}, mat2str(valuesList{i}));
+            end
+        end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Define a function to add Penalty keys
         function addPenaltyKeys(obj)
