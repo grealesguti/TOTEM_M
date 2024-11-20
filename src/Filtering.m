@@ -37,7 +37,7 @@ classdef Filtering < handle
             
             obj.el_multiplier = 3;
             obj.r=max([mesh.Element_size*obj.el_multiplier,0.00011]);
-            obj.rd=( r/2/sqrt(3) )^2;
+            obj.rd=( obj.r/2/sqrt(3) )^2;
             obj.nele=length( mesh.retrieveElementalSelection(reader.MeshEntityName));
             obj.nele_total =length(mesh.data.ELEMENTS);
             obj.nele_TO=length(obj.TOEL);
