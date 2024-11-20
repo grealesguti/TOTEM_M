@@ -27,13 +27,16 @@ classdef Filtering < handle
         post
         it
         folderName
+        r
+        el_multiplier
     end
 
     methods
         function obj = Filtering(reader,mesh)
             obj.TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             
-            r=max([mesh.Element_size*3,0.00011]);
+            obj.el_multiplier = 3;
+            obj.r=max([mesh.Element_size*obj.el_multiplier,0.00011]);
             obj.rd=( r/2/sqrt(3) )^2;
             obj.nele=length( mesh.retrieveElementalSelection(reader.MeshEntityName));
             obj.nele_total =length(mesh.data.ELEMENTS);
@@ -425,7 +428,13 @@ classdef Filtering < handle
                           
         end       
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+        function obj = updateElMultiplier(obj, new_multiplier)
+            % Function to update el_multiplier and recalculate r and rd
+            obj.el_multiplier = new_multiplier;
+            obj.r = max([obj.Element_size * obj.el_multiplier, 0.00011]);
+            obj.rd = (obj.r / 2 / sqrt(3))^2;
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end
 

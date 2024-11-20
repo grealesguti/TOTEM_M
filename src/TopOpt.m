@@ -37,6 +37,7 @@ classdef TopOpt
         Hev_update
         Hev_max
         Hev_init
+        Helm_mult
     end
 
     methods
@@ -44,6 +45,7 @@ classdef TopOpt
             obj.m=length(reader.TopOpt_ConstraintName);
             obj.outeriter = 0;
             obj.maxiter = 100;
+            obj.Helm_mult = 3;
             if reader.TopOpt_DesignElements==""
                 obj.TOEL=[];
             else
