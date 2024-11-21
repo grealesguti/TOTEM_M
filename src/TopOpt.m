@@ -126,6 +126,7 @@ classdef TopOpt
                 if reader.Filter>0
                     filtering = Filtering(reader,mesh);
                     filtering.beta=obj.Hev_init;
+                    filtering.updateElMultiplier(obj.Helm_mult)
                 end
             solver = Solver(mesh, bcinit);
 
