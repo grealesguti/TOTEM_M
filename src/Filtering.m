@@ -29,14 +29,15 @@ classdef Filtering < handle
         folderName
         r
         el_multiplier
+        Element_size
     end
 
     methods
         function obj = Filtering(reader,mesh)
             obj.TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-            
+            obj.Element_size= mesh.Element_size;
             obj.el_multiplier = 3;
-            obj.r=max([mesh.Element_size*obj.el_multiplier,0.00011]);
+            obj.r=max([obj.Element_size*obj.el_multiplier,0.00011]);
             obj.rd=( obj.r/2/sqrt(3) )^2;
             obj.nele=length( mesh.retrieveElementalSelection(reader.MeshEntityName));
             obj.nele_total =length(mesh.data.ELEMENTS);
