@@ -323,7 +323,7 @@ classdef Filtering < handle
 
             obj.post.initVTK(reader,mesh);
             if reader.Filter==2 ||reader.Filter==-2
-                    obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Helmholtz_','_',num2str(obj.it)]),mesh)
+            %        obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Helmholtz_','_',num2str(obj.it)]),mesh)
             % Heaviside
                         for i =1:length(obj.TOEL)
                             el_index=obj.TOEL(i);
@@ -336,7 +336,7 @@ classdef Filtering < handle
             end
 
             if reader.Filter==3 ||reader.Filter==-3
-                    obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Helmholtz_','_',num2str(obj.it)]),mesh)
+            %        obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Helmholtz_','_',num2str(obj.it)]),mesh)
             % Heaviside
                         for i =1:length(obj.TOEL)
                             el_index=obj.TOEL(i);
