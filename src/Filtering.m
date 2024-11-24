@@ -351,6 +351,33 @@ classdef Filtering < handle
                         end
                     %obj.post.VTK_Mesh_xx(append([obj.folderName,'\','xx_Heaviside_','_',num2str(obj.it)]),mesh)
             end
+
+            if reader.Filter == 4 || reader.Filter == -4
+                % Initialize parameters
+                N_e = obj.TOEL;   % The indices of the elements in the topology optimization
+                
+                % Iterate through the topology optimization element list
+                for i = 1:length(N_e)
+                    % Get the current element index
+                    el_index = N_e(i);
+                    
+                    % Get the current density values for the element
+                    rho = mesh.elements_density(N_e);  % Extract density values for all elements in N_e
+                    
+                    % Apply the new expression to compute rho_e_tilde
+                    numerator = sum(exp(obj.beta * rho));         % Summation of exponential terms
+                    denominator = sum(ones(size(N_e)));      % Summation of ones (count of elements)
+                    rho_e_tilde = log(numerator / denominator) / obj.beta;  % Compute the final value
+                    
+                    % Update the element density
+                    mesh.elements_density(el_index) = rho_e_tilde;
+                end
+                
+                % Optional: Write VTK mesh data for visualization (uncomment if needed)
+                % obj.post.VTK_Mesh_xx(append([obj.folderName, '\', 'xx_Filter4_', '_', num2str(obj.it)]), mesh);
+            end
+
+
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function filter_sensitivities(obj,reader,mesh,TOO,TOC)
@@ -394,6 +421,33 @@ classdef Filtering < handle
                      end
                  end       
             end
+
+        if reader.Filter == 4 || reader.Filter == -4
+            % Initialize parameters
+            %beta = obj.beta;          % Beta value from the object
+            N_e = obj.TOEL;           % Element indices in the topology optimization
+            rho = mesh.elements_density(N_e);  % Current density values for elements in N_e
+            
+            % Precompute terms for the derivative
+            Z = sum(exp(obj.beta * rho));  % Sum of exponentials in the numerator
+            C = length(N_e);          % Total number of elements (constant denominator)
+
+                     for i =1:length(obj.TOEL)
+                        xde = exp(obj.beta * rho(i)) / Z;  % Derivative term
+                        TOO.dfdx(i)=TOO.dfdx(i)*xde;
+                     end
+                 % Constraints Heaviside
+                 for j=1:obj.m
+                     for i =1:length(obj.TOEL)
+                        % Get the current element index
+                        % Compute the derivative of rho_e_tilde with respect to rho_j
+                        xde = exp(obj.beta * rho(i)) / Z;  % Derivative term
+                        TOC.dfdx(j,i)=TOC.dfdx(j,i)*xde;
+                     end
+                 end      
+            
+        end
+
 
             if reader.Filter>0
                  xx=TOO.dfdx(1:length(obj.TOEL))';

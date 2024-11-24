@@ -38,6 +38,7 @@ classdef TopOpt
         Hev_max
         Hev_init
         Helm_mult
+        Hev_mu
     end
 
     methods
@@ -117,6 +118,7 @@ classdef TopOpt
             obj.Hev_update = 8;
             obj.Hev_max=100;
             obj.Hev_init=1;
+            obj.Hev_mu=0.5;
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,6 +129,7 @@ classdef TopOpt
                     filtering = Filtering(reader,mesh);
                     filtering.beta=obj.Hev_init;
                     filtering.updateElMultiplier(obj.Helm_mult)
+                    filtering.mu = obj.Hev_mu;
                 end
             solver = Solver(mesh, bcinit);
 
@@ -397,7 +400,7 @@ classdef TopOpt
 
 
                 kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
-                fprintf(' it %i; kktnorm = %.4f\n', obj.outeriter, kktnorm(i));
+                fprintf(' it %i; kktnorm = %.e\n', obj.outeriter, kktnorm(i));
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
                 %saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
                 saveas(1, append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.png']), 'png')
@@ -445,9 +448,9 @@ classdef TopOpt
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = updatexvalbc(obj, id, val)
+        function obj = updatexvalbc(obj, val)
             % Function to update el_multiplier and recalculate r and rd
-            obj.xval(end-id)= val;
+            obj.xval(end)= val;
             obj.xold1= obj.xval;
             obj.xold2= obj.xval;
         end
