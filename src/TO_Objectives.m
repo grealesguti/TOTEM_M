@@ -249,7 +249,9 @@ classdef TO_Objectives < handle
 
             L=zeros(length(Tsol_ref),1);
             L(objective_nodes)=1/length(objective_nodes);
-            LAdj(obj.objective_dofs)=(L'*(Tsol_ref.^reader.KSUp)) ^ (1/reader.KSUp-1) * L'*(Tsol_ref.^(reader.KSUp-1))*1/str2double(reader.T0);
+            %LAdj(obj.objective_dofs)=(L'*(Tsol_ref.^reader.KSUp)) ^ (1/reader.KSUp-1) * L'*(Tsol_ref.^(reader.KSUp-1))*1/str2double(reader.T0);
+            LAdj_temp = (L .* ( Tsol_ref.^(1-reader.KSUp) .* (Tsol_ref.^(reader.KSUp-1)) ))*1/str2double(reader.T0);
+            LAdj(obj.objective_dofs)=LAdj_temp(obj.objective_dofs);
             element_sensitivities=zeros(length(obj.TOEL),1);
 
             % Solve adjoint equation
