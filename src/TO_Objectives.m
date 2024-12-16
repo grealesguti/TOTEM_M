@@ -177,7 +177,7 @@ classdef TO_Objectives < handle
             Tsol_ref=Tsol_ref.^reader.KSUp;
             L=zeros(length(Tsol_ref),1);
             L(objective_nodes)=1/length(objective_nodes);
-            fvalue=(L'*Tsol_ref)^(1/reader.KSUp);
+            fvalue=(L'*Tsol_ref)^(1/reader.KSUp)*str2double(reader.T0);
             obj.fval=fvalue;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -250,7 +250,7 @@ classdef TO_Objectives < handle
             L=zeros(length(Tsol_ref),1);
             L(objective_nodes)=1/length(objective_nodes);
             %LAdj(obj.objective_dofs)=(L'*(Tsol_ref.^reader.KSUp)) ^ (1/reader.KSUp-1) * L'*(Tsol_ref.^(reader.KSUp-1))*1/str2double(reader.T0);
-            LAdj_temp = (L .* ( Tsol_ref.^(reader.KSUp-1) )) * (L' * Tsol_ref.^(1-reader.KSUp))*1/str2double(reader.T0);
+            LAdj_temp = (L .* ( Tsol_ref.^(reader.KSUp-1) )) * (L' * Tsol_ref.^(1-reader.KSUp));%*1/str2double(reader.T0);
             LAdj(odd_indices)=LAdj_temp;
             element_sensitivities=zeros(length(obj.TOEL),1);
 
