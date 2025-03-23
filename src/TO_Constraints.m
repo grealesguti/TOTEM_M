@@ -320,10 +320,15 @@ classdef TO_Constraints < handle
             je = -De * DN * Vee - Da * De * DN * Tee;
             %qe = Da * (N * Tee) * je - Dk * DN * Tee; % Not needed.
 
-            dPdxi_t=Vee'*DN'*De*(Da*DN+(Da_DT*DN*Tee-je/De^2*De_DT)*N);
-            dPdxi_v=Vee'*DN'*De*DN-je'*DN;
+            djdt = -De*(Da*DN+(Da_DT*DN*Tee-je/De^2*De_DT)*N);
+            djdv = -De*DN;
 
-            P_dx=detJ*(-Vee'*DN'*(-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee));
+            dPdxi_t=-Vee'*DN'*djdt;
+            dPdxi_v=-Vee'*DN'*djdv-je'*DN;
+
+            djdx = (-De_dx*DN*Vee-Da_dx*De*DN*Tee-Da*De_dx*DN*Tee);
+
+            P_dx=detJ*(-Vee'*DN'*djdx);
 
             K11=detJ*(dPdxi_t);
             K12=detJ*(dPdxi_v);

@@ -20,7 +20,11 @@ close all; clear all; clc;
     powvals = [15,15,15]; % Replace with your desired values
     filterval = [0,0,1]; % Replace with your desired values
     stresses = [1e100,10E6,10E6]; % Replace with your desired values
-
+    volumes =[1];
+    qinvals = [3000]; % Replace with your desired values
+    powvals = [15]; % Replace with your desired values
+    filterval = [0]; % Replace with your desired values
+    stresses = [1E100]; % Replace with your desired values
     %volumes =[1];
     %qinvals = [3000]; % Replace with your desired values
     %powvals = [15]; % Replace with your desired values
@@ -28,6 +32,8 @@ close all; clear all; clc;
     %stresses = [50e7]; % Replace with your desired values
 
     filepath="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D.txt";   
+    filepath="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2DConf.txt";   
+
     reader = InputReader(filepath);
     pcon_loc = 1;
     vcon_loc = 2;

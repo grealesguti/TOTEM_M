@@ -377,6 +377,17 @@ classdef Filtering < handle
                 % obj.post.VTK_Mesh_xx(append([obj.folderName, '\', 'xx_Filter4_', '_', num2str(obj.it)]), mesh);
             end
 
+            if reader.Filter == 5 || reader.Filter == -5
+                % Heav dilation
+                        for i =1:length(obj.TOEL)
+                            el_index=obj.TOEL(i);
+                            xe= mesh.elements_density(el_index);
+                            obj.xe_range(i)=xe;
+                            new_xe=exp(-obj.beta * (1 - obj.xe_range(i))) - (1 - obj.xe_range(i)) * exp(-obj.beta);
+                            mesh.elements_density(el_index)=new_xe;
+                        end                
+
+            end
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -420,6 +431,22 @@ classdef Filtering < handle
                             TOC.dfdx(j,i)=TOC.dfdx(j,i)*xde;
                      end
                  end       
+            end
+
+            if reader.Filter == 5 || reader.Filter == -5
+                % Heav dilation
+                     for i =1:length(obj.TOEL)
+                                xde=obj.beta * exp(-obj.beta * (1 - obj.xe_range(i))) + exp(-obj.beta);
+                            TOO.dfdx(i)=TOO.dfdx(i)*xde;
+                     end
+                 % Constraints Heaviside
+                 for j=1:obj.m
+                     for i =1:length(obj.TOEL)
+                                xde=obj.beta * exp(-obj.beta * (1 - obj.xe_range(i))) + exp(-obj.beta);
+                            TOC.dfdx(j,i)=TOC.dfdx(j,i)*xde;
+                     end
+                 end             
+
             end
 
         if reader.Filter == 4 || reader.Filter == -4
