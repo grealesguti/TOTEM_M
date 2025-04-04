@@ -403,7 +403,9 @@ classdef TopOpt
                 fprintf(' it %i; kktnorm = %.e\n', obj.outeriter, kktnorm(i));
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
                 %saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
+                filenameout = append(folderName, '/', reader.Rst_name, 'MMA_', currentDate, '_', num2str(1000 + obj.outeriter), '.png');
                 saveas(1, append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.png']), 'png')
+                disp(['Saved to: ', filenameout]);
                 %post.SaveIterCSV(append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
                 %saveas(1, append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']), 'png')
                 post.SaveIterCSV(append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_','.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
