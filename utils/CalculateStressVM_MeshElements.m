@@ -54,20 +54,22 @@ for i = 1:total_number_of_elements
     DN = inv(JM) * dShape'; % FIXME and check it is the same! NOT THE SAME RESULT!!!
     % FIXME, calculate from all dofs input
     Th = N * Tee';
-
+    Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
     Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+    [Dax,Daxdt]=CalculateMaterialProperties(Dalphapx,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+    [Day,Daxdt]=CalculateMaterialProperties(Dalphapy,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+    [Daz,Daxdt]=CalculateMaterialProperties(Dalphapz,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
     nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
-    Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
     [DE,DdE]=CalculateMaterialProperties(DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
 
 
                 if dim==2
                alphav=zeros(3,1);
-               alphav(1:2,1)=[Dalphapx,Dalphapy];
+               alphav(1:2,1)=[Dax,Daz];
 
                 C = DE / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
                 % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
@@ -86,7 +88,7 @@ for i = 1:total_number_of_elements
                 end                
             elseif dim==3
                 alphav=zeros(6,1);
-                alphav(1:3,1)=[Dalphapx,Dalphapy,Dalphapz];    
+                alphav(1:3,1)=[Dax,Day,Daz];    
 
                 C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...

@@ -456,23 +456,23 @@ classdef Solver < handle
                 Th = N * Tee';
             
                 % FIXME: Calculate material properties
+                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
                 Dalpha_x = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
+                [Dax,Daxde]=CalculateMaterialProperties(Dalpha_x,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 Dalpha_y = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
+                [Day,Dayde]=CalculateMaterialProperties(Dalpha_y,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 Dalpha_z = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
+                [Daz,Dazde]=CalculateMaterialProperties(Dalpha_z,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
-                Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
                 [DE,DdE]=CalculateMaterialProperties(DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
- 
-
-
                 
                 detJ = det(JM);
             if dim==2
                alphav=zeros(3,1);
-               alphav(1:2,1)=[Dalpha_x,Dalpha_y];
+               alphav(1:2,1)=[Dax,Day];
 
                 C = DE / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
                 % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
@@ -491,7 +491,7 @@ classdef Solver < handle
                 end                
             elseif dim==3
                 alphav=zeros(6,1);
-                alphav(1:3,1)=[Dalpha_x,Dalpha_y,Dalpha_z];    
+                alphav(1:3,1)=[Dax,Day,Daz];    
 
                 C = DE./((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
