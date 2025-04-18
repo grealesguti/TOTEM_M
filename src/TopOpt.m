@@ -247,7 +247,7 @@ classdef TopOpt
             lowv=obj.low;
             uppv=obj.upp;
 
-            while kktnorm > obj.kkttol && obj.outeriter < obj.maxiter 
+            while kktnorm > obj.kkttol && 10 < obj.outeriter && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
                 if obj.onlyvol==1
