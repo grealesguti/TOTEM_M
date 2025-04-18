@@ -98,7 +98,7 @@ classdef TopOpt
             obj.d       = ones(obj.m,1);
             obj.a0      = 1;
             obj.a       = zeros(obj.m,1);
-            obj.kkttol = 1e-4;
+            obj.kkttol = 1e-6;
             obj.f0val_iter=zeros(obj.maxiter+1,1);
             obj.fval_iter=zeros(obj.maxiter+1,obj.m);
             obj.xbc_iter=zeros(obj.maxiter+1,length(reader.TObcval));
@@ -390,7 +390,23 @@ classdef TopOpt
                 end
                 %obj.FilteringSensitivities()
 
-                kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
+                % Compute relative change for design variables (excluding the last entry)
+                changerho = norm((obj.xold2(1:end-1) - obj.xval(1:end-1)) ./ obj.xval(1:end-1)) / length(obj.xval(1:end-1));
+                
+                % Compute relative change for volume constraint (last entry), if enabled
+                if obj.onlyvol == 1
+                    if obj.xval(end) ~= 0
+                        changevol = abs(obj.xold2(end) - obj.xval(end)) / abs(obj.xval(end));
+                    else
+                        error('Division by zero detected in volume change computation.');
+                    end
+                else
+                    changevol = 0;
+                end
+                
+                % Take the maximum change as KKT norm
+                kktnorm = max(changevol, changerho);
+
 
                 %% MMA parameters update
                 obj.xold2=obj.xold1;
