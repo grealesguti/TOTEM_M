@@ -56,15 +56,15 @@ for i = 1:total_number_of_elements
     Th = N * Tee';
     Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
     Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
-    [Dax,Daxdt]=CalculateMaterialProperties(Dalphapx,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapx,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
-    [Day,Daxdt]=CalculateMaterialProperties(Dalphapy,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    [Day,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapy,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-    [Daz,Daxdt]=CalculateMaterialProperties(Dalphapz,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    [Daz,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapz,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
     DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
     nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
-    [DE,DdE]=CalculateMaterialProperties(DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
-    %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+    [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
 
 
                 if dim==2

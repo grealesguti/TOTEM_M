@@ -314,19 +314,19 @@ classdef TO_Objectives < handle
                 Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ElectricalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ElectricalConductivity')];
-                [De]=CalculateMaterialProperties(Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                [De_dx]=CalculateMaterial_XDerivative(Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                [De]=CalculateMaterialProperties(1e-6,Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                [De_dx]=CalculateMaterial_XDerivative(1e-6,Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_Seebeck'),reader.getmaterialproperty(element_material_index,'Tmax_Seebeck')];
-                [Da]=CalculateMaterialProperties(Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                [Da_dx]=CalculateMaterial_XDerivative(Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                [Da]=CalculateMaterialProperties(1e-6,Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+                [Da_dx]=CalculateMaterial_XDerivative(1e-6,Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+                %[Dk,Ddk]=CalculateMaterialProperties(0.033,Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
                 
                 % notice that mat(T) and T=f(U) and we only need the
                 % partial to respect to x. Furthermore, as we do the
                 % derivative delta_R/delat_x, the temperature derivatives
                 % do not influence the result.
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ThermalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ThermalConductivity')];
-                [Dk_dx]=CalculateMaterial_XDerivative(Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                [Dk_dx]=CalculateMaterial_XDerivative(0.033,Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
                 
                 Vee=Vee';
                 Tee=Tee';
@@ -435,18 +435,18 @@ classdef TO_Objectives < handle
             %Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
             Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
 
-            %[De,De_DT]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-            %[Da,Da_DT]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+            %[De,De_DT]=CalculateMaterialProperties(1e-6,Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+            %[Da,Da_DT]=CalculateMaterialProperties(1e-6,Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
             Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ThermalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ThermalConductivity')];
-            [Dk,Ddk]=CalculateMaterialProperties(Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+            [Dk,Ddk]=CalculateMaterialProperties(0.033,Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
             % notice that mat(T) and T=f(U) and we only need the
             % partial to respect to x. Furthermore, as we do the
             % derivative delta_R/delat_x, the temperature derivatives
             % do not influence the result.
-            %[De_dx]=CalculateMaterial_XDerivative(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-            %[Da_dx]=CalculateMaterial_XDerivative(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-            [Dk_dx]=CalculateMaterial_XDerivative(Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+            %[De_dx]=CalculateMaterial_XDerivative(1e-6,Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+            %[Da_dx]=CalculateMaterial_XDerivative(1e-6,Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+            [Dk_dx]=CalculateMaterial_XDerivative(0.033,Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
             Vee=Vee';
             Tee=Tee';

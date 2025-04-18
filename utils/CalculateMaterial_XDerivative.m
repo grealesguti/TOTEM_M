@@ -1,4 +1,4 @@
-function [mat_x,Dmat_x] = CalculateMaterial_XDerivative(material,T,x,p)
+function [mat_x,Dmat_x] = CalculateMaterial_XDerivative(minmat,material,T,x,p)
     TC=T(1);
     Tmin=T(2);
     Tmax=T(3);
@@ -9,7 +9,7 @@ function [mat_x,Dmat_x] = CalculateMaterial_XDerivative(material,T,x,p)
         TC=Tmax;
     end
 
-    minmat=1e-6;
+    %minmat=1e-6;
     mod=0;
     if TC<325
         TC=325;

@@ -98,7 +98,7 @@ classdef TopOpt
             obj.d       = ones(obj.m,1);
             obj.a0      = 1;
             obj.a       = zeros(obj.m,1);
-            obj.kkttol = 1e-8;
+            obj.kkttol = 1e-4;
             obj.f0val_iter=zeros(obj.maxiter+1,1);
             obj.fval_iter=zeros(obj.maxiter+1,obj.m);
             obj.xbc_iter=zeros(obj.maxiter+1,length(reader.TObcval));

@@ -419,7 +419,7 @@ classdef Mesh < handle
             etype = obj.data.ElementTypes{mesh_elements(1)};
             obj.dim = obj.retrieveelementdimension(etype);
 
-
+            tagJ=0;
             for i = 1:length(mesh_elements)
                 element_Tag = mesh_elements(i);
                 element_nodes = obj.data.ELEMENTS{element_Tag};
@@ -441,9 +441,14 @@ classdef Mesh < handle
         
                 % Check Jacobian determinant
                 if detJ < 0
-                    error('Jacobian determinant is less than 1e-5 for element %d.', element_Tag);
+                    warning('Jacobian determinant is less than 0 for element %d.', element_Tag);
+                    tagJ=1;
                 end
 
+            end
+
+            if(tagJ==1)
+                error('Jacobian less than 0 for Volume');
             end
         
  

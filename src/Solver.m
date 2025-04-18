@@ -216,7 +216,13 @@ classdef Solver < handle
                 end
     
                 element_material_index=mesh.elements_material(elementTag);
-    
+                    
+% Validate material index
+if element_material_index < 1 || element_material_index > numel(reader.MaterialProperties)
+    error('Invalid material index (%d) for element %d. Material index must be a positive integer within bounds (1 to %d).', ...
+          element_material_index, elementTag, numel(reader.MaterialProperties));
+end
+
                 K=zeros(number_of_nodes*dof_per_node,number_of_nodes*dof_per_node);
                 R=zeros(number_of_nodes*dof_per_node,1);
     
@@ -380,11 +386,11 @@ classdef Solver < handle
                 Dkp = reader.getmaterialproperty(element_material_index,'ThermalConductivity');
                 Dap = reader.getmaterialproperty(element_material_index,'Seebeck');
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ElectricalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ElectricalConductivity')];
-                [De,Dde]=CalculateMaterialProperties(Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                [De,Dde]=CalculateMaterialProperties(1e-6,Dep,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_Seebeck'),reader.getmaterialproperty(element_material_index,'Tmax_Seebeck')];
-                [Da,Dda]=CalculateMaterialProperties(Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+                [Da,Dda]=CalculateMaterialProperties(1e-6,Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ThermalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ThermalConductivity')];
-                [Dk,Ddk]=CalculateMaterialProperties(Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                [Dk,Ddk]=CalculateMaterialProperties(0.033,Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
                 if (reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity')>1)
                     found=reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity');
@@ -458,15 +464,15 @@ classdef Solver < handle
                 % FIXME: Calculate material properties
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
                 Dalpha_x = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
-                [Dax,Daxde]=CalculateMaterialProperties(Dalpha_x,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [Dax,Daxde]=CalculateMaterialProperties(1e-6,Dalpha_x,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 Dalpha_y = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
-                [Day,Dayde]=CalculateMaterialProperties(Dalpha_y,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [Day,Dayde]=CalculateMaterialProperties(1e-6,Dalpha_y,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 Dalpha_z = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-                [Daz,Dazde]=CalculateMaterialProperties(Dalpha_z,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [Daz,Dazde]=CalculateMaterialProperties(1e-6,Dalpha_z,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
-                [DE,DdE]=CalculateMaterialProperties(DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
-                %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
                 
                 detJ = det(JM);
@@ -547,12 +553,12 @@ classdef Solver < handle
                 DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
 
-                %[De,Dde]=CalculateMaterialProperties(Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
-                %[Da,Dda]=CalculateMaterialProperties(Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                %[Dk,Ddk]=CalculateMaterialProperties(Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                %[De,Dde]=CalculateMaterialProperties(1e-6,Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                %[Da,Dda]=CalculateMaterialProperties(1e-6,Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
+                %[Dk,Ddk]=CalculateMaterialProperties(0.033,Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
-                [DE,DdE]=CalculateMaterialProperties(DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
-                %[Dalpha,Ddalpha]=CalculateMaterialProperties(Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 
                 %alphav=zeros(6,1);
                 %alphav(1:3,1)=Dalpha;
@@ -605,6 +611,12 @@ classdef Solver < handle
                 dofs_free = bcinit.dofs_free_mech;
                 KT_Distr = distributed(obj.KStiff(dofs_free, dofs_free)); 
                 R_Distr=distributed(obj.loadVector_mech(dofs_free));
+                %[userview, sysview] = memory;
+                %fprintf('Memory used by MATLAB before solving: %.2f GB\n', userview.MemUsedMATLAB / 1e9);      
+                %spmd
+                %    [userview, sysview] = memory;
+                %    fprintf('Worker %d memory used before solving: %.2f GB\n', labindex, userview.MemUsedMATLAB / 1e9);
+                %end
                 obj.soldofs_mech(dofs_free)=( KT_Distr ) \ ( R_Distr );  % Calculation of step
             else
                 % Extract the necessary variables
@@ -612,6 +624,13 @@ classdef Solver < handle
             
                 KT_Distr = distributed(obj.KT(dofs_free, dofs_free)); 
                 R_Distr=distributed(obj.Residual(dofs_free));
+                %[userview, sysview] = memory;
+                %fprintf('Memory used by MATLAB before solving (Mech): %.2f GB\n', userview.MemUsedMATLAB / 1e9);   
+                %spmd
+                %    [userview, sysview] = memory;
+                %    fprintf('Worker %d memory used before solving: %.2f GB\n', labindex, userview.MemUsedMATLAB / 1e9);
+                %end
+
                 dU =( KT_Distr ) \ ( R_Distr );  % Calculation of step
                 obj.soldofs(dofs_free)=obj.soldofs(dofs_free)+dU;
             end
@@ -632,12 +651,13 @@ classdef Solver < handle
                 for iter = 1:obj.max_iterations
                     % Assembly the system matrix
                     [obj.KT, obj.Residual] = obj.Assembly_Thermoelectricity(reader, mesh);
-                
-                    if (residual < obj.tolerance && iter > 1)
+                    %[userview, sysview] = memory;
+                    %fprintf('Memory used by MATLAB at Assembly step: %.2f GB\n', userview.MemUsedMATLAB / 1e9);
+                    %if (residual < obj.tolerance && iter > 1)
                         % Converged, return both the solution and the final residual
-                        fprintf(append('### NR. CONVERGED with tolerance:',num2str(obj.tolerance),'\n'));
-                        break;
-                    end
+                    %    fprintf(append('### NR. CONVERGED with tolerance:',num2str(obj.tolerance),'\n'));
+                    %    break;
+                    %end
                 
                     % Solve the system using the tangential matrix and residual: KT*dU=R->dU
                     obj.SolveLinearSystemInParallel('', bcinit)
@@ -673,6 +693,8 @@ classdef Solver < handle
                 Temperature_solution = obj.soldofs(1:2:end);
                 obj.KUT=KThermalLoad;
                 obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                %[userview, sysview] = memory;
+                %fprintf('Memory used by MATLAB at Assembly step (Mech): %.2f GB\n', userview.MemUsedMATLAB / 1e9);
                 obj.SolveLinearSystemInParallel(reader.physics,bcinit)
             end
             if iter==obj.max_iterations
@@ -736,7 +758,82 @@ classdef Solver < handle
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+        function [] = SingleSolve(obj,reader,mesh,bcinit)
+            % Specify the source file and destination folder
+            sourceFile = reader.filename;
+            destinationFolder = append(reader.rst_folder,'input.txt');
+            copyfile(sourceFile, destinationFolder);
+            sourceFile = reader.meshFileName;
+            destinationFolder = append(reader.rst_folder,'mesh.inp');
+            copyfile(sourceFile, destinationFolder);
+            if strcmp(reader.solver,'NR')
+                    residual_norm=obj.runNewtonRaphson(reader, mesh, bcinit);
+                    odd_numbers = 1:2:length(obj.soldofs);
+                    Tdofs=obj.soldofs(odd_numbers);
+                    if residual_norm>10000  || not(isempty(Tdofs(Tdofs<0)))% divergence in NR catch
+                        warning('NR DIVERGED, changing to Arc-len!!!');
+                        for i=1:length(bcinit.dofs_free_)
+                            df=bcinit.dofs_free_(i);
+                            if mod(df, 2)==0
+                                obj.soldofs(df)=0.0;
+                            else 
+                                obj.soldofs(df)=0;
+                            end
+                        end
+                        funAL = @(t) obj.funArcLen(reader,bcinit,mesh,t);
+                        [ufree] = arc_length_Crisfield(funAL,obj.soldofs(bcinit.dofs_free_));
+                        obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                        if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                            % Extract the necessary variables
+                            [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                            Temperature_solution = obj.soldofs(1:2:end);
+                            obj.KUT=KThermalLoad;
+                            obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                            obj.SolveLinearSystemInParallel(reader.physics,bcinit)
+                        end
+                    end
+                elseif strcmp(reader.obj,'Arc-len')
+                        for i=1:length(obj.soldofs)/2
+                            if obj.soldofs(i*2-1)==0
+                                obj.soldofs(i*2-1)=str2double(reader.T0);
+                            elseif obj.soldofs(i*2)==0
+                                obj.soldofs(i*2)=0.01;
+                            end
+                        end
+                    funAL = @(t) obj.funArcLen(reader,bcinit,mesh,t);
+                    [ufree] = arc_length_Crisfield(funAL,obj.soldofs(bcinit.dofs_free_));
+                    obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                    if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                        % Extract the necessary variables
+                        [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                        Temperature_solution = obj.soldofs(1:2:end);
+                        obj.KUT=KThermalLoad;
+                        obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        obj.SolveLinearSystemInParallel(reader.physics,bcinit)
+                    end
+                else
+                    warning('No obj recognized, changing to Arc-len!!!');
+                        for i=1:length(obj.soldofs)/2
+                            if obj.soldofs(i*2-1)==0
+                                obj.soldofs(i*2-1)=str2double(reader.T0);
+                            end
+                            if obj.soldofs(i*2)==0
+                                obj.soldofs(i*2)=0.01;
+                            end
+                        end
+                    funAL = @(t) obj.funArcLen(reader,bcinit,mesh,t);
+                    [ufree] = arc_length_Crisfield(funAL,obj.soldofs(bcinit.dofs_free_));
+                    obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
+                    if strcmp(reader.physics,'decoupledthermoelectromechanical')
+                        % Extract the necessary variables
+                        [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                        Temperature_solution = obj.soldofs(1:2:end);
+                        obj.KUT=KThermalLoad;
+                        obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        obj.SolveLinearSystemInParallel(reader.physics,bcinit)
+                    end
+            end
+        end
     end
     
     methods (Access = private)

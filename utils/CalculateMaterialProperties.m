@@ -1,4 +1,4 @@
-function [mat,Dmat] = CalculateMaterialProperties(material,T,x,p)
+function [mat,Dmat] = CalculateMaterialProperties(minmat,material,T,x,p)
     TC=T(1);
     Tmin=T(2);
     Tmax=T(3);
@@ -8,7 +8,7 @@ function [mat,Dmat] = CalculateMaterialProperties(material,T,x,p)
     elseif TC>Tmax
         TC=Tmax;
     end    
-    minmat=1e-6;
+    %minmat=1e-6;
     mod=0;
     if TC<325
         TC=325;
