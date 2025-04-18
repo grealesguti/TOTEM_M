@@ -98,7 +98,7 @@ classdef TopOpt
             obj.d       = ones(obj.m,1);
             obj.a0      = 1;
             obj.a       = zeros(obj.m,1);
-            obj.kkttol = 1e-6;
+            obj.kkttol = reader.MMA_tol;
             obj.f0val_iter=zeros(obj.maxiter+1,1);
             obj.fval_iter=zeros(obj.maxiter+1,obj.m);
             obj.xbc_iter=zeros(obj.maxiter+1,length(reader.TObcval));
@@ -246,7 +246,8 @@ classdef TopOpt
             kktnorm = 1000;
             lowv=obj.low;
             uppv=obj.upp;
-
+            % Pre-allocate the array to store kktnorm values
+            kktnormArray = zeros(obj.maxiter , 1);
             while (kktnorm > obj.kkttol || obj.outeriter < 10)  && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
@@ -406,7 +407,8 @@ classdef TopOpt
                 
                 % Take the maximum change as KKT norm
                 kktnorm = max(changevol, changerho);
-
+                % Store kktnorm in the array
+                kktnormArray(obj.outeriter+1) = kktnorm;
 
                 %% MMA parameters update
                 obj.xold2=obj.xold1;
@@ -416,7 +418,7 @@ classdef TopOpt
                 %% write results
                 %postprocesing.save()
 
-                fprintf(' it %i; kktnorm = %.e\n', obj.outeriter, kktnorm(i));
+                fprintf(' it %i; kktnorm = %.e\n', obj.outeriter, kktnorm);
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
                 %saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
                 filenameout = append(folderName, '/', reader.Rst_name, 'MMA_', currentDate, '_', num2str(1000 + obj.outeriter), '.png');
@@ -424,7 +426,14 @@ classdef TopOpt
                 disp(['Saved to: ', filenameout]);
                 %post.SaveIterCSV(append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
                 %saveas(1, append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_',num2str(1000+obj.outeriter),'.vtk']), 'png')
-                post.SaveIterCSV(append([folderName,'/',reader.Rst_name, 'MMA_',currentDate,'_','.csv']),reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
+                % Define the file path
+                filePath = fullfile(folderName, [reader.Rst_name, '_MMA_', currentDate, '_.csv']);
+                % Clear the file if it exists
+                if exist(filePath, 'file')
+                    delete(filePath);
+                end
+                % Now, save the new iteration data
+                post.SaveIterCSV(filePath, reader, obj.outeriter + 1, obj.f0val_iter, obj.fval_iter, obj.xbc_iter, kktnormArray);
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -17,6 +17,7 @@ classdef InputReader < handle
         TopOpt_ConstraintName
         TopOpt_ConstraintValue
         MMA_MaxIter
+        MMA_tol
         TopOpt_ObjectiveSelection
         TopOpt_DesignElements
         TObctype
@@ -40,6 +41,7 @@ classdef InputReader < handle
     
     methods
         function obj = InputReader(filename)
+            obj.MMA_tol=1e-6;
             obj.filename = filename;
             obj.TopOpt_Objective ='';
             obj.readFile();
@@ -135,6 +137,9 @@ classdef InputReader < handle
                     case 'MMA_MaxIter'
                             obj.MMA_MaxIter = tokens{2};
                             fprintf('New MMA_MaxIter: %s %s\n', obj.MMA_MaxIter);
+                    case 'MMA_tol'
+                            obj.MMA_tol = tokens{2};
+                            fprintf('New MMA_tol: %s %s\n', obj.MMA_MaxIter);
                     case 'output'
                         if numel(tokens) < 2
                             warning('Invalid output keyword.');

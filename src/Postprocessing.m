@@ -322,50 +322,56 @@ classdef Postprocessing < handle
         drawnow;
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         function SaveIterCSV(~,filepath,reader,iter,f0val,fval,xbc)
-            
-                % Initialize a cell array to store the data
-                dataToWrite = cell(iter, 2 + length(fval(1, :)) + length(reader.TObcval));
-            
-                % Add headers to the cell array
-                dataToWrite{1, 1} = 'Iteration';
-                dataToWrite{1, 2} = reader.TopOpt_Objective;
-                constraintNames = reader.TopOpt_ConstraintName;
-            
-                for i = 1:length(fval(1, :))
-                        dataToWrite{1, 2 + 2 * i - 1} = [constraintNames{i}, '_value'];
-                        dataToWrite{1, 2 + 2 * i} = [constraintNames{i}, '_right_value'];
-                end
-            
-                if ~isempty(reader.TObcval)
-                    for i = 1:length(reader.TObcval)
-                        dataToWrite{1, 2 + 2 * length(fval(1, :)) + i} = [reader.TObctype{i}, '_value'];
-                        dataToWrite{1, 2 + 2 * length(fval(1, :)) + i + 1} = [reader.TObctype{i}, '_right_value'];
-                    end
-                end
-            
-                % Store data for each iteration
-                for i = 2:iter
-                    dataToWrite{i, 1} = i-1;
-                    dataToWrite{i, 2} = f0val(i);
-                    for j = 1:length(fval(1, :))
-                        dataToWrite{i, 2 + 2 * j - 1} = fval(i, j);
-                        dataToWrite{i, 2 + 2 * j} = (fval(i, j) + 1) * reader.TopOpt_ConstraintValue(j);
-                    end
-                    if ~isempty(reader.TObcval)
-                        for k = 1:length(reader.TObcval)
-                            dataToWrite{i, 2 + 2 * length(fval(1, :)) + k} = xbc(i, k);
-                            dataToWrite{i, 2 + 2 * length(fval(1, :)) + k + 1} = reader.TObcminval(k) + xbc(i, k) * (reader.TObcmaxval(k) - reader.TObcminval(k));
-                        end
-                    end
-                end
-            
-                % Specify the CSV file path
-                csvFilePath = filepath;
-            
-                % Write the data to a CSV file
-                writecell(dataToWrite, csvFilePath, 'WriteMode', 'append');
-         end
+function SaveIterCSV(~, filepath, reader, iter, f0val, fval, xbc, kktnorm)
+    
+    % Initialize a cell array to store the data
+    dataToWrite = cell(iter, 3 + length(fval(1, :)) + length(reader.TObcval));
+    
+    % Add headers to the cell array
+    dataToWrite{1, 1} = 'Iteration';
+    dataToWrite{1, 2} = reader.TopOpt_Objective;
+    constraintNames = reader.TopOpt_ConstraintName;
+    
+    for i = 1:length(fval(1, :))
+        dataToWrite{1, 2 + 2 * i - 1} = [constraintNames{i}, '_value'];
+        dataToWrite{1, 2 + 2 * i} = [constraintNames{i}, '_right_value'];
+    end
+    
+    if ~isempty(reader.TObcval)
+        for i = 1:length(reader.TObcval)
+            dataToWrite{1, 2 + 2 * length(fval(1, :)) + i} = [reader.TObctype{i}, '_value'];
+            dataToWrite{1, 2 + 2 * length(fval(1, :)) + i + 1} = [reader.TObctype{i}, '_right_value'];
+        end
+    end
+    
+    % Add header for kktnorm
+    dataToWrite{1, end} = 'KKTNorm';
+    
+    % Store data for each iteration
+    for i = 2:iter
+        dataToWrite{i, 1} = i - 1;
+        dataToWrite{i, 2} = f0val(i);
+        for j = 1:length(fval(1, :))
+            dataToWrite{i, 2 + 2 * j - 1} = fval(i, j);
+            dataToWrite{i, 2 + 2 * j} = (fval(i, j) + 1) * reader.TopOpt_ConstraintValue(j);
+        end
+        if ~isempty(reader.TObcval)
+            for k = 1:length(reader.TObcval)
+                dataToWrite{i, 2 + 2 * length(fval(1, :)) + k} = xbc(i, k);
+                dataToWrite{i, 2 + 2 * length(fval(1, :)) + k + 1} = reader.TObcminval(k) + xbc(i, k) * (reader.TObcmaxval(k) - reader.TObcminval(k));
+            end
+        end
+        % Store the kktnorm value for this iteration
+        dataToWrite{i, end} = sprintf('%.3e', kktnorm(i)); % 3 decimal places in scientific notation
+    end
+    
+    % Specify the CSV file path
+    csvFilePath = filepath;
+    
+    % Write the data to a CSV file
+    writecell(dataToWrite, csvFilePath, 'WriteMode', 'append');
+end
+
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [sorted_Tn]=Benchmark_T_PLOT_axis(obj,fig,solver,axis)
             Tn=zeros(obj.total_number_of_nodes,1);
