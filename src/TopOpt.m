@@ -247,7 +247,7 @@ classdef TopOpt
             lowv=obj.low;
             uppv=obj.upp;
 
-            while kktnorm > obj.kkttol && 10 < obj.outeriter && obj.outeriter < obj.maxiter 
+            while (kktnorm > obj.kkttol || obj.outeriter < 10)  && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
                 if obj.onlyvol==1
@@ -390,6 +390,8 @@ classdef TopOpt
                 end
                 %obj.FilteringSensitivities()
 
+                kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
+
                 %% MMA parameters update
                 obj.xold2=obj.xold1;
                 obj.xold1=obj.xval;
@@ -398,8 +400,6 @@ classdef TopOpt
                 %% write results
                 %postprocesing.save()
 
-
-                kktnorm=norm((obj.xold2-obj.xval)./obj.xval)/length(obj.xval);
                 fprintf(' it %i; kktnorm = %.e\n', obj.outeriter, kktnorm(i));
                 post.PlotIter(1,reader,obj.outeriter+1,obj.f0val_iter,obj.fval_iter,obj.xbc_iter)
                 %saveas(1, append([reader.rst_folder,reader.Rst_name,'_',currentDate,'.png']), 'png')
