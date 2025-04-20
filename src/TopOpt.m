@@ -248,7 +248,7 @@ classdef TopOpt
             uppv=obj.upp;
             % Pre-allocate the array to store kktnorm values
             kktnormArray = zeros(obj.maxiter , 1);
-            reinit=0;
+            reinit=1;restartcount=0;
             while (kktnorm > obj.kkttol || obj.outeriter < 10)  && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
@@ -257,7 +257,7 @@ classdef TopOpt
                     obj.dfdx(:,1:end-1)=0;
                 end
                 [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,lowv,uppv] = ...
-                    mmasub(obj.m,obj.n,obj.outeriter,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
+                    mmasub(obj.m,obj.n,obj.outeriter-restartcount,obj.xval,obj.xmin,obj.xmax,obj.xold1,obj.xold2, ...
                     obj.f0val,obj.df0dx,obj.fval,obj.dfdx,lowv,uppv,obj.a0,obj.a,obj.c,obj.d,...
                     obj.mma_move,obj.mma_incr,obj.mma_decr,obj.mma_init);
 
@@ -287,8 +287,13 @@ classdef TopOpt
                             reinit =1;
                         obj.xold1=xmma;
                         obj.xold2=xmma;
-                        obj.low     = 0.3;
-                        obj.upp     = 0.7;
+                        lowv = max(xmma - 0.2, obj.xmin);
+                        uppv = min(xmma + 0.2, obj.xmax);
+                        obj.mma_move = max(obj.mma_move / 2, 0.01);
+                        obj.mma_incr = max(obj.mma_incr - (obj.mma_incr - 1)/2, 1.02);
+                        obj.mma_decr = min(1 - (1 - obj.mma_decr)/2, 0.99);
+                        obj.mma_init = max(obj.mma_init / 2, 0.01);
+                        restartcount = obj.outeriter;
                         end
                     end
                     filtering.filter_densities(reader,mesh)
@@ -399,22 +404,24 @@ classdef TopOpt
                 %obj.FilteringSensitivities()
 
                 % Compute relative change for design variables (excluding the last entry)
-                changerho = norm((obj.xold2(1:end-1) - obj.xval(1:end-1)) ./ obj.xval(1:end-1)) / length(obj.xval(1:end-1));
-                
+                if reinit>2
+                    changerho = norm((obj.xold2(1:end-1) - obj.xval(1:end-1)) ./ obj.xval(1:end-1)) / length(obj.xval(1:end-1));
+                elseif reinit<3
+                    reinit=reinit+1;
+                    changerho=1e3;
+                end
                 % Compute relative change for volume constraint (last entry), if enabled
-                if obj.onlyvol == 1
-                    if obj.xval(end) ~= 0 && reinit==0
+                if obj.onlyvol == 1 
                         changevol = abs(obj.xold2(end) - obj.xval(end)) / abs(obj.xval(end));
-                    else
-                        reinit =0;
-                        changevol=1e3;
-                    end
                 else
                     changevol = 0;
                 end
                 
                 % Take the maximum change as KKT norm
                 kktnorm = max(changevol, changerho);
+                if kktnorm == 0 
+                    warning('kktnorm == 0!')
+                end
                 % Store kktnorm in the array
                 kktnormArray(obj.outeriter+1) = kktnorm;
 

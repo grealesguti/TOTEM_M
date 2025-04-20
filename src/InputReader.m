@@ -41,7 +41,7 @@ classdef InputReader < handle
     
     methods
         function obj = InputReader(filename)
-            obj.MMA_tol=1e-6;
+            obj.MMA_tol=1e-8;
             obj.filename = filename;
             obj.TopOpt_Objective ='';
             obj.readFile();
