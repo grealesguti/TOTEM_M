@@ -248,6 +248,7 @@ classdef TopOpt
             uppv=obj.upp;
             % Pre-allocate the array to store kktnorm values
             kktnormArray = zeros(obj.maxiter , 1);
+            reinit=0;
             while (kktnorm > obj.kkttol || obj.outeriter < 10)  && obj.outeriter < obj.maxiter 
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
@@ -282,6 +283,12 @@ classdef TopOpt
                         filtering.beta = filtering.beta * 2;
                         if filtering.beta> obj.Hev_max
                             filtering.beta=obj.Hev_max;
+                        else
+                            reinit =1;
+                        obj.xold1=xmma;
+                        obj.xold2=xmma;
+                        obj.low     = 0.3;
+                        obj.upp     = 0.7;
                         end
                     end
                     filtering.filter_densities(reader,mesh)
@@ -396,10 +403,11 @@ classdef TopOpt
                 
                 % Compute relative change for volume constraint (last entry), if enabled
                 if obj.onlyvol == 1
-                    if obj.xval(end) ~= 0
+                    if obj.xval(end) ~= 0 && reinit==0
                         changevol = abs(obj.xold2(end) - obj.xval(end)) / abs(obj.xval(end));
                     else
-                        error('Division by zero detected in volume change computation.');
+                        reinit =0;
+                        changevol=1e3;
                     end
                 else
                     changevol = 0;
