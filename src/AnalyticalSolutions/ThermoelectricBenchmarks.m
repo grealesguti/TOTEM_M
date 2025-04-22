@@ -36,26 +36,26 @@ classdef ThermoelectricBenchmarks < handle
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexLinear_Q;
             Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity;
             Benchmark_Perez_Aparicio_NonLinCouplSEffect_HexSerendipity;
-            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity_Q;
-            Benchmark_Perez_Aparicio_LinUncoupSEffect_Quad};
+            Benchmark_Perez_Aparicio_LinUncoupSEffect_HexSerendipity_Q};
 
-            obj.BenchmarksFunctions=[1,2,3,1,2,3,1];
+            obj.BenchmarksFunctions=[1,2,3,1,2,3];
 
-            %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
-            %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+            obj.runPhysicsBenchmarks()
+
+            Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
+            [obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
             %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt"); 
 
-            %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
-            %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+            Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
             %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt"); 
 
-            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
-            %[obj.diffFEM_ctemat_TEC, obj.FD_vals_ctemat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
+            Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
+            [obj.diffFEM_ctemat_TEC, obj.FD_vals_ctemat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
             %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff_TEC("TECTO/input_TECTO_StressConstrained_cte.txt"); 
 
-
-            %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_noncte.txt";
-            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
+            Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_noncte.txt";
+            [obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities); 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function []=runPhysicsBenchmarks(obj)

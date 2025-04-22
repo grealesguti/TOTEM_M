@@ -39,6 +39,7 @@ classdef TopOpt
         Hev_init
         Helm_mult
         Hev_mu
+        kmin
     end
 
     methods
@@ -130,6 +131,9 @@ classdef TopOpt
                     filtering.beta=obj.Hev_init;
                     filtering.updateElMultiplier(obj.Helm_mult)
                     filtering.mu = obj.Hev_mu;
+                else
+                    filtering = Filtering(reader,mesh);
+                    filtering.beta=obj.Hev_max;
                 end
             solver = Solver(mesh, bcinit);
 
@@ -249,7 +253,7 @@ classdef TopOpt
             % Pre-allocate the array to store kktnorm values
             kktnormArray = zeros(obj.maxiter , 1);
             reinit=1;restartcount=0;
-            while (kktnorm > obj.kkttol || obj.outeriter < 10)  && obj.outeriter < obj.maxiter 
+        while ((kktnorm > obj.kkttol || obj.outeriter < 10) || filtering.beta < obj.Hev_max) && obj.outeriter < obj.maxiter
                 obj.outeriter = obj.outeriter+1;
                 %postprocess.save()
                 if obj.onlyvol==1
@@ -279,7 +283,7 @@ classdef TopOpt
                     mesh.elements_density(obj.TOEL(i))=xmma(i);
                 end
                 if reader.Filter>0
-                    if mod(obj.outeriter, obj.Hev_update) == 0
+                    if mod(obj.outeriter, obj.Hev_update) == 0 || kktnorm < obj.kkttol
                         filtering.beta = filtering.beta * 2;
                         if filtering.beta> obj.Hev_max
                             filtering.beta=obj.Hev_max;

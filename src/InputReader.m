@@ -37,17 +37,19 @@ classdef InputReader < handle
         GI_order
         Filter_Helmholtz_Density
         Filter
+        kmin
     end
     
     methods
         function obj = InputReader(filename)
-            obj.MMA_tol=1e-8;
+            obj.MMA_tol=1e-6;
             obj.filename = filename;
             obj.TopOpt_Objective ='';
             obj.readFile();
             obj.addPenaltyKeys();
             obj.addTmaterialminlimits();
             obj.addTmaterialmaxlimits();
+            obj.kmin = 0.033;
 
             %fprintf('Read Input: ' +filename+  '\n');
         end

@@ -390,7 +390,7 @@ end
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_Seebeck'),reader.getmaterialproperty(element_material_index,'Tmax_Seebeck')];
                 [Da,Dda]=CalculateMaterialProperties(1e-6,Dap,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ThermalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ThermalConductivity')];
-                [Dk,Ddk]=CalculateMaterialProperties(0.033,Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                [Dk,Ddk]=CalculateMaterialProperties(reader.kmin,Dkp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
 
                 if (reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity')>1)
                     found=reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity');
@@ -555,7 +555,7 @@ end
 
                 %[De,Dde]=CalculateMaterialProperties(1e-6,Dep,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
                 %[Da,Dda]=CalculateMaterialProperties(1e-6,Dap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_Seebeck'));
-                %[Dk,Ddk]=CalculateMaterialProperties(0.033,Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
+                %[Dk,Ddk]=CalculateMaterialProperties(reader.kmin,Dkp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalConductivity'));
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
                 [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
