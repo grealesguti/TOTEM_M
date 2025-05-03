@@ -42,7 +42,7 @@ classdef InputReader < handle
     
     methods
         function obj = InputReader(filename)
-            obj.MMA_tol=1e-6;
+            obj.MMA_tol=1e-8;
             obj.filename = filename;
             obj.TopOpt_Objective ='';
             obj.readFile();
@@ -50,6 +50,8 @@ classdef InputReader < handle
             obj.addTmaterialminlimits();
             obj.addTmaterialmaxlimits();
             obj.kmin = 0.033;
+            %obj.kmin = 1e-6;
+
 
             %fprintf('Read Input: ' +filename+  '\n');
         end
@@ -356,5 +358,26 @@ classdef InputReader < handle
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function printMaterialProperties(obj)
+            % Method to print all keys and values from MaterialProperties
+            for i = 1:numel(obj.MaterialProperties)
+                fprintf('Material %d:\n', i);
+                material = obj.MaterialProperties{i};
+                
+                if isa(material, 'containers.Map')
+                    materialKeys = keys(material);
+                    for j = 1:numel(materialKeys)
+                        key = materialKeys{j};
+                        value = material(key);
+                        fprintf('  %s: %s\n', key, mat2str(value));
+                    end
+                else
+                    fprintf('  Warning: Element %d is not a containers.Map\n', i);
+                end
+                fprintf('\n');
+            end
+        end
+
+        
     end
 end
