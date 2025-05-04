@@ -93,11 +93,11 @@ classdef ThermoelectricBenchmarks < handle
             %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
             %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt");
             
-            %%%% next one is the basic!!! best to run
-            %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
-            %idxvoltage=7;idxelement=1;
-            %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
-            %%[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt");
+%             %%%% next one is the basic!!! best to run
+%             Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
+%             idxvoltage=7;idxelement=1;
+%             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+%             %%[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt");
 
            % Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
             %            idxvoltage=9;
@@ -923,48 +923,48 @@ end
             errorhisttofem = struct();
 % Set parameters
 FD_Tol = 1e-8;
-FD_max_iter = 20;
+FD_max_iter = 12;
 epsmin = 1e-8;
 cc=0;
 % 
 % 
-% %             % Objective: AverageTemp (Density Element)
-%              TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = 1;
-%              eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
-%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-%                 obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol);
-%             errorhisttofem.Trho = abs((TOO.dfdx(1) - FD_vals(cc).diff_history) ./ TOO.dfdx(1));
-%             if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Trho, 'Trho', cc == 1); end
-% 
-%             %Objective: AverageTemp (BC)
-%             TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = cc + 1;
-%             eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
-%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-%                 obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
-%             errorhisttofem.Tbc = abs((TOO.dfdx(end) - FD_vals(cc).diff_history) ./ TOO.dfdx(end));
-% if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Tbc, 'Tbc', cc == 1); end
-% 
-% %             % Constraint: Volume (Density Element)
-              TOC_1 = TO_Constraints(reader, mesh, bcinit); cc = cc + 1;
-%              eval_fun = @(reader, mesh, solver) TOC_1.fval_Volume(reader, mesh, solver, 2);
-%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-%                 obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol);
-%             errorhisttofem.Vrho = abs((TOC.dfdx(2,1) - FD_vals(cc).diff_history) ./ TOC.dfdx(2,1));
-% if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Vrho, 'Vrho', cc == 1); end
+%             % Objective: AverageTemp (Density Element)
+             TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = 1;
+             eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
+            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+            errorhisttofem.Trho = abs((TOO.dfdx(1) - FD_vals(cc).diff_history) ./ TOO.dfdx(1));
+            if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Trho, 'Trho', cc == 1); end
 
-%             %Constraint: Power (Density Element)
-%             eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
-%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-%                 obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
-%             errorhisttofem.Prho = abs((TOC.dfdx(1,idxelement) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,idxelement));
-% if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Prho, 'Prho', cc == 1); end
-% 
-%             % Constraint: Power (BC)
-%             eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
-%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-%                 obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
-%             errorhisttofem.Pbc = abs((TOC.dfdx(1,end) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,end));
-% if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Pbc, 'Pbc', cc == 1); end
+            %Objective: AverageTemp (BC)
+            TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = cc + 1;
+            eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
+            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
+            errorhisttofem.Tbc = abs((TOO.dfdx(end) - FD_vals(cc).diff_history) ./ TOO.dfdx(end));
+if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Tbc, 'Tbc', cc == 1); end
+
+%             % Constraint: Volume (Density Element)
+              TOC_1 = TO_Constraints(reader, mesh, bcinit); cc = cc + 1;
+             eval_fun = @(reader, mesh, solver) TOC_1.fval_Volume(reader, mesh, solver, 2);
+            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+            errorhisttofem.Vrho = abs((TOC.dfdx(2,1) - FD_vals(cc).diff_history) ./ TOC.dfdx(2,1));
+if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Vrho, 'Vrho', cc == 1); end
+
+            %Constraint: Power (Density Element)
+            eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
+            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
+            errorhisttofem.Prho = abs((TOC.dfdx(1,idxelement) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,idxelement));
+if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Prho, 'Prho', cc == 1); end
+
+            % Constraint: Power (BC)
+            eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
+            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+            errorhisttofem.Pbc = abs((TOC.dfdx(1,end) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,end));
+if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Pbc, 'Pbc', cc == 1); end
 
             % Constraint: Stress (Density Element)
             eval_fun = @(reader, mesh, solver) TOC_1.fval_Stress(reader, mesh, solver, 3); cc = cc + 1;

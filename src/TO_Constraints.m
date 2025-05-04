@@ -494,7 +494,8 @@ classdef TO_Constraints < handle
             GaussfunctionTag_KUU=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KuDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_KUT=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KutDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_Rx=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            for ii=1:length(obj.TOEL)
+            %%% parfor
+            parfor ii=1:length(obj.TOEL)
                 ElementTag=obj.TOEL(ii);
                 
                  element_nodes = mesh.data.ELEMENTS{ElementTag};
@@ -702,6 +703,7 @@ classdef TO_Constraints < handle
             %Ld_U=zeros(total_number_of_elements,number_of_nodes*3*number_of_nodes*3);
             %Ld_U_dofs=zeros(total_number_of_elements,number_of_nodes*3);
 
+            %%%parfor
             for i = 1:total_number_of_elements
 
                 % Recover each element tag

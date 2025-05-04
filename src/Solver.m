@@ -18,6 +18,7 @@ classdef Solver < handle
         loadVector_mech
         KStiff
         KUT
+        KTh
     end
     
     properties (Hidden)
@@ -123,6 +124,7 @@ classdef Solver < handle
             KJvrT = zeros(dofs_per_element*node_el, total_number_of_elements);            
             initialdofs_TV = obj.soldofs;
 
+            %%% parfor
             parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
@@ -535,6 +537,7 @@ end
             end
                      F_TR=detJ*(B'*C*alphav*N);
                      F_T= detJ*(B'*C*alphav*N + B'*(C*alphavdt)*(N*(Tee-str2double(reader.T0))')*N);%*(Tee-str2double(reader.T0))
+                     %F_T=F_TR;
                      emp=[];
             
         end
@@ -628,8 +631,9 @@ end
             if strcmp(desiredsolution,'decoupledthermoelectromechanical')
                 % Extract the necessary variables
                 dofs_free = bcinit.dofs_free_mech;
+                %Temperature_solution = obj.soldofs(1:2:end);
                 KT_Distr = distributed(obj.KStiff(dofs_free, dofs_free)); 
-                R_Distr=distributed(obj.Residual_mech(dofs_free));
+                R_Distr=distributed(-obj.Residual_mech(dofs_free));
                 %[userview, sysview] = memory;
                 %fprintf('Memory used by MATLAB before solving: %.2f GB\n', userview.MemUsedMATLAB / 1e9);      
                 %spmd
@@ -637,7 +641,7 @@ end
                 %    fprintf('Worker %d memory used before solving: %.2f GB\n', labindex, userview.MemUsedMATLAB / 1e9);
                 %end
                 dU =( KT_Distr ) \ ( R_Distr );  % Calculation of step
-                obj.soldofs_mech(dofs_free)=obj.soldofs_mech(dofs_free)-dU;  % Calculation of step
+                obj.soldofs_mech(dofs_free)=obj.soldofs_mech(dofs_free)+dU;  % Calculation of step
             else
                 % Extract the necessary variables
                 dofs_free = bcinit.dofs_free_;
@@ -712,7 +716,8 @@ end
                 [obj.KStiff,KThermalLoad,KTheta] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                 Temperature_solution = obj.soldofs(1:2:end);
                 obj.KUT=KThermalLoad;
-                obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                obj.KTh=KTheta;
+                obj.loadVector_mech=obj.loadVector_mech+KTheta*(Temperature_solution-str2double(reader.T0));
                 %[userview, sysview] = memory;
                 %fprintf('Memory used by MATLAB at Assembly step (Mech): %.2f GB\n', userview.MemUsedMATLAB / 1e9);
                 %obj.SolveLinearSystemInParallel(reader.physics,bcinit)
@@ -721,11 +726,11 @@ end
                 threshold=reader.solver_threshold;
                     %aa=[obj.KStiff*obj.soldofs_mech,obj.loadVector_mech]
 
-if isequal(KThermalLoad, KTheta)
-    disp('The matrices are the same.');
-else
-    disp('The matrices are different.');
-end                
+                if isequal(KThermalLoad, KTheta)
+                    disp('The matrices are the same.');
+                else
+                    disp('The matrices are different.');
+                end                
                     obj.Residual_mech=(obj.KStiff*obj.soldofs_mech - obj.loadVector_mech);
 
                 for iter = 1:obj.max_iterations
@@ -737,7 +742,7 @@ end
                     %    fprintf(append('### NR. CONVERGED with tolerance:',num2str(obj.tolerance),'\n'));
                     %    break;
                     %end
-                
+                    %%%solve
                     % Solve the system using the tangential matrix and residual: KT*dU=R->dU
                     obj.SolveLinearSystemInParallel(reader.physics,bcinit)
                     obj.Residual_mech=(obj.KStiff*obj.soldofs_mech - obj.loadVector_mech);
@@ -843,9 +848,9 @@ end
                         obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
                         if strcmp(reader.physics,'decoupledthermoelectromechanical')
                             % Extract the necessary variables
-                            [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                            [obj.KStiff,KThermalLoad,Ktheta] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                             Temperature_solution = obj.soldofs(1:2:end);
-                            obj.KUT=KThermalLoad;
+                            obj.KUT=Ktheta;
                             obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
                             obj.SolveLinearSystemInParallel(reader.physics,bcinit)
                         end

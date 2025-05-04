@@ -224,12 +224,13 @@ classdef InputReader < handle
             fclose(inputFile);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function value = getmaterialproperty(obj,index,propertyName)
+        function value = getmaterialproperty(obj, index, propertyName)
             material = obj.MaterialProperties{index};
             if isKey(material, propertyName)
                 value = material(propertyName);
             else
-                disp(['Key "', propertyName, '" not found in the map.']);
+                disp(['Key "', propertyName, '" not found in the map at material index ', num2str(index), '.']);
+                value = []; % Optionally return empty or handle it as needed
             end
         end
 
