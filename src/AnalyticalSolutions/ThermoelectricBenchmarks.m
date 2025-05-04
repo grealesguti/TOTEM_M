@@ -92,7 +92,14 @@ classdef ThermoelectricBenchmarks < handle
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
             %[obj.diffFEM_ctemat, obj.FD_vals_ctemat] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
             %[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt");
-            
+%             
+%             %%%% next one is the basic!!! best to run
+%             Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect.txt";
+%             idxvoltage=7;idxelement=1;
+%             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+%             %%[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt");
+% 
+% 
 %             %%%% next one is the basic!!! best to run
 %             Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
 %             idxvoltage=7;idxelement=1;
@@ -132,7 +139,7 @@ classdef ThermoelectricBenchmarks < handle
             %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
             %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities);
            
-             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmat.txt";
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmatall.txt";
                         idxvoltage=10;idxelement=5;
              %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
             %idxvoltage=12;
@@ -923,11 +930,11 @@ end
             errorhisttofem = struct();
 % Set parameters
 FD_Tol = 1e-8;
-FD_max_iter = 12;
+FD_max_iter = 25;
 epsmin = 1e-8;
 cc=0;
-% 
-% 
+
+
 %             % Objective: AverageTemp (Density Element)
              TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = 1;
              eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
@@ -940,7 +947,7 @@ cc=0;
             TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = cc + 1;
             eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
             errorhisttofem.Tbc = abs((TOO.dfdx(end) - FD_vals(cc).diff_history) ./ TOO.dfdx(end));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Tbc, 'Tbc', cc == 1); end
 
@@ -1194,12 +1201,13 @@ if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Sbc,
     fprintf('Saved error history and epsilons to %s\n', csv_filename);
 end
 
-
-function []=plot_relative_error(obj,epsilons, errors, label_name, is_first_plot)
+function [] = plot_relative_error(obj, epsilons, errors, label_name, is_first_plot)
     persistent hFig
-    if isempty(hFig) || ~isvalid(hFig)
+
+    if is_first_plot || isempty(hFig) || ~isvalid(hFig)
         hFig = figure('Name', 'Relative Error to FEM vs Epsilon');
         set(hFig, 'NumberTitle', 'off');
+        clf(hFig); % Clear contents just in case
         hold on;
         grid on;
         title('Relative Error to FEM vs Epsilon');
@@ -1208,13 +1216,12 @@ function []=plot_relative_error(obj,epsilons, errors, label_name, is_first_plot)
         set(gca, 'XScale', 'log');
         set(gca, 'YScale', 'log');
         set(gca, 'XDir', 'reverse');
-
     end
 
     figure(hFig); % Bring figure to front
     loglog(epsilons, errors, '-o', 'LineWidth', 1.5, 'DisplayName', label_name);
     legend('-DynamicLegend', 'Interpreter', 'none', 'Location', 'best');
-    drawnow; % Force update
+    drawnow;
 end
 
 

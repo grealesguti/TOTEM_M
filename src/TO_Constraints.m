@@ -704,7 +704,7 @@ classdef TO_Constraints < handle
             %Ld_U_dofs=zeros(total_number_of_elements,number_of_nodes*3);
 
             %%%parfor
-            for i = 1:total_number_of_elements
+            parfor i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
