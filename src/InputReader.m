@@ -248,42 +248,37 @@ classdef InputReader < handle
             end
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Define a function to add Penalty keys
-        function addPenaltyKeys(obj)
-            % Loop through each materialProperties map
-            for i = 1:numel(obj.MaterialProperties)
-                material = obj.MaterialProperties{i};
-                newMaterial = containers.Map();  % Create a new map for modified properties
+function addPenaltyKeys(obj)
+    % Loop through each materialProperties map
+    for i = 1:numel(obj.MaterialProperties)
+        material = obj.MaterialProperties{i};
+        newMaterial = containers.Map();  % Create a new map for modified properties
 
-                % Loop through each key-value pair in the current material
-                keys = material.keys;
-                for j = 1:numel(keys)
-                    key = keys{j};
+        % Loop through each key-value pair in the current material
+        keys = material.keys;
+        for j = 1:numel(keys)
+            key = keys{j};
 
-                    % Check if the key does not start with 'Penalty_'
-                    if ~startsWith(key, 'Penalty_')
-                    % Check if the key does not start with 'Penalty_'
-                        other=0;
-                        penalkey=append('Penalty_',key);
-                        for k = 1:numel(keys)
-                            other_key=keys{k};
-                            if strcmp(other_key,penalkey)
-                                other=1;
-                            end
-                        end
-                        % Create a new key with 'Penalty_' prefix
-                        if other==0
-                            newKey = ['Penalty_', key];
-                            % Assign a value of 1 to the new key
-                            newMaterial(newKey) = 1;
-                        end
-                    end
+            % Check if the key does not start with 'Penalty_'
+            if ~startsWith(key, 'Penalty_')
+                penalkey = ['Penalty_', key];
+
+                % Check if the penalty key already exists
+                if ~isKey(material, penalkey)
+                    newMaterial(penalkey) = 1;  % Assign default penalty value
+
+                    % Print warning to screen with material index
+                    warning('Material %d: Added penalty key "%s" with value %g', ...
+                        i, penalkey, newMaterial(penalkey));
                 end
-
-                % Update the materialProperties map with the modified properties
-                obj.MaterialProperties{i} = [material; newMaterial];
             end
         end
+
+        % Update the materialProperties map with the modified properties
+        obj.MaterialProperties{i} = [material; newMaterial];
+    end
+end
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function addTmaterialminlimits(obj)
             % Loop through each materialProperties map

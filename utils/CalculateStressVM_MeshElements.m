@@ -1,6 +1,6 @@
 function [sigmaVM0] = CalculateStressVM_MeshElements(reader,mesh,solver,name)
-            meshelements=mesh.retrieveElementalSelection(reader.MeshEntityName);
-            etype=mesh.data.ElementTypes{meshelements(1)};
+            mesh_elements=mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{mesh_elements(1)};
             dim = mesh.retrieveelementdimension(etype); 
 mesh_elements = mesh.retrieveElementalSelection(name);
 total_number_of_elements = length(mesh_elements);
@@ -14,7 +14,7 @@ sigmaVM0=zeros(total_number_of_elements,1);
 
 initialdofs = solver.soldofs;
 
-for i = 1:total_number_of_elements
+parfor i = 1:total_number_of_elements
 
     % Recover each element tag
     elementTag = mesh_elements(i);
@@ -56,11 +56,11 @@ for i = 1:total_number_of_elements
     Th = N * Tee';
     Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
     Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
-    [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapx,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapx,Tmat,1,1);
     Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
-    [Day,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapy,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    [Day,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapy,Tmat,1,1);
     Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-    [Daz,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapz,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+    [Daz,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapz,Tmat,1,1);
     DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
     nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
     [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
@@ -112,11 +112,36 @@ for i = 1:total_number_of_elements
     %sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
     se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
     %se0=C*eps   -C*alphav*N*(Tee-str2double(reader.T0))';
-    if dim==3
-        sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
-    elseif dim==2
-        sVM0=sqrt(se0(1)^2+se0(2)^2-se0(1)*se0(2)+3*se0(3)^2);
+    % Compute stress vector (mechanical + thermal)
+    se0 = C * B * Uee' - C * alphav * N * (Tee - str2double(reader.T0))';
+    
+    % Compute von Mises stress
+    if dim == 3
+        % Voigt notation: [σ11, σ22, σ33, σ23, σ13, σ12]
+        sVM0 = sqrt( ...
+            0.5 * ( ...
+                (se0(1) - se0(2))^2 + ...
+                (se0(2) - se0(3))^2 + ...
+                (se0(3) - se0(1))^2 ) + ...
+            3 * (se0(4)^2 + se0(5)^2 + se0(6)^2) ...
+        );
+        
+    elseif dim == 2
+        % Plane stress or strain: [σ11, σ22, σ12]
+        sVM0 = sqrt( ...
+            se0(1)^2 + se0(2)^2 - se0(1)*se0(2) + ...
+            3 * se0(3)^2 ...
+        );
     end
+
+%     se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+%     %se0=C*eps   -C*alphav*N*(Tee-str2double(reader.T0))';
+%     if dim==3
+%         sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2-se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3)+3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+%     elseif dim==2
+%         sVM0=sqrt(se0(1)^2+se0(2)^2-se0(1)*se0(2)+3*se0(3)^2);
+%     end
+
     sigmaVM0(i) = sVM0;
 end
 

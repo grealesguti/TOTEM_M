@@ -210,9 +210,15 @@ classdef TO_Constraints < handle
             else
                 nodes_per_element = length(mesh.data.ELEMENTS{obj.TOEL(1)});
             end
-            LP_dU_element=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
-            LP_dU_element_dofs=zeros(number_of_TO_elements,nodes_per_element*dofs_per_node);
-            LP_U_element=zeros(number_of_TO_elements,1);
+
+            mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{mesh_elements(1)};
+            dim = mesh.retrieveelementdimension(etype); 
+            totalelem = length(mesh_elements);
+
+            LP_dU_element=zeros(totalelem,nodes_per_element*dofs_per_node);
+            LP_dU_element_dofs=zeros(totalelem,nodes_per_element*dofs_per_node);
+            LP_U_element=zeros(totalelem,1);
             LP_dU=zeros(obj.Number_of_dofs,1);
             LP_U=zeros(nodes_per_element,1);
             Pobj = reader.TopOpt_ConstraintValue(dfdx_index);
@@ -226,9 +232,12 @@ classdef TO_Constraints < handle
             end           % etype=mesh.data.ElementTypes{obj.TOEL(1)};
             dim = mesh.retrieveelementdimension(etype); 
             GaussfunctionTag=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_Power_dx_1(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
+            %mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
 
-            parfor  ii=1:length(obj.TOEL)
-                element_Tag = obj.TOEL(ii);
+
+
+            parfor  ii=1:totalelem
+                element_Tag = mesh_elements(ii);
                 [LJ,dPdxi_c,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag},GaussfunctionTag) ;
                 % assembly in global residual and jacobian matrix in sparse format
                 LP_dU_element_dofs(ii,:)=element_dofs;
@@ -237,9 +246,9 @@ classdef TO_Constraints < handle
             end
 
             % Summation of all element integrations
-            for ii=1:length(obj.TOEL)
+            for ii=1:totalelem
                 LP_dU(LP_dU_element_dofs(ii,:),1)=LP_dU(LP_dU_element_dofs(ii,:),1)+LP_dU_element(ii,:)';
-                LP_U(obj.TOEL(ii))=LP_U_element(ii);
+                LP_U(mesh_elements(ii))=LP_U_element(ii);
             end
 
             LP_U=LP_U/Pobj;
@@ -448,6 +457,12 @@ classdef TO_Constraints < handle
         function dfdx_Stress(obj,reader,mesh,solver,index_con)
             
             element_sensitivities=zeros(length(obj.TOEL),1);
+
+            mesh_elements = mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{mesh_elements(1)};
+            dim = mesh.retrieveelementdimension(etype); 
+            totalelem = length(mesh_elements);
+
             %KJa=-solver.KT;
             %% Derivative of KSU
             Number_Of_M_Dofs = obj.Number_of_nodes*obj.dim;
@@ -479,12 +494,12 @@ classdef TO_Constraints < handle
             GaussfunctionTag_KUU=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KuDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_KUT=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.Integration_KutDerivative(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
             GaussfunctionTag_Rx=@(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx) obj.integration_R_dx(natural_coordinates, element_coordinates, Tee, Vee, element_material_index, reader, mesh, etype,xx);
-            parfor ii=1:length(obj.TOEL)
+            for ii=1:length(obj.TOEL)
                 ElementTag=obj.TOEL(ii);
                 
-                element_nodes = mesh.data.ELEMENTS{ElementTag};
-                number_of_nodes=length(element_nodes);
-                orderdof_U=zeros(number_of_nodes*obj.dim,1);
+                 element_nodes = mesh.data.ELEMENTS{ElementTag};
+                 number_of_nodes=length(element_nodes);
+                 orderdof_U=zeros(number_of_nodes*obj.dim,1);
                 for nd=1:length(element_nodes)
                     orderdof_U(nd*obj.dim-(obj.dim-1))=element_nodes(nd)*obj.dim-(obj.dim-1);
                     orderdof_U(nd*obj.dim-(obj.dim-2))=element_nodes(nd)*obj.dim-(obj.dim-2);
@@ -492,19 +507,20 @@ classdef TO_Constraints < handle
                     orderdof_U(nd*obj.dim)=element_nodes(nd)*obj.dim;
                     end
                 end
-                Uee=solver.soldofs_mech(orderdof_U)';
-                etype=mesh.data.ElementTypes{obj.TOEL(1)};
+%                 etype=mesh.data.ElementTypes{obj.TOEL(1)};
                 dim = mesh.retrieveelementdimension(etype); 
                 %%%% Derivatives
                 [KUUd,flag,element_dofs_U]=obj.GaussIntegration_dx(dim,  reader.GI_order, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUU) ;
                 [KUTd,flag,element_dofs_T]=obj.GaussIntegration_dx(dim,  reader.GI_order, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_KUT) ;
                 [Rx,flag,element_dofs_Rx]=obj.GaussIntegration_dx(dim,  reader.GI_order, ElementTag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{ElementTag},GaussfunctionTag_Rx) ;
-                TVee=solver.soldofs(element_dofs_Rx);
+                Tee=solver.soldofs(element_dofs_T(1:number_of_nodes));
+                Uee=solver.soldofs_mech(orderdof_U)';
 
                 %Adji=AdjU(orderdofU(:,ii)');
+                %index = mesh_elements == ElementTag;
                 element_sensitivities(ii)= sum(Luel(ii,:))...
                     +AdjU(orderdof_U)'*(KUUd*Uee')...
-                    -AdjU(orderdof_U)'*(KUTd*(TVee(1:number_of_nodes)-str2double(reader.T0)))...
+                    -AdjU(orderdof_U)'*(KUTd*(Tee-str2double(reader.T0)))...
                     +AdjTV(element_dofs_Rx)'*Rx;%...
 
             end
@@ -545,7 +561,7 @@ classdef TO_Constraints < handle
             LdT=zeros(total_number_of_nodes*1,1);
             Luel=zeros(total_number_of_elements,2);
 
-            parfor i = 1:total_number_of_elements
+            for i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -586,7 +602,7 @@ classdef TO_Constraints < handle
                 Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
                 Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
                 DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
-                nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+                nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');%%%check
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
                 [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
@@ -664,8 +680,8 @@ classdef TO_Constraints < handle
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function [LdU,LdT,Luel] = CalculateStressVM_Derivatives_MeshElements_Pnorm(obj,reader,mesh,solver,index_con)
-            meshelements=mesh.retrieveElementalSelection(reader.MeshEntityName);
-            etype=mesh.data.ElementTypes{meshelements(1)};
+            mesh_elements=mesh.retrieveElementalSelection(reader.MeshEntityName);
+            etype=mesh.data.ElementTypes{mesh_elements(1)};
             dim = mesh.retrieveelementdimension(etype); 
             
             Sobj=reader.TopOpt_ConstraintValue(index_con);
@@ -686,7 +702,7 @@ classdef TO_Constraints < handle
             %Ld_U=zeros(total_number_of_elements,number_of_nodes*3*number_of_nodes*3);
             %Ld_U_dofs=zeros(total_number_of_elements,number_of_nodes*3);
 
-            parfor i = 1:total_number_of_elements
+            for i = 1:total_number_of_elements
 
                 % Recover each element tag
                 elementTag = mesh_elements(i);
@@ -727,18 +743,24 @@ classdef TO_Constraints < handle
                 Th = N * Tee';
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_YoungModulus'),reader.getmaterialproperty(element_material_index,'Tmax_YoungModulus')];
                 Dalphapx = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
-                [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapx,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient_x'));
+                [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalphapx,Tmat,1,1);
                 Dalphapy = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
-                [Day,Daydt]=CalculateMaterialProperties(1e-6,Dalphapy,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient_y'));
+                [Day,Daydt]=CalculateMaterialProperties(1e-6,Dalphapy,Tmat,1,1);
                 Dalphapz = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-                [Daz,Dazdt]=CalculateMaterialProperties(1e-6,Dalphapz,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient_z'));
+                [Daz,Dazdt]=CalculateMaterialProperties(1e-6,Dalphapz,Tmat,1,1);
+                %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
+                [DaT_dx]=CalculateMaterial_XDerivative(1e-6,Dalphapx,Tmat,1,1);
+
                 DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
+
                 [DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Tmat,xx,...
                     reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
                 [DE_dx]=CalculateMaterial_XDerivative(1e-6,DEp,Tmat,xx,...
                     reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+
+                
                 alphav=zeros(6,1);
                 alphav(1:3,1)=[Dax,Day,Daz];
                 alphavdt=zeros(6,1);
@@ -750,6 +772,9 @@ classdef TO_Constraints < handle
                alphav(1:2,1)=[Dax,Day];
                alphavdt=zeros(3,1);
                 alphavdt(1:2,1)=[Daxdt,Daydt];
+                alphav_dx=zeros(3,1);
+                alphav_dx(1:2,1)=[DaT_dx,DaT_dx];  
+
 
                 C = DE / (1 - nu^2) * [1, nu, 0; nu, 1, 0; 0, 0, (1 - nu) / 2]; % plane stress
                 % C = DE / (1 + nu) / (1 - 2 * nu) * [1 - nu, nu, 0; nu, 1
@@ -772,6 +797,8 @@ classdef TO_Constraints < handle
                 alphav(1:3,1)=[Dax,Day,Daz];  
                alphavdt=zeros(6,1);
                 alphavdt(1:3,1)=[Daxdt,Daydt,Dazdt];
+                alphav_dx=zeros(6,1);
+                alphav_dx(1:3,1)=[DaT_dx,DaT_dx,DaT_dx];  
 
                 C = DE/((1+nu)*(1-2*nu))*[1-nu nu nu 0 0 0; nu 1-nu nu 0 0 0;...
                     nu nu 1-nu 0 0 0; 0 0 0 (1-2*nu)/2 0 0; 0 0 0 0 (1-2*nu)/2 0;...
@@ -794,30 +821,65 @@ classdef TO_Constraints < handle
                     end
             end
                 
-                se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
-                if dim ==2
-                sVM0=sqrt(se0(1)^2+se0(2)^2 ...
-                    -se0(1)*se0(2) ...
-                    +3*se0(3)^2);
-                Summation_Pnorm=Summation_Pnorm+(sVM0)^reader.KSUp;
-                %% Derivative of VM stress with each of the stress components
+            % Compute stress vector (mechanical + thermal)
+            se0 = C * B * Uee' - C * alphav * N * (Tee - str2double(reader.T0))';
+            
+            if dim == 2
+                % Voigt notation for 2D: [σ11, σ22, σ12]
+                sVM0 = sqrt( ...
+                    se0(1)^2 + se0(2)^2 - se0(1)*se0(2) + ...
+                    3 * se0(3)^2 ...
+                );
+            
+                Summation_Pnorm = Summation_Pnorm + sVM0^reader.KSUp;
                 daVM=[  1/(2*sVM0)*(2*se0(1)-se0(2));...
                         1/(2*sVM0)*(2*se0(2)-se0(1));...
-                        3/(sVM0)*se0(3)];
-
-                elseif dim==3
-                sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2 ...
-                    -se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3) ...
-                    +3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
-                Summation_Pnorm=Summation_Pnorm+(sVM0)^reader.KSUp;
-                %% Derivative of VM stress with each of the stress components
+                        3/(sVM0)*se0(3)];            
+            elseif dim == 3
+                % Voigt notation for 3D: [σ11, σ22, σ33, σ23, σ13, σ12]
+                sVM0 = sqrt( ...
+                    0.5 * ( ...
+                        (se0(1) - se0(2))^2 + ...
+                        (se0(2) - se0(3))^2 + ...
+                        (se0(3) - se0(1))^2 ) + ...
+                    3 * (se0(4)^2 + se0(5)^2 + se0(6)^2) ...
+                );
+            
+                Summation_Pnorm = Summation_Pnorm + sVM0^reader.KSUp;
+            
                 daVM=[  1/(2*sVM0)*(2*se0(1)-se0(2)-se0(3));...
                         1/(2*sVM0)*(2*se0(2)-se0(1)-se0(3));...
                         1/(2*sVM0)*(2*se0(3)-se0(1)-se0(2));...
                         3/(sVM0)*se0(4);...
                         3/(sVM0)*se0(5);...
                         3/(sVM0)*se0(6);];
-                end
+            end
+
+% 
+%                 se0=C*B*Uee'-C*alphav*N*(Tee-str2double(reader.T0))';
+%                 if dim ==2
+%                 sVM0=sqrt(se0(1)^2+se0(2)^2 ...
+%                     -se0(1)*se0(2) ...
+%                     +3*se0(3)^2);
+%                 Summation_Pnorm=Summation_Pnorm+(sVM0)^reader.KSUp;
+%                 %% Derivative of VM stress with each of the stress components
+%                 daVM=[  1/(2*sVM0)*(2*se0(1)-se0(2));...
+%                         1/(2*sVM0)*(2*se0(2)-se0(1));...
+%                         3/(sVM0)*se0(3)];
+% 
+%                 elseif dim==3
+%                 sVM0=sqrt(se0(1)^2+se0(2)^2+se0(3)^2 ...
+%                     -se0(1)*se0(2)-se0(1)*se0(3)-se0(2)*se0(3) ...
+%                     +3*se0(4)^2+3*se0(5)^2+3*se0(6)^2);
+%                 Summation_Pnorm=Summation_Pnorm+(sVM0)^reader.KSUp;
+%                 %% Derivative of VM stress with each of the stress components
+%                 daVM=[  1/(2*sVM0)*(2*se0(1)-se0(2)-se0(3));...
+%                         1/(2*sVM0)*(2*se0(2)-se0(1)-se0(3));...
+%                         1/(2*sVM0)*(2*se0(3)-se0(1)-se0(2));...
+%                         3/(sVM0)*se0(4);...
+%                         3/(sVM0)*se0(5);...
+%                         3/(sVM0)*se0(6);];
+%                 end
                 %%%%%%%%%%%%%%
                 %% FIXME: for parfor the Li and Li2 is a solution, another way is storing all coefficients and adding after the parfor loop
                 %Ld_U(i,:)=sVM0^(reader.KSUp-1)*daVM'*C*B; % L for mech dofs, which multiplies dU/dx
@@ -835,7 +897,7 @@ classdef TO_Constraints < handle
                 %%
                 LdU=LdU+(element_multiplier*C*B*Li_M)';
                 LdT=LdT-(element_multiplier*(C*alphav*N+(C*alphavdt)*(N*(Tee-str2double(reader.T0))')*N)*Li_T)'; % derivative of CTE with temp %% MODIFICATION!!!
-                Luel(i,:)=[element_multiplier*dCx*B*Uee',element_multiplier*(-dCx*alphav*N)*(Tee-str2double(reader.T0))'];  % L for mech and T dofs, which multiplies [U;(T-Tref)]
+                Luel(i,:)=[element_multiplier*dCx*B*Uee',element_multiplier*((-dCx*alphav*N)*(Tee-str2double(reader.T0))')];% -(C*alphav_dx*N)*(Tee-str2double(reader.T0))'  % L for mech and T dofs, which multiplies [U;(T-Tref)]
             end
             %Pnorm=(Summation_Pnorm/total_number_of_elements)^(1/reader.KSUp);
             dPnorm_common=(Summation_Pnorm/total_number_of_elements)^(1/reader.KSUp-1)*1/total_number_of_elements/Sobj;
@@ -866,16 +928,16 @@ classdef TO_Constraints < handle
                 % FIXME: Calculate material properties
                 Tmat=[Th,reader.getmaterialproperty(element_material_index,'Tmin_ElectricalConductivity'),reader.getmaterialproperty(element_material_index,'Tmax_ElectricalConductivity')];
                 Dalpha_x = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_x');
-                [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalpha_x,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [Dax,Daxdt]=CalculateMaterialProperties(1e-6,Dalpha_x,Tmat,1,1);
                 Dalpha_y = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_y');
-                [Day,Daydt]=CalculateMaterialProperties(1e-6,Dalpha_y,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [Day,Daydt]=CalculateMaterialProperties(1e-6,Dalpha_y,Tmat,1,1);
                 Dalpha_z = reader.getmaterialproperty(element_material_index,'ThermalExpansionCoefficient_z');
-                [Daz,Dazdt]=CalculateMaterialProperties(1e-6,Dalpha_z,Tmat,1,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
+                [Daz,Dazdt]=CalculateMaterialProperties(1e-6,Dalpha_z,Tmat,1,1);
                 DEp = reader.getmaterialproperty(element_material_index,'YoungModulus');
                 nu = reader.getmaterialproperty(element_material_index,'PoissonRatio');
                 %[DE,DdE]=CalculateMaterialProperties(1e-6,DEp,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 %[Dalpha,Ddalpha]=CalculateMaterialProperties(1e-6,Dalphap,Th,xx,reader.getmaterialproperty(element_material_index,'Penalty_ThermalExpansionCoefficient'));
-                [DE_dx]=CalculateMaterial_XDerivative(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_ElectricalConductivity'));
+                [DE_dx]=CalculateMaterial_XDerivative(1e-6,DEp,Tmat,xx,reader.getmaterialproperty(element_material_index,'Penalty_YoungModulus'));
                 alphav=zeros(6,1);
                 alphav(1:3,1)=[Dax,Day,Daz];
 

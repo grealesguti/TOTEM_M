@@ -17,7 +17,7 @@ function [] = VTKapplyDensity(reader,mesh,all)
                     if xx(i)>all
                         mesh.elements_density(aa(i))=1;
                     else
-                        mesh.elements_density(aa(i))=1e-5;
+                        mesh.elements_density(aa(i))=1e-6;
                     end
                 end
             else

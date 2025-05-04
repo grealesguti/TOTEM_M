@@ -95,8 +95,8 @@ classdef ThermoelectricBenchmarks < handle
             
             %%%% next one is the basic!!! best to run
             %Benchmark_sensitivities ="Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt";
-            %idxvoltage=7;
-            %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage);
+            %idxvoltage=7;idxelement=1;
+            %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
             %%[diffFEM_ctemat_TEC, FD_vals_ctemat_TEC] = thb.run_SingleFEM_diff("Benchmarks/Elements/Benchmark_TO/input_NonLinCouplSEffect_nonlinmat.txt");
 
            % Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_cte.txt";
@@ -107,15 +107,65 @@ classdef ThermoelectricBenchmarks < handle
             %Benchmark_sensitivities ="TECTO/input_TECTO_StressConstrained_noncte.txt";
             %idxvoltage=7;
             %[obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage);
-             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewalphabench.txt";
-             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench.txt";
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewalphabench.txt";
+%              Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_volumepenalty.txt";
+%                         idxvoltage=10;idxelement=5;
+%              %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+%             %idxvoltage=12;
+%             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+%              Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_seebeck.txt";
+%                         idxvoltage=10;idxelement=5;
+%              %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+%             %idxvoltage=12;
+%             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+%              Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_seebeckpenalty.txt";
+%                         idxvoltage=10;idxelement=5;
+%              %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+%             %idxvoltage=12;
+%             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+%              Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_nonlin.txt";
+%                         idxvoltage=10;idxelement=5;
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+            %idxvoltage=12;
+%            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+
+            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
+            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities);
+           
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmat.txt";
                         idxvoltage=10;idxelement=5;
              %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
             %idxvoltage=12;
             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
-            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff(Benchmark_sensitivities);
-            %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities);
-            
+
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_penaltyfinal.txt";
+                        idxvoltage=10;idxelement=5;
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+            %idxvoltage=12;
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_nonlinallpenalty3.txt";
+                        idxvoltage=10;idxelement=5;
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+            %idxvoltage=12;
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_nonlinallpenalty5.txt";
+                        idxvoltage=10;idxelement=5;
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+            %idxvoltage=12;
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+
+
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_seebeckmintemp.txt";
+                        idxvoltage=10;idxelement=5;
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+            %idxvoltage=12;
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+
+
+
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function []=runPhysicsBenchmarks(obj)
@@ -873,7 +923,7 @@ end
             errorhisttofem = struct();
 % Set parameters
 FD_Tol = 1e-8;
-FD_max_iter = 7;
+FD_max_iter = 20;
 epsmin = 1e-8;
 cc=0;
 % 
@@ -902,19 +952,19 @@ cc=0;
 %             errorhisttofem.Vrho = abs((TOC.dfdx(2,1) - FD_vals(cc).diff_history) ./ TOC.dfdx(2,1));
 % if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Vrho, 'Vrho', cc == 1); end
 
-            %Constraint: Power (Density Element)
-            eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
-            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
-            errorhisttofem.Prho = abs((TOC.dfdx(1,idxelement) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,idxelement));
-if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Prho, 'Prho', cc == 1); end
-
-            % Constraint: Power (BC)
-            eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
-            [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
-            errorhisttofem.Pbc = abs((TOC.dfdx(1,end) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,end));
-if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Pbc, 'Pbc', cc == 1); end
+%             %Constraint: Power (Density Element)
+%             eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
+%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+%                 obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
+%             errorhisttofem.Prho = abs((TOC.dfdx(1,idxelement) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,idxelement));
+% if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Prho, 'Prho', cc == 1); end
+% 
+%             % Constraint: Power (BC)
+%             eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
+%             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
+%                 obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+%             errorhisttofem.Pbc = abs((TOC.dfdx(1,end) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,end));
+% if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Pbc, 'Pbc', cc == 1); end
 
             % Constraint: Stress (Density Element)
             eval_fun = @(reader, mesh, solver) TOC_1.fval_Stress(reader, mesh, solver, 3); cc = cc + 1;
