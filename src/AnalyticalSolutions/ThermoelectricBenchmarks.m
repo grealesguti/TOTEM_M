@@ -140,10 +140,19 @@ classdef ThermoelectricBenchmarks < handle
             %[obj.diffFEM_nonlinmat_TEC, obj.diffFEM_nonlinmat_TEC] = obj.run_SingleFEM_diff_TEC(Benchmark_sensitivities);
            
              Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmatall.txt";
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmat2";
                         idxvoltage=10;idxelement=5;
              %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
             %idxvoltage=12;
             [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+
+             Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmatall.txt";
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_contactsmat2";
+                        idxvoltage=10;idxelement=1;
+             %Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal3D_reviewAir.txt";
+            %idxvoltage=12;
+            [obj.diffFEM_nonlinmat, obj.FD_vals_nonlinmat, obj.errhist] = obj.run_SingleFEM_diff(Benchmark_sensitivities,idxvoltage,idxelement);
+
 
              Benchmark_sensitivities ="TECTO/input_TECTO_Thermoel_Serend_240124_Journal2D_reviewctebench_penaltyfinal.txt";
                         idxvoltage=10;idxelement=5;
@@ -442,20 +451,48 @@ classdef ThermoelectricBenchmarks < handle
 
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [diff, err, cc, diff_history, err_history, epsilon_history,epsilon_vector] = Finite_Differences_DensityElement(obj, reader, mesh, bcinit, solver, eval_fun, idx, do_plot, stop_at_eps, min_perturbation, max_iterations, Tol)
+function [diff, err, cc, diff_history, err_history, epsilon_history, epsilon_vector] = Finite_Differences_DensityElement(obj, reader, mesh, bcinit, solver, eval_fun, idx, do_plot, stop_at_eps, min_perturbation, max_iterations, Tol, meshinit)
+
     % Optional input defaults
     if nargin < 8, do_plot = true; end
     if nargin < 9, stop_at_eps = false; end
     if nargin < 10, min_perturbation = 1e-4; end
     if nargin < 11, max_iterations = 15; end
     if nargin < 12, Tol = 1e-4; end
+    if nargin < 13, meshinit = []; end  % new optional input
 
-    % Get the test element for density evaluation
+    if reader.Filter > 0
+        filtering = Filtering(reader, mesh);
+        filtering.beta = 1;
+        filtering.mu = 0.5;
+    else
+        filtering = Filtering(reader, mesh);
+        filtering.beta = 1;
+    end
+
     TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
-    test_element = TOEL(idx);
 
+    % Density Initialization
+    if isempty(reader.TopOpt_Initial_x)
+        reader.TopOpt_Initial_x = 1;
+        mesh.elements_density(TOEL) = 1;
+        meshinit = mesh.elements_density(TOEL);
+    elseif reader.TopOpt_Initial_x >= 1 && ~isempty(meshinit)
+        mesh.elements_density(TOEL) = meshinit;
+    else
+        mesh.elements_density(TOEL) = ones(length(TOEL), 1) * reader.TopOpt_Initial_x;
+        meshinit = mesh.elements_density(TOEL);
+    end
+
+
+    test_element = TOEL(idx);
     % Initial density and perturbed density
     xx = mesh.elements_density(test_element);
+
+    if reader.Filter>0
+        filtering.filter_densities(reader,mesh)
+    end
+
 
     % Automatically determine the order of xx
     order_of_xx = floor(log10(xx));  % Find the order of xx by using log10 and floor it to get the integer part
@@ -492,6 +529,8 @@ function [diff, err, cc, diff_history, err_history, epsilon_history,epsilon_vect
     err = 100;
     diff_old = 0;
 
+
+
     while cc <= max_iterations
         % Stopping criteria
         if stop_at_eps && epsilon < min_perturbation
@@ -506,13 +545,25 @@ function [diff, err, cc, diff_history, err_history, epsilon_history,epsilon_vect
         xx_iter = xx + epsilon;  % Apply the perturbation to xx
 
         mesh_1 = Mesh(reader);
+    if reader.Filter > 0
+        filtering1 = Filtering(reader, mesh_1);
+        filtering1.beta = 1;
+        filtering1.mu = 0.5;
+    else
+        filtering1 = Filtering(reader, mesh_1);
+        filtering1.beta = 1;
+    end        
         if isempty(reader.TopOpt_Initial_x)
             reader.TopOpt_Initial_x = 1;
+        elseif reader.TopOpt_Initial_x>1
+            mesh_1.elements_density(TOEL) = meshinit;
         else
             mesh_1.elements_density(TOEL) = ones(length(mesh_1.elements_density(TOEL)), 1) * reader.TopOpt_Initial_x;
         end
         mesh_1.elements_density(test_element) = xx_iter;
-
+        if reader.Filter>0
+            filtering1.filter_densities(reader,mesh_1)
+        end
         bcinit_1 = BCInit(reader, mesh_1);
         solver_1 = Solver(mesh_1, bcinit_1);
         solver_1.runNewtonRaphson(reader, mesh_1, bcinit_1);
@@ -567,13 +618,37 @@ function [diff, err, cc, diff_history, err_history, epsilon_history,epsilon_vect
         title('Relative Perturbation History');
     end
 end
-function [diff, err, cc, diff_history, err_history, epsilon_history, epsilon_vector] = Finite_Differences_bc(obj, filename, reader, mesh, solver, eval_fun, index, index_TO, do_plot, stop_at_eps, min_perturbation, max_iterations, Tol)
+function [diff, err, cc, diff_history, err_history, epsilon_history, epsilon_vector] = Finite_Differences_bc(obj, filename, reader, mesh, solver, eval_fun, index, index_TO, do_plot, stop_at_eps, min_perturbation, max_iterations, Tol,meshinit)
     % Optional input defaults
     if nargin < 9, do_plot = true; end
     if nargin < 10, stop_at_eps = false; end
     if nargin < 11, min_perturbation = 1e-4; end
     if nargin < 12, max_iterations = 15; end
     if nargin < 13, Tol = 1e-4; end
+    if nargin < 13, meshinit = []; end  % new optional input
+
+    if reader.Filter > 0
+        filtering = Filtering(reader, mesh);
+        filtering.beta = 1;
+        filtering.updateElMultiplier(3);
+        filtering.mu = 0.5;
+    else
+        filtering = Filtering(reader, mesh);
+        filtering.beta = 1;
+    end
+    TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
+    % Density Initialization
+    if isempty(reader.TopOpt_Initial_x)
+        reader.TopOpt_Initial_x = 1;
+        mesh.elements_density(TOEL) = 1;
+        meshinit = mesh.elements_density(TOEL);
+    elseif reader.TopOpt_Initial_x >= 1 && ~isempty(meshinit)
+        mesh.elements_density(TOEL) = meshinit;
+    else
+        mesh.elements_density(TOEL) = ones(length(TOEL), 1) * reader.TopOpt_Initial_x;
+        meshinit = mesh.elements_density(TOEL);
+    end
+
 
     % Initial objective function value
     value_0 = eval_fun(reader, mesh, solver);
@@ -644,7 +719,17 @@ function [diff, err, cc, diff_history, err_history, epsilon_history, epsilon_vec
         reader_1.bcval(index) = bcvalue;
 
         mesh_1 = Mesh(reader_1);
-        mesh_1.elements_density = mesh.elements_density;
+        %mesh_1.elements_density = mesh.elements_density;
+        if isempty(reader.TopOpt_Initial_x)
+            reader.TopOpt_Initial_x = 1;
+        elseif reader.TopOpt_Initial_x>1
+            mesh_1.elements_density(TOEL) = meshinit;
+        else
+            mesh_1.elements_density(TOEL) = ones(length(mesh_1.elements_density(TOEL)), 1) * reader.TopOpt_Initial_x;
+        end
+        if reader.Filter>0
+            filtering.filter_densities(reader,mesh_1)
+        end
         bcinit_1 = BCInit(reader_1, mesh_1);
 
         solver_1 = Solver(mesh_1, bcinit_1);
@@ -907,11 +992,18 @@ end
             reader = InputReader(filepath);
             fprintf('Initialized InputReader with filename: %s\n', filepath);
             mesh = Mesh(reader);
+            mesh0 = Mesh(reader);
             TOEL = mesh.retrieveElementalSelection(reader.TopOpt_DesignElements);
             if isempty(reader.TopOpt_Initial_x)
                 reader.TopOpt_Initial_x = 1;
+                mesh.elements_density(TOEL)=1;
+                meshinit= mesh.elements_density(TOEL);
+            elseif reader.TopOpt_Initial_x>1
+                mesh.elements_density(TOEL) = 0.8 + (1 - 0.8) * rand(length(mesh.elements_density(TOEL)), 1);
+                meshinit= mesh.elements_density(TOEL);
             else
                 mesh.elements_density(TOEL) = ones(length(mesh.elements_density(TOEL)), 1) * reader.TopOpt_Initial_x;
+                meshinit= mesh.elements_density(TOEL);
             end
             fprintf('Initialized Mesh\n');
             bcinit = BCInit(reader, mesh);
@@ -920,11 +1012,29 @@ end
             solver.runNewtonRaphson(reader, mesh, bcinit);
             fprintf('Postprocessing\n');
 
+    if reader.Filter > 0
+        filtering = Filtering(reader, mesh);
+        filtering.beta = 64;
+        filtering.updateElMultiplier(3);
+        filtering.mu = 0.5;
+    else
+        filtering = Filtering(reader, mesh);
+        filtering.beta = 64;
+    end
+
+            if reader.Filter>0
+                filtering.filter_densities(reader,mesh)
+            end
+
             TOO = TO_Objectives(reader, mesh, bcinit);
             TOO.CalculateObjective(reader, mesh, solver);
             TOC = TO_Constraints(reader, mesh, bcinit);
             TOC.CalculateConstraint(reader, mesh, solver);
             ncon = length(reader.TopOpt_ConstraintValue);
+
+                if reader.Filter>0
+                    filtering.filter_sensitivities(reader,mesh,TOO,TOC)
+                end
 
             FD_vals = struct();
             errorhisttofem = struct();
@@ -939,7 +1049,7 @@ cc=0;
              TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = 1;
              eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_DensityElement(reader, mesh0, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Trho = abs((TOO.dfdx(1) - FD_vals(cc).diff_history) ./ TOO.dfdx(1));
             if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Trho, 'Trho', cc == 1); end
 
@@ -947,7 +1057,7 @@ cc=0;
             TOO_1 = TO_Objectives(reader, mesh, bcinit); cc = cc + 1;
             eval_fun = @(reader, mesh, solver) TOO_1.fval_AverageTemp(reader, mesh, solver);
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_bc(filepath, reader, mesh0, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Tbc = abs((TOO.dfdx(end) - FD_vals(cc).diff_history) ./ TOO.dfdx(end));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Tbc, 'Tbc', cc == 1); end
 
@@ -955,35 +1065,35 @@ if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Tbc,
               TOC_1 = TO_Constraints(reader, mesh, bcinit); cc = cc + 1;
              eval_fun = @(reader, mesh, solver) TOC_1.fval_Volume(reader, mesh, solver, 2);
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_DensityElement(reader, mesh0, bcinit, solver, eval_fun, 1, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Vrho = abs((TOC.dfdx(2,1) - FD_vals(cc).diff_history) ./ TOC.dfdx(2,1));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Vrho, 'Vrho', cc == 1); end
 
             %Constraint: Power (Density Element)
             eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_DensityElement(reader, mesh0, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Prho = abs((TOC.dfdx(1,idxelement) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,idxelement));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Prho, 'Prho', cc == 1); end
 
             % Constraint: Power (BC)
             eval_fun = @(reader, mesh, solver) TOC_1.fval_Power(reader, mesh, solver, 1); cc = cc + 1;
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_bc(filepath, reader, mesh0, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Pbc = abs((TOC.dfdx(1,end) - FD_vals(cc).diff_history) ./ TOC.dfdx(1,end));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Pbc, 'Pbc', cc == 1); end
 
             % Constraint: Stress (Density Element)
             eval_fun = @(reader, mesh, solver) TOC_1.fval_Stress(reader, mesh, solver, 3); cc = cc + 1;
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_DensityElement(reader, mesh, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_DensityElement(reader, mesh0, bcinit, solver, eval_fun, idxelement, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Srho = abs((TOC.dfdx(3,idxelement) - FD_vals(cc).diff_history) ./ TOC.dfdx(3,idxelement));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Srho, 'Srho', cc == 1); end
 
             % Constraint: Stress (BC)
             eval_fun = @(reader, mesh, solver) TOC_1.fval_Stress(reader, mesh, solver, 3); cc = cc + 1;
             [FD_vals(cc).diff, FD_vals(cc).err, FD_vals(cc).cc, FD_vals(cc).diff_history, FD_vals(cc).err_history, FD_vals(cc).eps_history,FD_vals(cc).eps_vect] = ...
-                obj.Finite_Differences_bc(filepath, reader, mesh, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol);
+                obj.Finite_Differences_bc(filepath, reader, mesh0, solver, eval_fun, idxvoltage, 1, false, true, epsmin, FD_max_iter, FD_Tol, meshinit);
             errorhisttofem.Sbc = abs((TOC.dfdx(3,end) - FD_vals(cc).diff_history) ./ TOC.dfdx(3,end));
 if do_plot, obj.plot_relative_error(FD_vals(cc).eps_history, errorhisttofem.Sbc, 'Sbc', cc == 1); end
 
@@ -1005,7 +1115,7 @@ end
 
             % Prepare filename and delete if exists
         csv_filename = fullfile("C:\Archive\Programming\MATLAB\TOTEM_M\Benchmarks", ...
-            append("error_vs_epsilon_simple_", datestr(now, 'yyyymmdd'), ".csv"));
+            append("error_vs_epsilon_simple_", datestr(now, 'yyyymmddHHMMSS'), ".csv"));
             if isfile(csv_filename)
                 delete(csv_filename);
             end

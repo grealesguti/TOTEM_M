@@ -208,7 +208,7 @@ classdef TO_Objectives < handle
                 etype=mesh.data.ElementTypes{obj.TOEL(1)};
             end
             dim = mesh.retrieveelementdimension(etype); 
-            for ii=1:length(obj.TOEL)
+            parfor ii=1:length(obj.TOEL)
                 element_Tag=obj.TOEL(ii);
 
                 [R_dx,element_dofs]=obj.GaussIntegration_dx(dim,  reader.GI_order, element_Tag, mesh, solver.soldofs,reader,mesh.data.ElementTypes{element_Tag}) ; 

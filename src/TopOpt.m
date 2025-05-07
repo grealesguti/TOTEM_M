@@ -164,10 +164,11 @@ classdef TopOpt
                         solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
                         if strcmp(reader.physics,'decoupledthermoelectromechanical')
                             % Extract the necessary variables
-                            [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                            [solver.KStiff,KThermalLoad, Kth] = solver.Assembly_DecoupledThermoMech(reader, mesh);
                             Temperature_solution = solver.soldofs(1:2:end);
                             solver.KUT=KThermalLoad;
-                            solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                            solver.loadVector_mech=solver.loadVector_mech+Kth*(Temperature_solution-str2double(reader.T0));
+                        solver.Residual_mech = (obj.KStiff*obj.soldofs_mech - obj.loadVector_mech);
                             solver.SolveLinearSystemInParallel(reader.physics,bcinit)
                         end
                     end
@@ -184,10 +185,11 @@ classdef TopOpt
                     solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
                     if strcmp(reader.physics,'decoupledthermoelectromechanical')
                         % Extract the necessary variables
-                        [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                        [solver.KStiff,KThermalLoad, Kth] = solver.Assembly_DecoupledThermoMech(reader, mesh);
                         Temperature_solution = solver.soldofs(1:2:end);
                         solver.KUT=KThermalLoad;
-                        solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        solver.loadVector_mech=solver.loadVector_mech+Kth*(Temperature_solution-str2double(reader.T0));
+                        solver.Residual_mech = (obj.KStiff*obj.soldofs_mech - obj.loadVector_mech);
                         solver.SolveLinearSystemInParallel(reader.physics,bcinit)
                     end
                 else
@@ -205,10 +207,11 @@ classdef TopOpt
                     solver.soldofs(bcinit.dofs_free_)=ufree(:,end);
                     if strcmp(reader.physics,'decoupledthermoelectromechanical')
                         % Extract the necessary variables
-                        [solver.KStiff,KThermalLoad] = solver.Assembly_DecoupledThermoMech(reader, mesh);
+                        [solver.KStiff,KThermalLoad,Kth] = solver.Assembly_DecoupledThermoMech(reader, mesh);
                         Temperature_solution = solver.soldofs(1:2:end);
                         solver.KUT=KThermalLoad;
-                        solver.loadVector_mech=solver.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        solver.loadVector_mech=solver.loadVector_mech+Kth*(Temperature_solution-str2double(reader.T0));
+                        solver.Residual_mech = (obj.KStiff*obj.soldofs_mech - obj.loadVector_mech);
                         solver.SolveLinearSystemInParallel(reader.physics,bcinit)
                     end
                 end

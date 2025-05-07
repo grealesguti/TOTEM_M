@@ -703,7 +703,7 @@ classdef TO_Constraints < handle
             %Ld_U=zeros(total_number_of_elements,number_of_nodes*3*number_of_nodes*3);
             %Ld_U_dofs=zeros(total_number_of_elements,number_of_nodes*3);
 
-            %%%parfor
+            %%% parfor
             parfor i = 1:total_number_of_elements
 
                 % Recover each element tag

@@ -68,8 +68,9 @@ classdef Solver < handle
             %numWorkers = 4; % Adjust the number of workers as needed
             %pool = parpool(numWorkers);
             etype=mesh.data.ElementTypes{mesh_elements(1)};
-            dim = mesh.retrieveelementdimension(etype);            
-            for i = 1:total_number_of_elements
+            dim = mesh.retrieveelementdimension(etype);          
+            %%% parfor
+            parfor i = 1:total_number_of_elements
                 % Create a separate variable for each parallel iteration
                 Rs = zeros(total_number_of_dofs, 1);
 
@@ -848,10 +849,11 @@ end
                         obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
                         if strcmp(reader.physics,'decoupledthermoelectromechanical')
                             % Extract the necessary variables
-                            [obj.KStiff,KThermalLoad,Ktheta] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                            [obj.KStiff,KThermalLoad,KTheta] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                             Temperature_solution = obj.soldofs(1:2:end);
-                            obj.KUT=Ktheta;
-                            obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                            obj.KUT=KThermalLoad;
+                            obj.KTh=KTheta;
+                            obj.loadVector_mech=obj.loadVector_mech+KTheta*(Temperature_solution-str2double(reader.T0));
                             obj.SolveLinearSystemInParallel(reader.physics,bcinit)
                         end
                     end
@@ -868,10 +870,11 @@ end
                     obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
                     if strcmp(reader.physics,'decoupledthermoelectromechanical')
                         % Extract the necessary variables
-                        [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                        [obj.KStiff,KThermalLoad,KTheta] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                         Temperature_solution = obj.soldofs(1:2:end);
                         obj.KUT=KThermalLoad;
-                        obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        obj.KTh=KTheta;
+                        obj.loadVector_mech=obj.loadVector_mech+KTheta*(Temperature_solution-str2double(reader.T0));
                         obj.SolveLinearSystemInParallel(reader.physics,bcinit)
                     end
                 else
@@ -889,10 +892,11 @@ end
                     obj.soldofs(bcinit.dofs_free_)=ufree(:,end);
                     if strcmp(reader.physics,'decoupledthermoelectromechanical')
                         % Extract the necessary variables
-                        [obj.KStiff,KThermalLoad] = obj.Assembly_DecoupledThermoMech(reader, mesh);
+                        [obj.KStiff,KThermalLoad,KTheta] = obj.Assembly_DecoupledThermoMech(reader, mesh);
                         Temperature_solution = obj.soldofs(1:2:end);
                         obj.KUT=KThermalLoad;
-                        obj.loadVector_mech=obj.loadVector_mech+KThermalLoad*(Temperature_solution-str2double(reader.T0));
+                        obj.KTh=KTheta;
+                        obj.loadVector_mech=obj.loadVector_mech+KTheta*(Temperature_solution-str2double(reader.T0));
                         obj.SolveLinearSystemInParallel(reader.physics,bcinit)
                     end
             end
